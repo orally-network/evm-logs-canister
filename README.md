@@ -21,7 +21,7 @@ Our solution introduces a publish-subscribe (pub/sub) proxy model that allows de
   - **EventListener**: Periodically fetches logs based on active filters.
   - **EventEmitter**: Distributes fetched logs to the appropriate subscribers.
 
-### Subscription Process
+### Subscription Process: Implementation following [Pub-Sub ICRC72 standard](https://github.com/icdevs/ICEventsWG/blob/main/Meetings/20240529/icrc72draft.md)
 1. **Subscription Creation**:
    - Developers call the `subscribe(filter, config)` method to initiate a subscription.
    - The `filter` includes `chain_id`, `contract_address`, and `topics`.
@@ -35,6 +35,11 @@ Our solution introduces a publish-subscribe (pub/sub) proxy model that allows de
 3. **Log Handling**:
    - Each `ChainService` runs an `EventListener` based on a set interval, querying `eth_getLogs` with all current filters.
    - The `EventEmitter` processes and routes the fetched logs to the correct subscribers through the `publish(sub_id, LogEntry)` method of the `SubscriptionManager`.
+
+Notes: 
+- To avoid [DoS issues](https://internetcomputer.org/docs/current/developer-docs/security/security-best-practices/inter-canister-calls#be-aware-of-the-risks-involved-in-calling-untrustworthy-canisters) with callback mechanics (publish to subscriber), you need to use a proxy canister.
+- Future improvement (when it will be in mainnet) use (best-effort messages)[https://forum.dfinity.org/t/scalable-messaging-model/26920] for callbacks.
+- Careful cycles calculation (link)[https://internetcomputer.org/docs/current/developer-docs/gas-cost], (link)[https://internetcomputer.org/docs/current/developer-docs/cost-estimations-and-examples] 
 
 ### Sequence Diagram
 ![evm-logs-canister-sequence](https://github.com/user-attachments/assets/5e1460ba-e8ff-4416-831c-4e0eb2b57617)
