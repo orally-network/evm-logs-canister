@@ -137,4 +137,5 @@ service : {
   call_confirm_messages : (vec nat) -> (ConfirmationResult);
   icrc72_handle_notification : (EventNotification) -> ();
   icrc72_get_subscriptions : (namespace : opt text, prev : opt nat, take : opt nat64, stats_filter : opt vec ICRC16Map) -> (vec SubscriptionInfo) query;
+  get_chain_events : () -> (vec text);
 }
