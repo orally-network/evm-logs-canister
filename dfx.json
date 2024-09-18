@@ -1,0 +1,18 @@
+{
+    "canisters": {
+      "evm_logs_canister": {
+        "type": "custom",
+        "wasm": "target/wasm32-unknown-unknown/release/evm_logs_canister.wasm",
+        "candid": "src/evm_logs_canister.did",
+        "build": "cargo build --target wasm32-unknown-unknown --release"
+      }
+    },
+    "networks": {
+      "local": {
+        "bind": "127.0.0.1:8000",
+        "type": "ephemeral"
+      }
+    },
+    "version": 1
+  }
+  
