@@ -1,29 +1,34 @@
 {
-    "canisters": {
-      "evm_logs_canister": {
-        "type": "custom",
-        "wasm": "target/wasm32-unknown-unknown/release/evm_logs_canister.wasm",
-        "candid": "src/evm_logs_canister.did",
-        "build": "cargo build --target wasm32-unknown-unknown --release"
+  "canisters": {
+    "evm_logs_canister": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/evm_logs_canister.wasm",
+      "candid": "src/evm_logs_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "src/evm_logs_canister.did"
+        }
+      ]
+    },
+    "evm_rpc": {
+      "type": "custom",
+      "candid": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc.did",
+      "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "7hfb6-caaaa-aaaar-qadga-cai"
+        }
       },
-      "evm_rpc": {
-        "type": "custom",
-        "candid": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc.did",
-        "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc.wasm.gz",
-        "remote": {
-          "id": {
-            "ic": "7hfb6-caaaa-aaaar-qadga-cai"
-          }
-        },
-        "init_arg": "(record {})"
-      }
-    },
-    "networks": {
-      "local": {
-        "bind": "127.0.0.1:8000",
-        "type": "ephemeral"
-      }
-    },
-    "version": 1
-  }
-  
+      "init_arg": "(record {nodesInSubnet=12})"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}

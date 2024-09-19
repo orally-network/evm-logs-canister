@@ -110,8 +110,8 @@ fn call_get_subscriptions(
 #[update]
 #[candid_method(update)]
 async fn get_chain_events() -> Vec<String> {
-    let chain_service = ChainService::new("7hfb6-caaaa-aaaar-qadga-cai".to_string());
-    let logs_result = chain_service.fetch_logs(199, 200, None).await;
+    let chain_service = ChainService::new("be2us-64aaa-aaaaa-qaabq-cai".to_string());
+    let logs_result = chain_service.fetch_logs(100, 200, Some("0x2170Ed0880ac9A755fd29B2688956BD959F933F8".to_string())).await;
 
     match logs_result {
         Ok(logs) => logs,
