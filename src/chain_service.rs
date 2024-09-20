@@ -1,72 +1,14 @@
 use candid::{CandidType, Deserialize, Nat};
-use ic_cdk::api::call::call;
+use ic_cdk::api::call::{call, call_with_payment128};
 use candid::Principal; // Імпорт для Principal
 use std::cell::RefCell;
 use std::io::{self, Write};
 use candid::Encode;
-
-
-// All there structs are to be removed after exporting evm-epc-types crate to the project 
-#[derive(CandidType, Deserialize, Debug)]
-enum EthMainnetService {
-    Cloudflare,
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-enum BlockTag {
-    Number(Nat),
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-struct GetLogsArgs {
-    from_block: Option<BlockTag>,
-    to_block: Option<BlockTag>,
-    addresses: Vec<String>,
-    topics: Option<Vec<Vec<String>>>,
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-struct RpcConfig {
-    responseSizeEstimate: Option<Nat>,
-}
+use evm_rpc_types::{self, Nat256};
 
 pub struct ChainService {
     canister_id: String, 
 }
-
-#[derive(CandidType, Deserialize, Debug)]
-struct RpcError {
-    code: i64,
-    message: String,
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-struct LogEntry {
-    transactionHash: Option<String>,
-    blockNumber: Option<Nat>,
-    data: String,
-    topics: Vec<String>,
-    address: String,
-    logIndex: Option<Nat>,
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-enum GetLogsResult {
-    Ok(Vec<LogEntry>),
-    Err(RpcError),
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-enum RpcServices {
-    EthMainnet(Option<Vec<EthMainnetService>>),
-}
-
-#[derive(CandidType, Deserialize, Debug)]
-enum MultiGetLogsResult {
-    Consistent(GetLogsResult),
-    Inconsistent(Vec<(RpcServices, GetLogsResult)>),
-}
-
 
 impl ChainService {
     pub fn new(canister_id: String) -> Self {
@@ -77,39 +19,64 @@ impl ChainService {
         let canister_id = Principal::from_text(&self.canister_id)
             .map_err(|e| format!("Invalid canister ID: {:?}", e))?;
     
-        // RpcServices: EthMainnet з Cloudflare
-        let rpc_services = RpcServices::EthMainnet(Some(vec![EthMainnetService::Cloudflare]));
+        let rpc_services = evm_rpc_types::RpcServices::EthMainnet(Some(vec![evm_rpc_types::EthMainnetService::Cloudflare]));
     
-        let get_logs_args = GetLogsArgs {
-            from_block: Some(BlockTag::Number(Nat::from(from_block))),
-            to_block: Some(BlockTag::Number(Nat::from(to_block))),
-            addresses: match address {
-                Some(addr) => vec![addr],
-                None => vec![],
-            },
+        let get_logs_args = evm_rpc_types::GetLogsArgs {
+            from_block: Some(evm_rpc_types::BlockTag::Number(Nat256::from(from_block))),
+            to_block: Some(evm_rpc_types::BlockTag::Number(Nat256::from(to_block))),
+            addresses: address
+            .into_iter()
+            .map(|addr| addr.parse::<evm_rpc_types::Hex20>().expect("Invalid address format"))
+            .collect(),
+
             topics: None,
         };
 
-        let rpc_config: Option<RpcConfig> = None; 
+        let rpc_config: Option<evm_rpc_types::RpcConfig> = None; 
 
-        let result: Result<(MultiGetLogsResult,), _> = call(
+        let result: Result<(evm_rpc_types::MultiRpcResult<Vec<evm_rpc_types::LogEntry>>,), _> = call_with_payment128(
             canister_id, 
             "eth_getLogs", 
-            (rpc_services, rpc_config, get_logs_args)
+            (rpc_services, rpc_config, get_logs_args),
+            1000000000,
         ).await;
 
         match result {
             Ok((multi_get_logs_result,)) => {
                 match multi_get_logs_result {
-                    MultiGetLogsResult::Consistent(GetLogsResult::Ok(log_entries)) => {
-                        let logs: Vec<String> = log_entries.into_iter().map(|entry| entry.data).collect();
-                        Ok(logs)
+                    evm_rpc_types::MultiRpcResult::Consistent(evm_rpc_types::RpcResult::Ok(log_entries)) => {
+                        let logs: Vec<String> = log_entries.into_iter().map(|log_entry| {
+                            format!(
+                                "Address: {}, TxHash: {:?}, Block: {:?}, Data: {}",
+                                log_entry.address,
+                                log_entry.transaction_hash,
+                                log_entry.block_number,
+                                log_entry.data
+                            )
+                        }).collect();
+                        
+                        Ok(logs)  
                     },
-                    MultiGetLogsResult::Consistent(GetLogsResult::Err(rpc_error)) => {
-                        Err(format!("RPC Error: Code: {}, Message: {}", rpc_error.code, rpc_error.message))
+                    evm_rpc_types::MultiRpcResult::Consistent(evm_rpc_types::RpcResult::Err(rpc_error)) => {
+                        Err(format!("RPC Error: {:?}", rpc_error))
                     },
-                    MultiGetLogsResult::Inconsistent(_) => {
-                        Err("Inconsistent logs found.".to_string())
+                    evm_rpc_types::MultiRpcResult::Inconsistent(inconsistent_logs) => {
+                        let inconsistent_log_data: Vec<String> = inconsistent_logs.into_iter()
+                            .map(|(_service, result)| match result {
+                                Ok(log_entries) => log_entries.into_iter().map(|log_entry| {
+                                    format!(
+                                        "Address: {}, TxHash: {:?}, Block: {:?}, Data: {}",
+                                        log_entry.address,
+                                        log_entry.transaction_hash,
+                                        log_entry.block_number,
+                                        log_entry.data
+                                    )
+                                }).collect::<Vec<String>>().join("\n"),  
+                                Err(_) => "Error fetching log".to_string(),
+                            })
+                            .collect();
+                        
+                        Ok(inconsistent_log_data)  
                     }
                 }
             },
