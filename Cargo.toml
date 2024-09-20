@@ -7,13 +7,12 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-candid = { version = "0.9" }
-ic-cdk = "0.10.0"
-ic-cdk-macros = "0.7"
+candid = { version = "0.10" }
+ic-cdk = "0.14.0"
+ic-cdk-macros = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-evm_rpc_types = { git = "https://github.com/internet-computer-protocol/evm-rpc-canister", package = "evm_rpc_types" }
-
+evm-rpc-canister-types = "0.1"
 
 
 [package.metadata.candid]

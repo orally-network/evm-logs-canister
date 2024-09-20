@@ -21,7 +21,7 @@
           "ic": "7hfb6-caaaa-aaaar-qadga-cai"
         }
       },
-      "init_arg": "(record {nodesInSubnet=12})"
+      "init_arg": "(record {nodesInSubnet=28})"
     }
   },
   "networks": {
