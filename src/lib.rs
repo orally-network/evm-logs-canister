@@ -4,6 +4,7 @@
 mod types;
 mod utils;
 mod subscription_manager;
+mod chain_service; 
 
 use ic_cdk_macros::*;
 use candid::candid_method;
@@ -11,13 +12,23 @@ use crate::types::*;
 
 use candid::Nat;
 use ic_cdk_macros::query;
+use chain_service::ChainService;
+use std::cell::RefCell;
 
+
+thread_local! {
+    static CHAIN_SERVICE: RefCell<Option<ChainService>> = RefCell::new(None);
+}
 
 // canister init and update
 
 #[init]
 fn init() {
     subscription_manager::init();
+
+    CHAIN_SERVICE.with(|cs| {
+        *cs.borrow_mut() = Some(ChainService::new("https://rpc-url".to_string()));
+    });
 }
 
 #[pre_upgrade]
@@ -28,6 +39,9 @@ fn pre_upgrade() {
 #[post_upgrade]
 fn post_upgrade() {
     subscription_manager::post_upgrade();
+    CHAIN_SERVICE.with(|cs| {
+        *cs.borrow_mut() = Some(ChainService::new("https://rpc-url".to_string()));
+    });
 }
 
 // Orchestrator export 
@@ -88,6 +102,19 @@ fn call_get_subscriptions(
     stats_filter: Option<Vec<ICRC16Map>>,
 ) -> Vec<SubscriptionInfo> {
     subscription_manager::get_subscriptions_info(namespace, prev, take, stats_filter)
+}
+
+// ChainService: get EVM logs
+#[update]
+#[candid_method(update)]
+async fn get_chain_events() -> Vec<String> {
+    let chain_service = ChainService::new("bd3sg-teaaa-aaaaa-qaaba-cai".to_string());
+    let logs_result = chain_service.fetch_logs(20697988, 20697990, Some("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe".to_string())).await;
+
+    match logs_result {
+        Ok(logs) => logs,
+        Err(err) => vec![format!("{}", err)],
+    }
 }
 
 
