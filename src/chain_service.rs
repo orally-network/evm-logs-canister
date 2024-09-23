@@ -1,87 +1,189 @@
+use crate::subscription_manager;
+use crate::types::{Event, PublicationRegistration, RegisterPublicationResult};
 use candid::{CandidType, Deserialize, Nat};
 use ic_cdk::api::call::{call, call_with_payment128};
 use candid::Principal; // Імпорт для Principal
 use std::cell::RefCell;
 use std::io::{self, Write};
 use candid::Encode;
-use evm_rpc_types::{self, Nat256};
+use ic_cdk::api::time;
+use ic_cdk_timers::TimerId;
+use std::time::Duration;
+use std::rc::Rc;
+// use evm_rpc_types::{self, Nat256};
+
+
+use evm_rpc_canister_types::{
+    BlockTag, EthMainnetService, GetLogsArgs, EvmRpcCanister, GetBlockByNumberResult, GetLogsResult, HttpOutcallError, MultiGetBlockByNumberResult, MultiGetLogsResult, RejectionCode, RpcError, RpcServices, EVM_RPC
+};
+
 
 pub struct ChainService {
     canister_id: String, 
+    evm_rpc: EvmRpcCanister,
+    last_checked_time: RefCell<u64>,
+    timer_id: RefCell<Option<TimerId>>,
 }
 
 impl ChainService {
     pub fn new(canister_id: String) -> Self {
-        ChainService { canister_id }
+        let principal = Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap();
+        let evm_rpc = EvmRpcCanister(principal);
+        let last_checked_time = RefCell::new(time() / 1_000_000); 
+        let timer_id = RefCell::new(None);
+
+        ChainService {
+            canister_id,
+            evm_rpc,
+            last_checked_time,
+            timer_id,
+        }
     }
 
     pub async fn fetch_logs(&self, from_block: u64, to_block: u64, address: Option<String>) -> Result<Vec<String>, String> {
-        let canister_id = Principal::from_text(&self.canister_id)
-            .map_err(|e| format!("Invalid canister ID: {:?}", e))?;
-    
-        let rpc_services = evm_rpc_types::RpcServices::EthMainnet(Some(vec![evm_rpc_types::EthMainnetService::Cloudflare]));
-    
-        let get_logs_args = evm_rpc_types::GetLogsArgs {
-            from_block: Some(evm_rpc_types::BlockTag::Number(Nat256::from(from_block))),
-            to_block: Some(evm_rpc_types::BlockTag::Number(Nat256::from(to_block))),
+
+
+        let rpc_providers = RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy]));
+
+
+        let get_logs_args = GetLogsArgs {
+            fromBlock: Some(BlockTag::Number(Nat::from(from_block))),
+            toBlock: Some(BlockTag::Number(Nat::from(to_block))),
             addresses: address
             .into_iter()
-            .map(|addr| addr.parse::<evm_rpc_types::Hex20>().expect("Invalid address format"))
+            // .map(|addr| addr.parse::<Hex20>().expect("Invalid address format"))     // TODO
             .collect(),
 
             topics: None,
         };
 
-        let rpc_config: Option<evm_rpc_types::RpcConfig> = None; 
-
-        let result: Result<(evm_rpc_types::MultiRpcResult<Vec<evm_rpc_types::LogEntry>>,), _> = call_with_payment128(
-            canister_id, 
-            "eth_getLogs", 
-            (rpc_services, rpc_config, get_logs_args),
-            1000000000,
-        ).await;
+        let cycles = 10_000_000_000;
+        let (result,) = self.evm_rpc
+            .eth_get_logs(rpc_providers, None, get_logs_args, cycles)
+            .await
+            .expect("Call failed");
 
         match result {
-            Ok((multi_get_logs_result,)) => {
-                match multi_get_logs_result {
-                    evm_rpc_types::MultiRpcResult::Consistent(evm_rpc_types::RpcResult::Ok(log_entries)) => {
-                        let logs: Vec<String> = log_entries.into_iter().map(|log_entry| {
-                            format!(
-                                "Address: {}, TxHash: {:?}, Block: {:?}, Data: {}",
-                                log_entry.address,
-                                log_entry.transaction_hash,
-                                log_entry.block_number,
-                                log_entry.data
-                            )
-                        }).collect();
-                        
-                        Ok(logs)  
-                    },
-                    evm_rpc_types::MultiRpcResult::Consistent(evm_rpc_types::RpcResult::Err(rpc_error)) => {
-                        Err(format!("RPC Error: {:?}", rpc_error))
-                    },
-                    evm_rpc_types::MultiRpcResult::Inconsistent(inconsistent_logs) => {
-                        let inconsistent_log_data: Vec<String> = inconsistent_logs.into_iter()
-                            .map(|(_service, result)| match result {
-                                Ok(log_entries) => log_entries.into_iter().map(|log_entry| {
-                                    format!(
-                                        "Address: {}, TxHash: {:?}, Block: {:?}, Data: {}",
-                                        log_entry.address,
-                                        log_entry.transaction_hash,
-                                        log_entry.block_number,
-                                        log_entry.data
-                                    )
-                                }).collect::<Vec<String>>().join("\n"),  
-                                Err(_) => "Error fetching log".to_string(),
-                            })
-                            .collect();
-                        
-                        Ok(inconsistent_log_data)  
+            MultiGetLogsResult::Consistent(r) => match r {
+                GetLogsResult::Ok(block) => {
+                    let log_strings: Vec<String> = block.into_iter().map(|log_entry| {
+                        format!(
+                            "Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
+                            log_entry.address,
+                            log_entry.transactionHash,
+                            log_entry.blockNumber,
+                            log_entry.topics,
+                            log_entry.data
+                            
+                        )
+                    }).collect();
+                    Ok(log_strings)
+                },
+                GetLogsResult::Err(err) => Err(format!("{:?}", err)),
+            },
+            MultiGetLogsResult::Inconsistent(_) => {
+                Err("RPC providers gave inconsistent results".to_string())
+            }
+        }
+        
+    }
+
+
+    pub fn start_monitoring(&self, interval: Duration) {
+        let self_clone = Rc::new(self.clone()); 
+        
+        let timer_id = ic_cdk_timers::set_timer_interval(interval, move || {
+            let self_clone = Rc::clone(&self_clone);
+            let current_time = time() / 1_000_000;
+            if *self_clone.last_checked_time.borrow() < current_time {
+                ic_cdk::spawn(async move {
+                    self_clone.fetch_logs_and_update_time().await;
+                });
+            }
+        });
+
+        *self.timer_id.borrow_mut() = Some(timer_id);
+    }
+    
+
+    async fn fetch_logs_and_update_time(&self) {
+        match self.fetch_logs(20798658, 20798660, Some("0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string())).await {
+            Ok(logs) => {
+                if !logs.is_empty() {
+                    *self.last_checked_time.borrow_mut() = time() / 1_000_000;
+    
+                    for log in &logs {
+                        ic_cdk::println!("Log: {}", log);
+                    }
+    
+                    // Prepare publication registration
+                    let registration = PublicationRegistration {
+                        namespace: "your_namespace".to_string(), // Set namespace
+                        config: vec![], // Set configuration if necessary
+                        memo: None, // Set memo if needed
+                    };
+    
+                    // Register the publication
+                    let registration_result = subscription_manager::register_publication(vec![registration]).await;
+    
+                    for result in registration_result {
+                        match result {
+                            RegisterPublicationResult::Ok(pub_id) => {
+                                ic_cdk::println!("Successfully registered publication with ID: {:?}", pub_id);
+                            },
+                            _ => {
+                                ic_cdk::println!("Failed to register publication.");
+                                return; // Exit if registration fails
+                            }
+                        }
+                    }
+    
+                    // Prepare and publish events
+                    let events: Vec<Event> = logs.iter().enumerate().map(|(index, log)| {
+                        Event {
+                            id: Nat::from(index as u64 + 1),
+                            prev_id: None,
+                            timestamp: time() / 1_000_000,
+                            namespace: "your_namespace".to_string(),
+                            data: crate::ICRC16Value::Int32(5),
+                            headers: None,
+                        }
+                    }).collect();
+    
+                    let publish_result = subscription_manager::publish_events(events).await;
+    
+                    for opt_result in publish_result {
+                        match opt_result {
+                            Some(Ok(event_ids)) => {
+                                ic_cdk::println!("Event published with IDs: {:?}", event_ids);
+                            }
+                            Some(Err(error)) => {
+                                ic_cdk::println!("Failed to publish event: {:?}", error);
+                            }
+                            None => {
+                                ic_cdk::println!("Event was not published (no result available).");
+                            }
+                        }
                     }
                 }
             },
-            Err(err) => Err(format!("Error calling canister: {:?}", err)),
+            Err(e) => {
+                ic_cdk::println!("Error during logs extraction: {}", e);
+            }
         }
     }
     
+    
+
+    fn clone(&self) -> Self {
+        ChainService {
+            canister_id: self.canister_id.clone(),
+            evm_rpc: self.evm_rpc.clone(),
+            last_checked_time: RefCell::new(*self.last_checked_time.borrow()),
+            timer_id: RefCell::new(*self.timer_id.borrow()),
+        }
+    }
+
 }
+
+
