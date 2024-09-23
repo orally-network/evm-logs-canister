@@ -14,7 +14,7 @@ use candid::Nat;
 use ic_cdk_macros::query;
 use chain_service::ChainService;
 use std::cell::RefCell;
-
+use std::time::Duration;
 
 thread_local! {
     static CHAIN_SERVICE: RefCell<Option<ChainService>> = RefCell::new(None);
@@ -107,14 +107,11 @@ fn call_get_subscriptions(
 // ChainService: get EVM logs
 #[update]
 #[candid_method(update)]
-async fn get_chain_events() -> Vec<String> {
+async fn get_chain_events() -> String {
     let chain_service = ChainService::new("bd3sg-teaaa-aaaaa-qaaba-cai".to_string());
-    let logs_result = chain_service.fetch_logs(20697988, 20697990, Some("0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe".to_string())).await;
+    chain_service.start_monitoring(Duration::from_secs(10));
 
-    match logs_result {
-        Ok(logs) => logs,
-        Err(err) => vec![format!("{}", err)],
-    }
+    "Monitoring started".to_string()
 }
 
 
