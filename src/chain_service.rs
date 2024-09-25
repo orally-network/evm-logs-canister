@@ -1,5 +1,8 @@
 use crate::subscription_manager;
-use crate::types::{Event, PublicationRegistration, RegisterPublicationResult};
+use evm_logs_types::{
+    PublicationRegistration, Event, RegisterPublicationResult, ICRC16Value
+};
+
 use candid::{CandidType, Deserialize, Nat};
 use ic_cdk::api::call::{call, call_with_payment128};
 use candid::Principal; // Імпорт для Principal
@@ -118,7 +121,7 @@ impl ChainService {
     
                     // Prepare publication registration
                     let registration = PublicationRegistration {
-                        namespace: "your_namespace".to_string(), // Set namespace
+                        namespace: "com.example.myapp.events".to_string(), // Set namespace
                         config: vec![], // Set configuration if necessary
                         memo: None, // Set memo if needed
                     };
@@ -144,8 +147,8 @@ impl ChainService {
                             id: Nat::from(index as u64 + 1),
                             prev_id: None,
                             timestamp: time() / 1_000_000,
-                            namespace: "your_namespace".to_string(),
-                            data: crate::ICRC16Value::Int32(5),
+                            namespace: "com.example.myapp.events".to_string(),
+                            data: ICRC16Value::Int32(5),
                             headers: None,
                         }
                     }).collect();

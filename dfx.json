@@ -22,6 +22,18 @@
         }
       },
       "init_arg": "(record {nodesInSubnet=12})"
+    },
+    "test_canister": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
+      "candid": "src/test_canister/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "src/test_canister/test_canister.did"
+        }
+      ]
     }
   },
   "networks": {

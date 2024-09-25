@@ -3,7 +3,12 @@ use ic_cdk_macros::{init, post_upgrade, pre_upgrade};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use crate::types::*;
+use evm_logs_types:: {
+    PublicationInfo, SubscriptionInfo, Event, PublicationRegistration,
+    RegisterPublicationResult, SubscriptionRegistration, RegisterSubscriptionResult,
+    PublishError, EventNotification, ConfirmationResult, ICRC16Map
+};
+
 use crate::utils::{generate_sub_id, current_timestamp};
 
 

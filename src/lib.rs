@@ -1,20 +1,20 @@
 // #[macro_use]
 // extern crate num_derive;
-
-mod types;
 mod utils;
 mod subscription_manager;
 mod chain_service; 
 
 use ic_cdk_macros::*;
 use candid::candid_method;
-use crate::types::*;
 
 use candid::Nat;
 use ic_cdk_macros::query;
 use chain_service::ChainService;
 use std::cell::RefCell;
 use std::time::Duration;
+
+use evm_logs_types::*;
+
 
 thread_local! {
     static CHAIN_SERVICE: RefCell<Option<ChainService>> = RefCell::new(None);
