@@ -158,10 +158,10 @@ impl ChainService {
                     for opt_result in publish_result {
                         match opt_result {
                             Some(Ok(event_ids)) => {
-                                ic_cdk::println!("Event published with IDs: {:?}", event_ids);
+                                ic_cdk::println!("Event published and sent to subscribers with Event IDs: {:?}", event_ids);
                             }
                             Some(Err(error)) => {
-                                ic_cdk::println!("Failed to publish event: {:?}", error);
+                                ic_cdk::println!("Failed to publish or send event: {:?}", error);
                             }
                             None => {
                                 ic_cdk::println!("Event was not published (no result available).");

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+EVM_LOGS_CANISTER=evm_logs_canister
+TEST_CANISTER=test_canister
+CANISTER_WASM=target/wasm32-unknown-unknown/release/$(echo $EVM_LOGS_CANISTER | tr '-' '_').wasm
+
+
+check_error() {
+    if [ $? -ne 0 ]; then
+        echo "$1"
+        exit 1
+    fi
+}
+
+
+# Build the canister
+cargo build --release --target wasm32-unknown-unknown --package $EVM_LOGS_CANISTER
+check_error "Build failed"
+
+# Deploy all canisters
+dfx deploy
+check_error "Deployment failed"
+
+# Get the canister ids
+EVM_LOGS_CANISTER_ID=$(dfx canister id $EVM_LOGS_CANISTER)
+check_error "Failed to retrieve Evm Logs canister id"
+
+TEST_CANISTER_ID=$(dfx canister id $TEST_CANISTER)
+check_error "Failed to retrieve Test canister id"
+
+# Output canister ids
+echo "Evm Logs canister id: $EVM_LOGS_CANISTER_ID"
+echo "Test canister id: $TEST_CANISTER_ID"
+echo "Done"

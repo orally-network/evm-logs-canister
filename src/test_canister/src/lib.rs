@@ -1,9 +1,14 @@
 use ic_cdk::api::call::call;
 use candid::Principal;
 use candid::{CandidType, Deserialize, Nat};
-use ic_cdk_macros::{query, update};
+use ic_cdk_macros::{query, update, init};
 
 use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification};
+
+#[init]
+async fn init() {
+    ic_cdk::println!("Test_canister initialized");
+}
 
 #[update]
 async fn call_icrc72_register_subscription() {

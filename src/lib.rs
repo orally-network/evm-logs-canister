@@ -23,12 +23,16 @@ thread_local! {
 // canister init and update
 
 #[init]
-fn init() {
+async fn init() {
     subscription_manager::init();
 
     CHAIN_SERVICE.with(|cs| {
         *cs.borrow_mut() = Some(ChainService::new("https://rpc-url".to_string()));
     });
+
+    let result = get_chain_events().await;
+
+    ic_cdk::println!("{}", result);
 }
 
 #[pre_upgrade]
@@ -109,9 +113,9 @@ fn call_get_subscriptions(
 #[candid_method(update)]
 async fn get_chain_events() -> String {
     let chain_service = ChainService::new("bd3sg-teaaa-aaaaa-qaaba-cai".to_string());
-    chain_service.start_monitoring(Duration::from_secs(100));
+    chain_service.start_monitoring(Duration::from_secs(40));
 
-    "Monitoring started".to_string()
+    "EVM logs monitoring is started".to_string()
 }
 
 

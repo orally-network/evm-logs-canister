@@ -44,3 +44,4 @@ Notes:
 ### Sequence Diagram
 ![evm-logs-canister-sequence](https://github.com/user-attachments/assets/5e1460ba-e8ff-4416-831c-4e0eb2b57617)
 
+### Build and Deploy
