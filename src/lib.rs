@@ -2,7 +2,7 @@
 // extern crate num_derive;
 mod utils;
 mod subscription_manager;
-mod chain_service; 
+mod chain_service;
 
 use ic_cdk_macros::*;
 use candid::candid_method;
