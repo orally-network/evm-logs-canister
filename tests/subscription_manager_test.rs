@@ -22,8 +22,14 @@ async fn test_register_subscription() {
     pic.add_cycles(canister_id, 2_000_000_000_000).await;
     println!("Cycles added to the canister");
 
-    // TODO
-    let wasm_bytes = include_bytes!("/home/oleksandryemets/Documents/work/Orally/evm-logs-cainster/target/wasm32-unknown-unknown/release/evm_logs_canister.wasm");
+    // Read the WASM bytes from the path set in the environment variable
+    let wasm_path = std::env::var("EVM_LOGS_CANISTER_PATH")
+        .expect("EVM_LOGS_CANISTER_PATH must be set");
+
+    let wasm_bytes = tokio::fs::read(wasm_path)
+        .await
+        .expect("Failed to read the WASM file");
+
     pic.install_canister(canister_id, wasm_bytes.to_vec(), vec![], None).await;
     println!("Wasm installed in the canister");
 
