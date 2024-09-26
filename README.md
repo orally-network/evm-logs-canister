@@ -44,4 +44,24 @@ Notes:
 ### Sequence Diagram
 ![evm-logs-canister-sequence](https://github.com/user-attachments/assets/5e1460ba-e8ff-4416-831c-4e0eb2b57617)
 
-### Build and Deploy
+## Running the project locally
+
+1. **Start the DFX environment**:
+   
+   ```
+   dfx start --clean
+   ```
+   
+2. **Build:**:
+   ```
+   make build
+   ```
+3. **Deploy canisters:**
+   ```
+   make deploy
+   ```
+   
+After these steps you can locally subscribe on the evm_logs_canister from another test_canister(already built and deployed by the build scipt):
+```
+dfx canister call test_canister call_icrc72_register_subscription
+```
