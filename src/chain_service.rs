@@ -128,8 +128,8 @@ impl ChainService {
                     return;
                 }
     
-                let mut from_block = last_processed_block + 1;
-                let mut to_block = latest_block_number;
+                let from_block = last_processed_block + 1;
+                let to_block = latest_block_number;
                 
                 // TEMP
                 // if (self.config.chain_name == "Optimism") {
