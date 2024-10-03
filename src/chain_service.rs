@@ -7,24 +7,29 @@ use ic_cdk::api::call::{call, call_with_payment128};
 use ic_cdk::api::time;
 use ic_cdk_timers::TimerId;
 use std::cell::RefCell;
-use std::rc::Rc;
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 use evm_rpc_canister_types::{
     BlockTag, EthMainnetService, GetLogsArgs, GetLogsResult, MultiGetLogsResult, RpcServices, EvmRpcCanister,
+    MultiGetBlockByNumberResult, GetBlockByNumberResult,
 };
+
+use crate::utils::get_latest_block_number;
 
 #[derive(Clone)]
 pub struct ChainConfig {
     pub chain_name: String,
     pub rpc_providers: RpcServices,
     pub evm_rpc_canister: Principal,
+    pub addresses: Vec<String>, 
+    pub topics: Option<Vec<Vec<String>>>, 
 }
 
 pub struct ChainService {
     config: ChainConfig,
     evm_rpc: EvmRpcCanister,
     last_checked_time: RefCell<u64>,
+    last_processed_block: RefCell<u64>,
     timer_id: RefCell<Option<TimerId>>,
 }
 
@@ -32,12 +37,14 @@ impl ChainService {
     pub fn new(config: ChainConfig) -> Self {
         let evm_rpc = EvmRpcCanister(config.evm_rpc_canister);
         let last_checked_time = RefCell::new(time() / 1_000_000);
+        let last_processed_block = RefCell::new(0);
         let timer_id = RefCell::new(None);
 
         ChainService {
             config,
             evm_rpc,
             last_checked_time,
+            last_processed_block,
             timer_id,
         }
     }
@@ -46,13 +53,14 @@ impl ChainService {
         &self,
         from_block: u64,
         to_block: u64,
-        address: Option<String>,
+        addresses: Option<Vec<String>>,
+        topics: Option<Vec<Vec<String>>>,
     ) -> Result<Vec<String>, String> {
         let get_logs_args = GetLogsArgs {
             fromBlock: Some(BlockTag::Number(Nat::from(from_block))),
             toBlock: Some(BlockTag::Number(Nat::from(to_block))),
-            addresses: address.into_iter().collect(),
-            topics: None,
+            addresses: addresses.unwrap_or_default(),
+            topics,
         };
 
         let cycles = 10_000_000_000;
@@ -60,12 +68,12 @@ impl ChainService {
             .evm_rpc
             .eth_get_logs(self.config.rpc_providers.clone(), None, get_logs_args, cycles)
             .await
-            .expect("Call failed");
+            .map_err(|e| format!("Call failed: {:?}", e))?;
 
         match result {
             MultiGetLogsResult::Consistent(r) => match r {
-                GetLogsResult::Ok(block) => {
-                    let log_strings: Vec<String> = block
+                GetLogsResult::Ok(logs) => {
+                    let log_strings: Vec<String> = logs
                         .into_iter()
                         .map(|log_entry| {
                             format!(
@@ -102,88 +110,135 @@ impl ChainService {
     }
 
     async fn fetch_logs_and_update_time(&self) {
-        match self
-            .fetch_logs(
-                20798658,
-                20798660,
-                Some("0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string()),
-            )
-            .await
-        {
-            Ok(logs) => {
-                if !logs.is_empty() {
-                    *self.last_checked_time.borrow_mut() = time() / 1_000_000;
+        match get_latest_block_number(&self.evm_rpc, self.config.rpc_providers.clone()).await {
+            Ok(latest_block_number) => {
+                let mut last_processed_block = *self.last_processed_block.borrow();
+                ic_cdk::println!("Last processed block number for {} : {:?}", self.config.chain_name, self.last_processed_block);
+                ic_cdk::println!("Last actual block number for {} : {}", self.config.chain_name, latest_block_number);
 
-                    for log in &logs {
-                        ic_cdk::println!("Log: {}", log);
-                    }
+                if last_processed_block == 0 {
+                    // First run, set last processed block to the latest block
+                    last_processed_block = latest_block_number;
+                    *self.last_processed_block.borrow_mut() = latest_block_number;
+                    return; // Do nothing on first run
+                }
+    
+                if last_processed_block >= latest_block_number {
+                    // No new blocks
+                    return;
+                }
+    
+                let mut from_block = last_processed_block + 1;
+                let mut to_block = latest_block_number;
+                
+                // TEMP
+                // if (self.config.chain_name == "Optimism") {
+                //     from_block = 126132408;
+                //     to_block = 126132429;
+                // }
+                ic_cdk::println!("{} : Getting logs FROM {} block number TO {} block number",
+                self.config.chain_name, from_block, to_block);
+                
 
-                    // Prepare publication registration
-                    let registration = PublicationRegistration {
-                        namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
-                        config: vec![],
-                        memo: None,
-                    };
-
-                    // Register the publication
-                    let registration_result =
-                        subscription_manager::register_publication(vec![registration]).await;
-
-                    for result in registration_result {
-                        match result {
-                            RegisterPublicationResult::Ok(pub_id) => {
-                                ic_cdk::println!(
-                                    "Successfully registered publication with ID: {:?}",
-                                    pub_id
-                                );
+                match self
+                    .fetch_logs(
+                        from_block,
+                        to_block,
+                        Some(self.config.addresses.clone()),
+                        self.config.topics.clone(),
+                    )
+                    .await
+                {
+                    Ok(logs) => {
+                        // Update last_processed_block regardless of logs
+                        *self.last_processed_block.borrow_mut() = latest_block_number;
+    
+                        if !logs.is_empty() {
+                            *self.last_checked_time.borrow_mut() = time() / 1_000_000;
+    
+                            for log in &logs {
+                                ic_cdk::println!("Log: {}", log);
                             }
-                            _ => {
-                                ic_cdk::println!("Failed to register publication.");
-                                return;
+    
+                            // Prepare publication registration
+                            let registration = PublicationRegistration {
+                                namespace: format!(
+                                    "com.example.myapp.events.{}",
+                                    self.config.chain_name
+                                ),
+                                config: vec![],
+                                memo: None,
+                            };
+    
+                            // Register the publication
+                            let registration_result =
+                                subscription_manager::register_publication(vec![registration]).await;
+    
+                            for result in registration_result {
+                                match result {
+                                    RegisterPublicationResult::Ok(pub_id) => {
+                                        ic_cdk::println!(
+                                            "Successfully registered publication with ID: {:?}",
+                                            pub_id
+                                        );
+                                    }
+                                    _ => {
+                                        ic_cdk::println!("Failed to register publication.");
+                                        return;
+                                    }
+                                }
                             }
+    
+                            // Prepare and publish events
+                            let events: Vec<Event> = logs
+                                .iter()
+                                .enumerate()
+                                .map(|(index, log)| Event {
+                                    id: Nat::from(index as u64 + 1),
+                                    prev_id: None,
+                                    timestamp: time() / 1_000_000,
+                                    namespace: format!(
+                                        "com.example.myapp.events.{}",
+                                        self.config.chain_name
+                                    ),
+                                    data: ICRC16Value::Text(log.clone()),
+                                    headers: None,
+                                })
+                                .collect();
+    
+                            let publish_result = subscription_manager::publish_events(events).await;
+    
+                            for opt_result in publish_result {
+                                match opt_result {
+                                    Some(Ok(event_ids)) => {
+                                        ic_cdk::println!(
+                                            "Event published and sent to subscribers with Event IDs: {:?}",
+                                            event_ids
+                                        );
+                                    }
+                                    Some(Err(error)) => {
+                                        ic_cdk::println!("Failed to publish or send event: {:?}", error);
+                                    }
+                                    None => {
+                                        ic_cdk::println!(
+                                            "Event was not published (no result available)."
+                                        );
+                                    }
+                                }
+                            }
+                        } else {
+                            ic_cdk::println!("No new logs found.");
                         }
                     }
-
-                    // Prepare and publish events
-                    let events: Vec<Event> = logs
-                        .iter()
-                        .enumerate()
-                        .map(|(index, log)| Event {
-                            id: Nat::from(index as u64 + 1),
-                            prev_id: None,
-                            timestamp: time() / 1_000_000,
-                            namespace: format!(
-                                "com.example.myapp.events.{}",
-                                self.config.chain_name
-                            ),
-                            data: ICRC16Value::Text(log.clone()),
-                            headers: None,
-                        })
-                        .collect();
-
-                    let publish_result = subscription_manager::publish_events(events).await;
-
-                    for opt_result in publish_result {
-                        match opt_result {
-                            Some(Ok(event_ids)) => {
-                                ic_cdk::println!(
-                                    "Event published and sent to subscribers with Event IDs: {:?}",
-                                    event_ids
-                                );
-                            }
-                            Some(Err(error)) => {
-                                ic_cdk::println!("Failed to publish or send event: {:?}", error);
-                            }
-                            None => {
-                                ic_cdk::println!("Event was not published (no result available).");
-                            }
-                        }
+                    Err(e) => {
+                        ic_cdk::println!("Error during logs extraction: {}", e);
                     }
                 }
             }
             Err(e) => {
-                ic_cdk::println!("Error during logs extraction: {}", e);
+                ic_cdk::println!("Error fetching latest block number: {}", e);
             }
         }
     }
+    
 }
