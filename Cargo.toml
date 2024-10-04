@@ -24,6 +24,8 @@ serde_json = "1.0"
 evm-rpc-canister-types = "3.0.0"
 evm_logs_types = {path = "evm_logs_types"}
 tokio = "1.40.0"
+num-traits = "0.2"
+
 
 [dev-dependencies]
 pocket-ic = "4.0.0"
