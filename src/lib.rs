@@ -62,7 +62,6 @@ async fn init() {
     ic_cdk::println!("EVM logs monitoring is started");
 }
 
-// Ця структура описує параметри, які використовуються для моніторингу логів
 struct ChainMonitoringParams {
     chain_name: String,
     rpc_providers: RpcServices,
