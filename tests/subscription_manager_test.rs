@@ -503,7 +503,7 @@ async fn test_event_publishing_and_notification_delivery() {
     }
 
     // Register a publication
-    let publisher_principal = Principal::anonymous(); // Use appropriate principal
+    let publisher_principal = Principal::anonymous(); 
     let publication_registration = PublicationRegistration {
         namespace: "test_namespace".to_string(),
         config: vec![],

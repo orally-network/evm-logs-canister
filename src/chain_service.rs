@@ -1,7 +1,9 @@
 use crate::subscription_manager;
+use crate::utils::get_latest_block_number;
 use evm_logs_types::{
     PublicationRegistration, Event, RegisterPublicationResult, ICRC16Value,
 };
+use num_traits::ToPrimitive;
 use candid::{Nat, Principal};
 use ic_cdk::api::time;
 use ic_cdk_timers::TimerId;
@@ -11,8 +13,6 @@ use std::time::Duration;
 use evm_rpc_canister_types::{
     BlockTag, GetLogsArgs, GetLogsResult, MultiGetLogsResult, RpcServices, EvmRpcCanister, LogEntry,
 };
-
-use crate::utils::get_latest_block_number;
 
 #[derive(Clone)]
 pub struct ChainConfig {
@@ -50,13 +50,12 @@ impl ChainService {
     pub async fn fetch_logs(
         &self,
         from_block: u64,
-        to_block: u64,
         addresses: Option<Vec<String>>,
         topics: Option<Vec<Vec<String>>>,
     ) -> Result<Vec<LogEntry>, String> {
         let get_logs_args = GetLogsArgs {
             fromBlock: Some(BlockTag::Number(Nat::from(from_block))),
-            toBlock: Some(BlockTag::Number(Nat::from(to_block))),
+            toBlock: Some(BlockTag::Latest),
             addresses: addresses.unwrap_or_default(),
             topics,
         };
@@ -64,7 +63,12 @@ impl ChainService {
         let cycles = 10_000_000_000;
         let (result,) = self
             .evm_rpc
-            .eth_get_logs(self.config.rpc_providers.clone(), None, get_logs_args, cycles)
+            .eth_get_logs(
+                self.config.rpc_providers.clone(),
+                None,
+                get_logs_args,
+                cycles,
+            )
             .await
             .map_err(|e| format!("Call failed: {:?}", e))?;
 
@@ -92,73 +96,82 @@ impl ChainService {
     }
 
     async fn fetch_logs_and_update_time(&self) {
-        match get_latest_block_number(&self.evm_rpc, self.config.rpc_providers.clone()).await {
-            Ok(latest_block_number) => {
-                let mut last_processed_block = *self.last_processed_block.borrow();
+        let mut last_processed_block = *self.last_processed_block.borrow();
+
+        // called only once, during initialization 
+        if last_processed_block == 0 {
+            // Initialize last_processed_block to the latest block number
+            if let Ok(latest_block_number) = get_latest_block_number(&self.evm_rpc, self.config.rpc_providers.clone()).await {
+                last_processed_block = latest_block_number;
+                *self.last_processed_block.borrow_mut() = latest_block_number;
                 ic_cdk::println!(
-                    "Last processed block number for {} : {:?}",
-                    self.config.chain_name,
-                    self.last_processed_block
+                    "Initialized last_processed_block to {} for {}",
+                    latest_block_number,
+                    self.config.chain_name
                 );
+            } else {
                 ic_cdk::println!(
-                    "Last actual block number for {} : {}",
-                    self.config.chain_name,
-                    latest_block_number
+                    "Failed to initialize last_processed_block for {}",
+                    self.config.chain_name
                 );
+                return;
+            }
+        }
+    
+        let from_block = last_processed_block + 1;
 
-                if last_processed_block == 0 {
-                    last_processed_block = latest_block_number;
-                    *self.last_processed_block.borrow_mut() = latest_block_number;
-                    return; 
-                }
+        ic_cdk::println!(
+            "{}: Fetching logs from block {} to latest",
+            self.config.chain_name,
+            from_block
+        );
 
-                if last_processed_block >= latest_block_number {
-                    return;
-                }
+        match self
+            .fetch_logs(
+                from_block,
+                Some(self.config.addresses.clone()),
+                self.config.topics.clone(),
+            )
+            .await
+        {
+            Ok(logs) => {
+                if !logs.is_empty() {
+                    // Find the maximum block number from the logs
+                    let max_block_number = logs
+                    .iter()
+                    .filter_map(|log| log.blockNumber.as_ref())
+                    .filter_map(|block_number| block_number.0.to_u64())
+                    .max()
+                    .unwrap_or(last_processed_block);
+                
 
-                let from_block = last_processed_block + 1;
-                let to_block = latest_block_number;
+                    *self.last_processed_block.borrow_mut() = max_block_number;
 
-                ic_cdk::println!(
-                    "{} : Getting logs FROM {} block number TO {} block number",
-                    self.config.chain_name,
-                    from_block,
-                    to_block
-                );
+                    *self.last_checked_time.borrow_mut() = time() / 1_000_000;
 
-                match self
-                    .fetch_logs(
-                        from_block,
-                        to_block,
-                        Some(self.config.addresses.clone()),
-                        self.config.topics.clone(),
-                    )
-                    .await
-                {
-                    Ok(logs) => {
-                        *self.last_processed_block.borrow_mut() = latest_block_number;
+                    let log_strings = self.convert_logs_to_strings(&logs);
 
-                        if !logs.is_empty() {
-                            *self.last_checked_time.borrow_mut() = time() / 1_000_000;
+                    self.print_logs(&log_strings);
 
-                            let log_strings = self.convert_logs_to_strings(&logs);
-
-                            self.print_logs(&log_strings);
-
-                            if let Err(e) = self.process_events(log_strings).await {
-                                ic_cdk::println!("Error processing events: {}", e);
-                            }
-                        } else {
-                            ic_cdk::println!("No new logs found.");
-                        }
+                    if let Err(e) = self.process_events(log_strings).await {
+                        ic_cdk::println!("Error processing events: {}", e);
                     }
-                    Err(e) => {
-                        ic_cdk::println!("Error during logs extraction: {}", e);
-                    }
+                } else {
+                    // No logs found; increment last_processed_block by 1
+                    *self.last_processed_block.borrow_mut() = from_block;
+                    ic_cdk::println!(
+                        "{}: No new logs found. Advancing to block {}",
+                        self.config.chain_name,
+                        from_block
+                    );
                 }
             }
             Err(e) => {
-                ic_cdk::println!("Error fetching latest block number: {}", e);
+                ic_cdk::println!(
+                    "Error during logs extraction for {}: {}",
+                    self.config.chain_name,
+                    e
+                );
             }
         }
     }
@@ -177,7 +190,11 @@ impl ChainService {
                     self.config.chain_name,
                     log_entry.address,
                     log_entry.transactionHash,
-                    log_entry.blockNumber,
+                    log_entry
+                        .blockNumber
+                        .as_ref()
+                        .map(|n| n.0.clone())
+                        .unwrap_or_default(),
                     log_entry.topics,
                     log_entry.data
                 )
@@ -187,15 +204,13 @@ impl ChainService {
 
     async fn process_events(&self, log_strings: Vec<String>) -> Result<(), String> {
         let registration = PublicationRegistration {
-            namespace: format!(
-                "com.example.myapp.events.{}",
-                self.config.chain_name
-            ),
+            namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
             config: vec![],
             memo: None,
         };
 
-        let registration_result = subscription_manager::register_publication(vec![registration]).await;
+        let registration_result =
+            subscription_manager::register_publication(vec![registration]).await;
 
         for result in registration_result {
             match result {
@@ -219,10 +234,7 @@ impl ChainService {
                 id: Nat::from(index as u64 + 1),
                 prev_id: None,
                 timestamp: time() / 1_000_000,
-                namespace: format!(
-                    "com.example.myapp.events.{}",
-                    self.config.chain_name
-                ),
+                namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
                 data: ICRC16Value::Text(log.clone()),
                 headers: None,
             })
@@ -242,9 +254,7 @@ impl ChainService {
                     ic_cdk::println!("Failed to publish or send event: {:?}", error);
                 }
                 None => {
-                    ic_cdk::println!(
-                        "Event was not published (no result available)."
-                    );
+                    ic_cdk::println!("Event was not published (no result available).");
                 }
             }
         }
