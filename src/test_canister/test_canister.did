@@ -133,6 +133,7 @@ type SubscriptionRegistration = record {
 
 
 service : {
-  "call_icrc72_register_subscription": () -> () oneway;
-  icrc72_handle_notification : (EventNotification) -> ();
+  call_icrc72_register_subscription: () -> ();
+  icrc72_handle_notification: (EventNotification) -> ();
+  get_notifications: () -> (vec EventNotification) query;
 }
