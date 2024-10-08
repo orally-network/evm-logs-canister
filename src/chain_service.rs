@@ -1,4 +1,5 @@
 use crate::subscription_manager;
+use crate::subscription_manager::Filter;
 use crate::utils::get_latest_block_number;
 use evm_logs_types::{
     PublicationRegistration, Event, RegisterPublicationResult, ICRC16Value,
@@ -19,8 +20,6 @@ pub struct ChainConfig {
     pub chain_name: String,
     pub rpc_providers: RpcServices,
     pub evm_rpc_canister: Principal,
-    pub addresses: Vec<String>,
-    pub topics: Option<Vec<Vec<String>>>,
 }
 
 pub struct ChainService {
@@ -98,26 +97,34 @@ impl ChainService {
     async fn fetch_logs_and_update_time(&self) {
         let mut last_processed_block = *self.last_processed_block.borrow();
 
-        // called only once, during initialization 
         if last_processed_block == 0 {
             // Initialize last_processed_block to the latest block number
-            if let Ok(latest_block_number) = get_latest_block_number(&self.evm_rpc, self.config.rpc_providers.clone()).await {
-                last_processed_block = latest_block_number;
-                *self.last_processed_block.borrow_mut() = latest_block_number;
-                ic_cdk::println!(
-                    "Initialized last_processed_block to {} for {}",
-                    latest_block_number,
-                    self.config.chain_name
-                );
-            } else {
-                ic_cdk::println!(
-                    "Failed to initialize last_processed_block for {}",
-                    self.config.chain_name
-                );
-                return;
+            match get_latest_block_number(
+                &self.evm_rpc,
+                self.config.rpc_providers.clone(),
+            )
+            .await
+            {
+                Ok(latest_block_number) => {
+                    last_processed_block = latest_block_number;
+                    *self.last_processed_block.borrow_mut() = latest_block_number;
+                    ic_cdk::println!(
+                        "Initialized last_processed_block to {} for {}",
+                        latest_block_number,
+                        self.config.chain_name
+                    );
+                },
+                Err(err) => {
+                    ic_cdk::println!(
+                        "Failed to initialize last_processed_block for {}: {}",
+                        self.config.chain_name,
+                        err,
+                    );
+                    return;
+                },
             }
         }
-    
+
         let from_block = last_processed_block + 1;
 
         ic_cdk::println!(
@@ -126,12 +133,20 @@ impl ChainService {
             from_block
         );
 
+        // Get filters from subscriptions
+        let filters = subscription_manager::get_active_filters();
+
+        if filters.is_empty() {
+            ic_cdk::println!("No active filters to monitor");
+            return;
+        }
+
+        // Combine filters into addresses and topics
+        let (addresses, topics) = self.combine_filters(filters);
+
+        // Fetch logs with combined filters
         match self
-            .fetch_logs(
-                from_block,
-                Some(self.config.addresses.clone()),
-                self.config.topics.clone(),
-            )
+            .fetch_logs(from_block, Some(addresses), topics)
             .await
         {
             Ok(logs) => {
@@ -143,7 +158,6 @@ impl ChainService {
                     .filter_map(|block_number| block_number.0.to_u64())
                     .max()
                     .unwrap_or(last_processed_block);
-                
 
                     *self.last_processed_block.borrow_mut() = max_block_number;
 
@@ -259,5 +273,20 @@ impl ChainService {
             }
         }
         Ok(())
+    }
+
+    fn combine_filters(&self, filters: Vec<Filter>) -> (Vec<String>, Option<Vec<Vec<String>>>) {
+        let mut addresses = Vec::new();
+        let mut topics = Vec::new();
+
+        for filter in filters {
+            addresses.extend(filter.addresses);
+            if let Some(filter_topics) = filter.topics {
+                topics.extend(filter_topics);
+            }
+        }
+
+        let topics = if topics.is_empty() { None } else { Some(topics) };
+        (addresses, topics)
     }
 }

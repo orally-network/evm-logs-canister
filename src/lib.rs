@@ -1,3 +1,5 @@
+// lib.rs
+
 mod utils;
 mod subscription_manager;
 mod chain_service;
@@ -31,21 +33,18 @@ async fn init() {
     let chain_configs = vec![
         ChainMonitoringParams {
             chain_name: "Ethereum".to_string(),
-            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
-            addresses: vec!["0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string()],
-            topics: None,
+            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Cloudflare])),
+            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainMonitoringParams {
             chain_name: "Base".to_string(),
             rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
-            addresses: vec!["0xdC2ccCdE78754D5eC82Ea2CaACB917E1F1437568".to_string()],
-            topics: None,
+            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainMonitoringParams {
             chain_name: "Optimism".to_string(),
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
-            addresses: vec!["0xC110E7FAA95680c79937CCACa3d1caB7902bE25e".to_string()],
-            topics: None,
+            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
     ];
 
@@ -65,17 +64,14 @@ async fn init() {
 struct ChainMonitoringParams {
     chain_name: String,
     rpc_providers: RpcServices,
-    addresses: Vec<String>,
-    topics: Option<Vec<Vec<String>>>,
+    evm_rpc_canister: Principal,
 }
 
 fn init_chain_service(params: ChainMonitoringParams, monitoring_interval: Duration) -> Arc<ChainService> {
     let config = ChainConfig {
         chain_name: params.chain_name,
         rpc_providers: params.rpc_providers,
-        evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
-        addresses: params.addresses,
-        topics: params.topics,
+        evm_rpc_canister: params.evm_rpc_canister,
     };
 
     let service = Arc::new(ChainService::new(config));
@@ -83,7 +79,7 @@ fn init_chain_service(params: ChainMonitoringParams, monitoring_interval: Durati
     service
 }
 
-// Оркестратор
+// Orchestrator
 
 #[update]
 #[candid_method(update)]
