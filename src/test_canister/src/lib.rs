@@ -3,7 +3,7 @@ use candid::Principal;
 use ic_cdk_macros::{update, query, init};
 use std::cell::RefCell;
 
-use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification};
+use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification, ICRC16Map, ICRC16Value};
 
 thread_local! {
     static NOTIFICATIONS: RefCell<Vec<EventNotification>> = RefCell::new(Vec::new());
@@ -29,7 +29,12 @@ async fn call_icrc72_register_subscription() {
         .into_iter()
         .map(|namespace| SubscriptionRegistration {
             namespace: namespace.to_string(),
-            config: vec![],
+            config: vec![
+                ICRC16Map {
+                    key: ICRC16Value::Text("icrc72:subscription:filter".to_string()),
+                    value: ICRC16Value::Text("address == 0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string()),
+                },
+            ],
             memo: None,
         })
         .collect();

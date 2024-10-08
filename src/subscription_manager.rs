@@ -1,16 +1,16 @@
-use candid::{CandidType, Deserialize, Principal, Nat};
+use candid::{CandidType, Principal, Nat};
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use evm_logs_types:: {
+use evm_logs_types::{
     PublicationInfo, SubscriptionInfo, Event, PublicationRegistration,
     RegisterPublicationResult, SubscriptionRegistration, RegisterSubscriptionResult,
-    PublishError, EventNotification, ConfirmationResult, ICRC16Map
+    PublishError, EventNotification, ConfirmationResult, ICRC16Map, ICRC16Value,
 };
+use serde::{Serialize, Deserialize};
 
-use crate::utils::{generate_sub_id, current_timestamp};
-
+use crate::utils::current_timestamp;
 
 thread_local! {
     static PUBLICATIONS: RefCell<HashMap<Nat, PublicationInfo>> = RefCell::new(HashMap::new());
@@ -25,12 +25,18 @@ thread_local! {
     static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 }
 
-// #[init]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Filter {
+    pub addresses: Vec<String>,
+    pub topics: Option<Vec<Vec<String>>>,
+}
+
+// #[init]/
 pub fn init() {
     ic_cdk::println!("SubscriptionManager initialized");
 }
 
-// #[pre_upgrade]
+#[pre_upgrade]
 pub fn pre_upgrade() {
     let publications = PUBLICATIONS.with(|pubs| pubs.borrow().clone());
     let subscriptions = SUBSCRIPTIONS.with(|subs| subs.borrow().clone());
@@ -40,7 +46,7 @@ pub fn pre_upgrade() {
         .expect("Failed to save stable state");
 }
 
-// #[post_upgrade]
+#[post_upgrade]
 pub fn post_upgrade() {
     let (saved_publications, saved_subscriptions, saved_events): (
         HashMap<Nat, PublicationInfo>,
@@ -53,9 +59,6 @@ pub fn post_upgrade() {
     EVENTS.with(|evs| *evs.borrow_mut() = saved_events);
 }
 
-/// Publication registration (Orchestrator)
-// #[update(name = "icrc72_register_publication")]
-// #[candid_method(update)]
 pub async fn register_publication(
     registrations: Vec<PublicationRegistration>,
 ) -> Vec<RegisterPublicationResult> {
@@ -63,8 +66,6 @@ pub async fn register_publication(
     let mut results = Vec::new();
 
     for reg in registrations {
-        // validation
-
         let pub_id = NEXT_PUBLICATION_ID.with(|id| {
             let mut id = id.borrow_mut();
             let current_id = id.clone();
@@ -97,9 +98,47 @@ pub async fn register_publication(
     results
 }
 
-/// Subscription registration  (Orchestrator)
-// #[update(name = "icrc72_register_subscription")]
-// #[candid_method(update)]
+fn parse_filter_from_config(config: &Vec<ICRC16Map>) -> Option<Filter> {
+    for map in config {
+        if let ICRC16Value::Text(key_str) = &map.key {
+            if key_str == "icrc72:subscription:filter" {
+                if let ICRC16Value::Text(filter_str) = &map.value {
+                    return parse_filter_string(filter_str);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn parse_filter_string(filter_str: &str) -> Option<Filter> {
+    let mut addresses = Vec::new();
+    let mut topics = Vec::new();
+
+    let parts: Vec<&str> = filter_str.split("&&").collect();
+
+    for part in parts {
+        let part = part.trim();
+        if part.starts_with("address ==") {
+            let address = part["address ==".len()..].trim().to_string();
+            addresses.push(address);
+        } else if part.starts_with("topic ==") {
+            let topic = part["topic ==".len()..].trim().trim_matches('\'').to_string();
+            topics.push(vec![topic]);
+        }
+    }
+
+    if addresses.is_empty() {
+        return None; 
+    }
+
+    Some(Filter {
+        addresses,
+        topics: if topics.is_empty() { None } else { Some(topics) },
+    })
+}
+
+
 pub async fn register_subscription(
     registrations: Vec<SubscriptionRegistration>,
 ) -> Vec<RegisterSubscriptionResult> {
@@ -114,13 +153,18 @@ pub async fn register_subscription(
             current_id
         });
 
+        let filter = parse_filter_from_config(&reg.config);
+
+        // Serialize filter to string
+        let filter_str = filter.clone().map(|f| serde_json::to_string(&f).unwrap());
+
         let subscription_info = SubscriptionInfo {
             subscription_id: sub_id.clone(),
             subscriber_principal: caller,
             namespace: reg.namespace.clone(),
             config: reg.config.clone(),
-            filter: None, // TODO
-            skip: None,   // TODO
+            filter: filter_str.clone(),
+            skip: None,
             stats: vec![],
         };
 
@@ -136,9 +180,10 @@ pub async fn register_subscription(
         });
 
         ic_cdk::println!(
-            "Subscription registered: ID={}, Namespace={}",
+            "Subscription registered: ID={}, Namespace={}, Filter: {:?}",
             sub_id,
-            reg.namespace
+            reg.namespace,
+            filter
         );
 
         results.push(RegisterSubscriptionResult::Ok(sub_id));
@@ -147,9 +192,6 @@ pub async fn register_subscription(
     results
 }
 
-/// Event publishing (Broadcaster)
-// #[update(name = "icrc72_publish")]
-// #[candid_method(update)]
 pub async fn publish_events(
     events: Vec<Event>,
 ) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
@@ -194,7 +236,6 @@ pub async fn publish_events(
             evs.borrow_mut().insert(event_id.clone(), event.clone());
         });
 
-        
         distribute_event(event).await;
 
         results.push(Some(Ok(vec![event_id])));
@@ -214,9 +255,6 @@ async fn distribute_event(event: Event) {
     });
 
     for sub in subscriptions {
-        // check on filters
-        // ... TODO
-
         let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
             let mut id = id.borrow_mut();
             let current_id = id.clone();
@@ -264,32 +302,27 @@ async fn distribute_event(event: Event) {
     }
 }
 
-/// Process confirmations from subsribers (Broadcaster)
-// #[update(name = "icrc72_confirm_messages")]
-// #[candid_method(update)]
 pub async fn confirm_messages(notification_ids: Vec<Nat>) -> ConfirmationResult {
     // TODO confirm messages
+    let _ = notification_ids; // To silence unused variable warning
 
     ConfirmationResult::AllAccepted
 }
 
-/// Handle messages (Subscriber)
-// #[update(name = "icrc72_handle_notification")]
-// #[candid_method(update)]
 pub async fn handle_notification(notification: EventNotification) {
     ic_cdk::println!("Received notification: {:?}", notification);
 
     // TODO handle notification
 }
 
-/// Get Statistics (Query)
 pub fn get_subscriptions_info(
     namespace: Option<String>,
     prev: Option<Nat>,
     take: Option<u64>,
     stats_filter: Option<Vec<ICRC16Map>>,
 ) -> Vec<SubscriptionInfo> {
-    let mut subs_vec = SUBSCRIPTIONS.with(|subs| subs.borrow().values().cloned().collect::<Vec<_>>());
+    let mut subs_vec =
+        SUBSCRIPTIONS.with(|subs| subs.borrow().values().cloned().collect::<Vec<_>>());
 
     if let Some(ns) = namespace {
         subs_vec.retain(|sub| sub.namespace == ns);
@@ -303,7 +336,6 @@ pub fn get_subscriptions_info(
                 subs_vec.clear();
             }
         } else {
-            // empty vector in case nothing found
             subs_vec.clear();
         }
     }
@@ -314,8 +346,21 @@ pub fn get_subscriptions_info(
         }
     }
 
+    let _ = stats_filter; // To silence unused variable warning
+
     subs_vec
 }
 
-
-
+/// Get Active Filters (Used by ChainService)
+pub fn get_active_filters() -> Vec<Filter> {
+    SUBSCRIPTIONS.with(|subs| {
+        subs.borrow()
+            .values()
+            .filter_map(|sub| {
+                sub.filter.as_ref().and_then(|filter_str| {
+                    serde_json::from_str::<Filter>(filter_str).ok()
+                })
+            })
+            .collect()
+    })
+}
