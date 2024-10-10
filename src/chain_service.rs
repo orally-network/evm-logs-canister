@@ -95,6 +95,16 @@ impl ChainService {
     }
 
     async fn fetch_logs_and_update_time(&self) {
+
+        // Get filters from subscriptions
+        let filters = subscription_manager::get_active_filters();
+
+        if filters.is_empty() {
+            ic_cdk::println!("{} : No active filters to monitor. No fetching", self.config.chain_name);
+            return;
+        }
+
+
         let mut last_processed_block = *self.last_processed_block.borrow();
 
         if last_processed_block == 0 {
@@ -132,14 +142,6 @@ impl ChainService {
             self.config.chain_name,
             from_block
         );
-
-        // Get filters from subscriptions
-        let filters = subscription_manager::get_active_filters();
-
-        if filters.is_empty() {
-            ic_cdk::println!("No active filters to monitor");
-            return;
-        }
 
         // Combine filters into addresses and topics
         let (addresses, topics) = self.combine_filters(filters);
