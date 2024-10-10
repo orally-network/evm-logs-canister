@@ -155,15 +155,16 @@ impl ChainService {
                 if !logs.is_empty() {
                     // Find the maximum block number from the logs
                     let max_block_number = logs
-                    .iter()
-                    .filter_map(|log| log.blockNumber.as_ref())
-                    .filter_map(|block_number| block_number.0.to_u64())
-                    .max()
-                    .unwrap_or(last_processed_block);
+                        .iter()
+                        .filter_map(|log| log.blockNumber.as_ref())
+                        .filter_map(|block_number| block_number.0.to_u64())
+                        .max()
+                        .unwrap_or(last_processed_block);
 
-                    ic_cdk::println!("Last processed block new value: {}", last_processed_block);
 
                     *self.last_processed_block.borrow_mut() = max_block_number;
+
+                    ic_cdk::println!("Last processed block new value: {}", *self.last_processed_block.borrow());
 
                     *self.last_checked_time.borrow_mut() = time() / 1_000_000;
 

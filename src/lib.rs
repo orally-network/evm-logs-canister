@@ -33,7 +33,7 @@ async fn init() {
     let chain_configs = vec![
         ChainMonitoringParams {
             chain_name: "Ethereum".to_string(),
-            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Cloudflare])),
+            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainMonitoringParams {
