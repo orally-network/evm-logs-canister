@@ -159,6 +159,8 @@ impl ChainService {
                     .max()
                     .unwrap_or(last_processed_block);
 
+                    ic_cdk::println!("Last processed block new value: {}", last_processed_block);
+
                     *self.last_processed_block.borrow_mut() = max_block_number;
 
                     *self.last_checked_time.borrow_mut() = time() / 1_000_000;

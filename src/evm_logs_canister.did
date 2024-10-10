@@ -130,6 +130,11 @@ type SubscriptionRegistration = record {
   memo : opt vec nat8;
 };
 
+type Filter = record {
+    addresses: vec text;
+    topics: opt vec vec text;
+};
+
 service : {
   call_register_publication : (vec PublicationRegistration) -> (vec RegisterPublicationResult);
   icrc72_register_subscription : (vec SubscriptionRegistration) -> (vec RegisterSubscriptionResult);
@@ -138,4 +143,5 @@ service : {
   icrc72_handle_notification : (EventNotification) -> ();
   icrc72_get_subscriptions : (namespace : opt text, prev : opt nat, take : opt nat64, stats_filter : opt vec ICRC16Map) -> (vec SubscriptionInfo) query;
   get_chain_events : () -> (text);
+  get_active_filters: () -> (vec Filter) query;
 }

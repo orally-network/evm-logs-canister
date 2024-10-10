@@ -4,26 +4,44 @@ use candid;
 use tokio::time::sleep;
 use candid::Principal;
 use evm_logs_types::{
-    SubscriptionRegistration, Event, EventNotification, ICRC16Value, RegisterSubscriptionResult, SubscriptionInfo, RegisterPublicationResult, PublicationRegistration
+    SubscriptionRegistration, ICRC16Map, Event, EventNotification, ICRC16Value, 
+    RegisterSubscriptionResult, RegisterPublicationResult, PublicationRegistration
 };
+use candid::CandidType;
 use std::time::Duration;
-use std::io::{self, Write};
 use candid::Nat;
 use std::collections::HashSet;
+use serde::{Deserialize, Serialize};
+
+
+#[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
+pub struct Filter {
+    pub addresses: Vec<String>,
+    pub topics: Option<Vec<Vec<String>>>,
+}
+
 
 #[tokio::test]
-async fn test_register_subscription() {
-    println!("Starting test: test_register_subscription");
+async fn test_register_subscription_with_two_filters() {
+    println!("Starting test: test_register_subscription_with_two_filters");
 
     let pic = PocketIc::new().await;
 
-    let canister_id = pic.create_canister().await;
-    println!("Canister created, ID: {:?}", canister_id);
+    // Create the first canister
+    let canister_id_1 = pic.create_canister().await;
+    println!("First canister created, ID: {:?}", canister_id_1);
 
-    pic.add_cycles(canister_id, 2_000_000_000_000).await;
-    println!("Cycles added to the canister");
+    pic.add_cycles(canister_id_1, 2_000_000_000_000).await;
+    println!("Cycles added to the first canister");
 
-    // Read the WASM bytes from the path set in the environment variable
+    // Create the second canister
+    let canister_id_2 = pic.create_canister().await;
+    println!("Second canister created, ID: {:?}", canister_id_2);
+
+    pic.add_cycles(canister_id_2, 2_000_000_000_000).await;
+    println!("Cycles added to the second canister");
+
+    // Install the WASM bytes on both canisters
     let wasm_path = std::env::var("EVM_LOGS_CANISTER_PATH")
         .expect("EVM_LOGS_CANISTER_PATH must be set");
 
@@ -31,83 +49,168 @@ async fn test_register_subscription() {
         .await
         .expect("Failed to read the WASM file");
 
-    pic.install_canister(canister_id, wasm_bytes.to_vec(), vec![], None).await;
-    println!("Wasm installed in the canister");
+    pic.install_canister(canister_id_1, wasm_bytes.clone(), vec![], None).await;
+    println!("Wasm installed in the first canister");
 
-    let subscription_params = SubscriptionRegistration {
-        namespace: "test_namespace".to_string(),
-        config: vec![],
+    pic.install_canister(canister_id_2, wasm_bytes.clone(), vec![], None).await;
+    println!("Wasm installed in the second canister");
+
+    // Define the first set of addresses and topics
+    let addresses_to_monitor_1 = vec![
+        "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852".to_string(),
+    ];
+    let topics_to_monitor_1 = vec![
+        "0x0d4a11d5eeaac28ec3f61d100daf4d17f9k3v5h0".to_string(),
+    ];
+
+    // Define the second set of addresses and topics
+    let addresses_to_monitor_2 = vec![
+        "0x1d4a11d5eeaac28ec3f61d100daf4d40471f1854".to_string(),
+    ];
+    let topics_to_monitor_2 = vec![
+        "0x2d4a11d5eeaac28ec3f61d100daf4d17f9k3v5h5".to_string(),
+    ];
+
+    // Register the first filter for the first canister
+    let filter_string_1 = format!(
+        r#"address == "{}" && topic == "{}""#,
+        addresses_to_monitor_1[0], topics_to_monitor_1[0]
+    );
+
+    let filter_config_1 = vec![
+        ICRC16Map {
+            key: ICRC16Value::Text("icrc72:subscription:filter".to_string()),
+            value: ICRC16Value::Text(filter_string_1),
+        },
+    ];
+
+    let subscription_params_1 = SubscriptionRegistration {
+        namespace: "test_namespace_filters_1".to_string(),
+        config: filter_config_1,
         memo: None,
     };
 
-    // Call the registration function in the canister
-    println!("Calling subscription registration");
-    let result = pic.update_call(
-        canister_id,
+    // Register the second filter for the second canister
+    let filter_string_2 = format!(
+        r#"address == "{}" && topic == "{}""#,
+        addresses_to_monitor_2[0], topics_to_monitor_2[0]
+    );
+
+    let filter_config_2 = vec![
+        ICRC16Map {
+            key: ICRC16Value::Text("icrc72:subscription:filter".to_string()),
+            value: ICRC16Value::Text(filter_string_2),
+        },
+    ];
+
+    let subscription_params_2 = SubscriptionRegistration {
+        namespace: "test_namespace_filters_2".to_string(),
+        config: filter_config_2,
+        memo: None,
+    };
+
+    // Call the registration function in the first canister
+    println!("Calling subscription registration with filter in the first canister");
+    let result_1 = pic.update_call(
+        canister_id_1,
         Principal::anonymous(),
         "icrc72_register_subscription",
-        candid::encode_one(vec![subscription_params.clone()]).unwrap(),
+        candid::encode_one(vec![subscription_params_1.clone()]).unwrap(),
     ).await;
 
-    // Check the result of the subscription registration
-    match result {
-        Ok(wasm_result) => {
-            match wasm_result {
-                WasmResult::Reply(data) => {
-                    let decoded_result: Vec<RegisterSubscriptionResult> = candid::decode_one(&data).unwrap();
-                    
-                    // Verify that the subscription was successfully created
-                    match &decoded_result[0] {
-                        RegisterSubscriptionResult::Ok(sub_id) => {
-                            println!("Subscription successfully created, ID: {:?}", sub_id);
+    // Call the registration function in the second canister
+    println!("Calling subscription registration with filter in the second canister");
+    let result_2 = pic.update_call(
+        canister_id_2,
+        Principal::anonymous(),
+        "icrc72_register_subscription",
+        candid::encode_one(vec![subscription_params_2.clone()]).unwrap(),
+    ).await;
 
-                            // Now query the subscriptions
-                            let query_result = pic.query_call(
-                                canister_id,
-                                Principal::anonymous(),
-                                "icrc72_get_subscriptions",
-                                candid::encode_args::<(Option<String>, Option<Vec<()>>, Option<u64>, Option<Vec<()>>)>((
-                                    Some("test_namespace".to_string()), // namespace
-                                    None,                              // prev
-                                    None,                              // take
-                                    None,                              // stats_filter
-                                )).unwrap(),
-                            ).await;
-
-                            match query_result {
-                                Ok(WasmResult::Reply(data)) => {
-                                    // Decode the received data into a list of subscriptions
-                                    let subs_info: Vec<SubscriptionInfo> = candid::decode_one(&data).unwrap();
-                                    
-                                    assert_eq!(subs_info.len(), 1, "Expected one subscription");
-                                    assert_eq!(subs_info[0].namespace, "test_namespace", "Incorrect subscription namespace");
-
-                                    println!("Test completed successfully");
-                                }
-                                Ok(WasmResult::Reject(err)) => {
-                                    panic!("Query was rejected: {:?}", err);
-                                }
-                                Err(e) => {
-                                    panic!("Error in subscription query: {:?}", e);
-                                }
-                            }
-                        }
-                        RegisterSubscriptionResult::Err(err) => {
-                            panic!("Subscription registration error: {:?}", err);
-                        }
+    // Check the result of the subscription registration for both canisters
+    let check_subscription = |result: Result<WasmResult, pocket_ic::UserError>, expected_address: &str, expected_topic: &str| {
+        match result {
+            Ok(WasmResult::Reply(data)) => {
+                let decoded_result: Vec<RegisterSubscriptionResult> = candid::decode_one(&data).unwrap();
+                
+                match &decoded_result[0] {
+                    RegisterSubscriptionResult::Ok(sub_id) => {
+                        println!("Subscription successfully created, ID: {:?}", sub_id);
+                    }
+                    RegisterSubscriptionResult::Err(err) => {
+                        panic!("Subscription registration error: {:?}", err);
                     }
                 }
-                WasmResult::Reject(err) => {
-                    panic!("Call was rejected: {:?}", err);
-                }
+            },
+            Ok(WasmResult::Reject(err)) => {
+                panic!("Call was rejected: {:?}", err);
             }
+            Err(e) => panic!("Call error: {:?}", e),
         }
-        Err(e) => panic!("Call error: {:?}", e),
-    }
+    };
+
+    check_subscription(result_1, &addresses_to_monitor_1[0], &topics_to_monitor_1[0]);
+    check_subscription(result_2, &addresses_to_monitor_2[0], &topics_to_monitor_2[0]);
+
+    // Now query the active filters for both canisters
+    let filter_result_1 = pic.query_call(
+        canister_id_1,
+        Principal::anonymous(),
+        "get_active_filters",
+        candid::encode_args::<()>(()).unwrap(),
+    ).await;
+
+    let filter_result_2 = pic.query_call(
+        canister_id_2,
+        Principal::anonymous(),
+        "get_active_filters",
+        candid::encode_args::<()>(()).unwrap(),
+    ).await;
+
+    let check_filters = |filter_result: Result<WasmResult, pocket_ic::UserError>, expected_address: &str, expected_topic: &str| {
+        match filter_result {
+            Ok(WasmResult::Reply(data)) => {
+                let received_filters: Vec<Filter> = candid::decode_one(&data).unwrap();
+                
+                println!("\nActive filters for canister: ");
+                for (i, filter) in received_filters.iter().enumerate() {
+                    println!("Filter {}:", i + 1);
+                    println!("  Addresses: {:?}", filter.addresses);
+                    if let Some(topics) = &filter.topics {
+                        println!("  Topics: {:?}", topics);
+                    } else {
+                        println!("  Topics: None");
+                    }
+                }
+
+                assert_eq!(received_filters.len(), 1, "Expected one filter");
+                assert_eq!(received_filters[0].addresses[0].trim_matches('"'), expected_address, "Incorrect filter address");
+                
+                if let Some(received_topic) = &received_filters[0].topics {
+                    assert_eq!(
+                        received_topic[0][0].trim_matches('"'),
+                        expected_topic,
+                        "Incorrect filter topics"
+                    );
+                } else {
+                    assert!(received_filters[0].topics.is_none(), "Unexpected topics in filter");
+                }
+            },
+            Ok(WasmResult::Reject(err)) => {
+                panic!("Call was rejected: {:?}", err);
+            }
+            Err(e) => panic!("Error querying filters: {:?}", e),
+        }
+    };
+
+    check_filters(filter_result_1, &addresses_to_monitor_1[0], &topics_to_monitor_1[0]);
+    check_filters(filter_result_2, &addresses_to_monitor_2[0], &topics_to_monitor_2[0]);
 
     // Reduced sleep time for testing purposes
     sleep(Duration::from_millis(500)).await;
 }
+
+
 
 // #[tokio::test]
 // async fn test_publication_registration() {

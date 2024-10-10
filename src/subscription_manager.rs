@@ -25,7 +25,7 @@ thread_local! {
     static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
 pub struct Filter {
     pub addresses: Vec<String>,
     pub topics: Option<Vec<Vec<String>>>,

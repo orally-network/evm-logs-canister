@@ -138,6 +138,19 @@ fn call_get_subscriptions(
     subscription_manager::get_subscriptions_info(namespace, prev, take, stats_filter)
 }
 
+
+#[query(name = "get_active_filters")]
+#[candid_method(query)]
+fn get_active_filters() -> Vec<subscription_manager::Filter> {
+    subscription_manager::get_active_filters()
+    // vec![subscription_manager::Filter{
+    //         addresses: vec!["111".to_string()],
+    //         topics: Some(vec![vec!["222".to_string()]]),
+    //     }
+    // ]
+}
+
+
 // Candid interface export
 
 #[query]
