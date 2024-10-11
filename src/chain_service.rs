@@ -123,6 +123,8 @@ impl ChainService {
                         latest_block_number,
                         self.config.chain_name
                     );
+                    // Since this is the first time initialization, don't fetch logs beyond the latest block
+                    return;
                 },
                 Err(err) => {
                     ic_cdk::println!(
