@@ -61,7 +61,15 @@ Notes:
    make deploy
    ```
    
-After these steps you can locally subscribe on the evm_logs_canister from another test_canister(already built and deployed by the build scipt):
+### After these steps you can use evm-logs-canister functionality by calling implemented candid method.
+
+
+## Canister methods
+
+### Subscription
+
+You can subscribe on the evm_logs_canister from another canister by specifying your filter(test_canister already built and deployed by the build scipt for demonstration):
+
 ```
 dfx canister call test_canister call_icrc72_register_subscription '(
     principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
@@ -87,5 +95,23 @@ dfx canister call test_canister call_icrc72_register_subscription '(
             memo = null;
         }
     }
+)'
+```
+
+### Get your active subscriptions with IDs
+
+```
+dfx canister call test_canister1 get_subscriptions '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+)' 
+```
+
+### Cancel subscription(unsubscribe)
+
+
+```
+dfx canister call test_canister1 unsubscribe '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    <SUB_ID>:nat
 )'
 ```
