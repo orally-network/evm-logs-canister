@@ -15,14 +15,6 @@ pub fn current_timestamp() -> u64 {
     time()
 }
 
-pub fn generate_sub_id() -> Nat {
-    SUB_ID_COUNTER.with(|counter| {
-        let mut cnt = counter.borrow_mut();
-        *cnt += Nat::from(1u32);
-        cnt.clone()
-    })
-}
-
 pub async fn get_latest_block_number(
     evm_rpc: &EvmRpcCanister,
     rpc_providers: RpcServices,

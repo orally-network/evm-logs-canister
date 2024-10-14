@@ -43,7 +43,6 @@ async fn icrc72_handle_notification(notification: EventNotification) {
     ic_cdk::println!("Received notification for event ID: {:?}", notification.event_id);
     ic_cdk::println!("Notification details: {:?}", notification);
 
-    // Зберігання отриманого сповіщення
     NOTIFICATIONS.with(|notifs| {
         notifs.borrow_mut().push(notification);
     });
