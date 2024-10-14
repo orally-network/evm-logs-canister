@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 EVM_LOGS_CANISTER=evm_logs_canister
-TEST_CANISTER=test_canister
+TEST_CANISTER=test_canister1
 CANISTER_WASM=target/wasm32-unknown-unknown/release/$(echo $EVM_LOGS_CANISTER | tr '-' '_').wasm
 
 check_error() {

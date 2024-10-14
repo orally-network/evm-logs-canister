@@ -9,6 +9,8 @@ pub struct Event {
     pub namespace: String,
     pub data: ICRC16Value,
     pub headers: Option<Vec<ICRC16Map>>,
+    pub address: String,
+    pub topics: Option<Vec<String>>
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -62,9 +64,15 @@ pub struct SubscriptionInfo {
     pub subscriber_principal: Principal,
     pub namespace: String,
     pub config: Vec<ICRC16Map>,
-    pub filter: Option<String>,
+    pub filter: Option<Filter>,
     pub skip: Option<Skip>,
     pub stats: Vec<ICRC16Map>,
+}
+
+#[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
+pub struct Filter {
+    pub addresses: Vec<String>,
+    pub topics: Option<Vec<Vec<String>>>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -145,6 +153,14 @@ pub enum RegisterSubscriptionResult {
     Ok(Nat), // sub id
     Err(RegisterSubscriptionError),
 }
+
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum UnsubscribeResult {
+    Ok(),
+    Err(String),
+}
+
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum RegisterSubscriptionError {

@@ -107,24 +107,6 @@ async fn icrc72_publish(
     subscription_manager::publish_events(events).await
 }
 
-#[update]
-#[candid_method(update)]
-async fn call_confirm_messages(
-    notification_ids: Vec<Nat>,
-) -> ConfirmationResult {
-    subscription_manager::confirm_messages(notification_ids).await
-}
-
-// Subscriber
-
-#[update(name = "icrc72_handle_notification")]
-#[candid_method(update)]
-async fn icrc72_handle_notification(
-    notification: EventNotification,
-) {
-    subscription_manager::handle_notification(notification).await
-}
-
 // Query methods
 
 #[query(name = "icrc72_get_subscriptions")]
@@ -141,13 +123,26 @@ fn call_get_subscriptions(
 
 #[query(name = "get_active_filters")]
 #[candid_method(query)]
-fn get_active_filters() -> Vec<subscription_manager::Filter> {
+fn get_active_filters() -> Vec<evm_logs_types::Filter> {
     subscription_manager::get_active_filters()
     // vec![subscription_manager::Filter{
     //         addresses: vec!["111".to_string()],
     //         topics: Some(vec![vec!["222".to_string()]]),
     //     }
     // ]
+}
+
+#[update(name = "unsubscribe")]
+#[candid_method(update)]
+async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
+    subscription_manager::unsubscribe(ic_cdk::caller(), subscription_id)
+}
+
+
+#[query(name = "get_user_subscriptions")]
+#[candid_method(query)]
+fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
+    subscription_manager::get_user_subscriptions(ic_cdk::caller())
 }
 
 

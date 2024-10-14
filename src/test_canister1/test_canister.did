@@ -131,9 +131,18 @@ type SubscriptionRegistration = record {
 };
 
 
+type UnsubscribeResult = variant {
+    Ok : null;
+    Err : text;
+};
 
 service : {
   call_icrc72_register_subscription: (principal, vec SubscriptionRegistration) -> ();
   icrc72_handle_notification: (EventNotification) -> ();
   get_notifications: () -> (vec EventNotification) query;
+  unsubscribe: (principal, nat) -> ();
+  get_subscriptions: (principal) -> (vec SubscriptionInfo);
 }
+
+
+
