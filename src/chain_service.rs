@@ -218,30 +218,6 @@ impl ChainService {
     }
 
     async fn process_events(&self, logs: Vec<LogEntry>) -> Result<(), String> {
-        let registration = PublicationRegistration {
-            namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
-            config: vec![],
-            memo: None,
-        };
-
-        let registration_result =
-            subscription_manager::register_publication(vec![registration]).await;
-
-        for result in registration_result {
-            match result {
-                RegisterPublicationResult::Ok(pub_id) => {
-                    ic_cdk::println!(
-                        "Successfully registered publication with ID: {:?}",
-                        pub_id
-                    );
-                }
-                _ => {
-                    ic_cdk::println!("Failed to register publication.");
-                    return Err("Failed to register publication.".to_string());
-                }
-            }
-        }
-
         let events: Vec<Event> = logs
             .iter()
             .enumerate()

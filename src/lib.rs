@@ -79,15 +79,8 @@ fn init_chain_service(params: ChainMonitoringParams, monitoring_interval: Durati
     service
 }
 
-// Orchestrator
 
-#[update]
-#[candid_method(update)]
-async fn call_register_publication(
-    registrations: Vec<PublicationRegistration>,
-) -> Vec<RegisterPublicationResult> {
-    subscription_manager::register_publication(registrations).await
-}
+// Candid methods
 
 #[update(name = "icrc72_register_subscription")]
 #[candid_method(update)]
@@ -97,17 +90,6 @@ async fn call_register_subscription(
     subscription_manager::register_subscription(registrations).await
 }
 
-// Broadcaster
-
-#[update(name = "icrc72_publish")]
-#[candid_method(update)]
-async fn icrc72_publish(
-    events: Vec<Event>,
-) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
-    subscription_manager::publish_events(events).await
-}
-
-// Query methods
 
 #[query(name = "icrc72_get_subscriptions")]
 #[candid_method(query)]
@@ -120,16 +102,10 @@ fn call_get_subscriptions(
     subscription_manager::get_subscriptions_info(namespace, prev, take, stats_filter)
 }
 
-
 #[query(name = "get_active_filters")]
 #[candid_method(query)]
 fn get_active_filters() -> Vec<evm_logs_types::Filter> {
     subscription_manager::get_active_filters()
-    // vec![subscription_manager::Filter{
-    //         addresses: vec!["111".to_string()],
-    //         topics: Some(vec![vec!["222".to_string()]]),
-    //     }
-    // ]
 }
 
 #[update(name = "unsubscribe")]
@@ -144,9 +120,6 @@ async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
 fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
     subscription_manager::get_user_subscriptions(ic_cdk::caller())
 }
-
-
-// Candid interface export
 
 #[query]
 fn get_candid_pointer() -> String {

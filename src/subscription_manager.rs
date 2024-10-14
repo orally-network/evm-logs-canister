@@ -52,44 +52,6 @@ pub fn init() {
 //     EVENTS.with(|evs| *evs.borrow_mut() = saved_events);
 // }
 
-pub async fn register_publication(
-    registrations: Vec<PublicationRegistration>,
-) -> Vec<RegisterPublicationResult> {
-    let caller = ic_cdk::caller();
-    let mut results = Vec::new();
-
-    for reg in registrations {
-        let pub_id = NEXT_PUBLICATION_ID.with(|id| {
-            let mut id = id.borrow_mut();
-            let current_id = id.clone();
-            *id += Nat::from(1u32);
-            current_id
-        });
-
-        let pub_info = PublicationInfo {
-            namespace: reg.namespace.clone(),
-            config: reg.config.clone(),
-            stats: vec![],
-        };
-
-        PUBLICATIONS.with(|pubs| {
-            pubs.borrow_mut().insert(pub_id.clone(), pub_info);
-        });
-
-        PUBLISHERS.with(|pubs| {
-            pubs.borrow_mut()
-                .entry(caller)
-                .or_insert_with(Vec::new)
-                .push(pub_id.clone());
-        });
-
-        ic_cdk::println!("Publication registered: ID={}, Namespace={}", pub_id, reg.namespace);
-
-        results.push(RegisterPublicationResult::Ok(pub_id));
-    }
-
-    results
-}
 
 fn parse_filter_from_config(config: &Vec<ICRC16Map>) -> Option<Filter> {
     for map in config {
@@ -188,28 +150,6 @@ pub async fn publish_events(
     let caller = ic_cdk::caller(); // Get the current caller (publisher)
 
     for mut event in events {
-        // Check if the caller is a registered publisher for this namespace
-        let is_publisher = PUBLISHERS.with(|pubs| {
-            pubs.borrow()
-                .get(&caller)
-                .map_or(false, |pub_ids| {
-                    pub_ids.iter().any(|pub_id| {
-                        PUBLICATIONS.with(|pubs_info| {
-                            pubs_info
-                                .borrow()
-                                .get(pub_id)
-                                .map_or(false, |pub_info| pub_info.namespace == event.namespace)
-                        })
-                    })
-                })
-        });
-
-        // If the caller is not a publisher, return Unauthorized error
-        if !is_publisher {
-            results.push(Some(Err(PublishError::Unauthorized)));
-            continue;
-        }
-
         // Generate a unique event ID
         let event_id = NEXT_EVENT_ID.with(|id| {
             let mut id = id.borrow_mut();
