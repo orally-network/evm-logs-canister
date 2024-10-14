@@ -1,5 +1,5 @@
 use crate::subscription_manager;
-use crate::subscription_manager::Filter;
+use evm_logs_types::Filter;
 use crate::utils::get_latest_block_number;
 use evm_logs_types::{
     PublicationRegistration, Event, RegisterPublicationResult, ICRC16Value,
@@ -25,7 +25,6 @@ pub struct ChainConfig {
 pub struct ChainService {
     config: ChainConfig,
     evm_rpc: EvmRpcCanister,
-    last_checked_time: RefCell<u64>,
     last_processed_block: RefCell<u64>,
     timer_id: RefCell<Option<TimerId>>,
 }
@@ -33,14 +32,12 @@ pub struct ChainService {
 impl ChainService {
     pub fn new(config: ChainConfig) -> Self {
         let evm_rpc = EvmRpcCanister(config.evm_rpc_canister);
-        let last_checked_time = RefCell::new(time() / 1_000_000);
         let last_processed_block = RefCell::new(0);
         let timer_id = RefCell::new(None);
 
         ChainService {
             config,
             evm_rpc,
-            last_checked_time,
             last_processed_block,
             timer_id,
         }
@@ -87,14 +84,15 @@ impl ChainService {
         let timer_id = ic_cdk_timers::set_timer_interval(interval, move || {
             let self_clone_inner = Arc::clone(&self_clone);
             ic_cdk::spawn(async move {
-                self_clone_inner.fetch_logs_and_update_time().await;
+                self_clone_inner.logs_fetching_and_processing_task().await;
             });
         });
 
         *self.timer_id.borrow_mut() = Some(timer_id);
     }
 
-    async fn fetch_logs_and_update_time(&self) {
+
+    async fn logs_fetching_and_processing_task(&self) {
 
         // Get filters from subscriptions
         let filters = subscription_manager::get_active_filters();
@@ -103,7 +101,6 @@ impl ChainService {
             ic_cdk::println!("{} : No active filters to monitor. No fetching", self.config.chain_name);
             return;
         }
-
 
         let mut last_processed_block = *self.last_processed_block.borrow();
 
@@ -168,13 +165,14 @@ impl ChainService {
 
                     ic_cdk::println!("Last processed block new value: {}", *self.last_processed_block.borrow());
 
-                    *self.last_checked_time.borrow_mut() = time() / 1_000_000;
-
-                    let log_strings = self.convert_logs_to_strings(&logs);
+                    let log_strings = logs
+                    .iter()
+                    .map(|log_entry|{self.convert_log_to_string(log_entry)})
+                    .collect();
 
                     self.print_logs(&log_strings);
 
-                    if let Err(e) = self.process_events(log_strings).await {
+                    if let Err(e) = self.process_events(logs).await {
                         ic_cdk::println!("Error processing events: {}", e);
                     }
                 } else {
@@ -203,27 +201,23 @@ impl ChainService {
         }
     }
 
-    fn convert_logs_to_strings(&self, logs: &Vec<LogEntry>) -> Vec<String> {
-        logs.iter()
-            .map(|log_entry| {
-                format!(
-                    "Chain: {}, Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
-                    self.config.chain_name,
-                    log_entry.address,
-                    log_entry.transactionHash,
-                    log_entry
-                        .blockNumber
-                        .as_ref()
-                        .map(|n| n.0.clone())
-                        .unwrap_or_default(),
-                    log_entry.topics,
-                    log_entry.data
-                )
-            })
-            .collect()
+    fn convert_log_to_string(&self, log: &LogEntry) -> String {
+        format!(
+            "Chain: {}, Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
+            self.config.chain_name,
+            log.address,
+            log.transactionHash,
+            log
+                .blockNumber
+                .as_ref()
+                .map(|n| n.0.clone())
+                .unwrap_or_default(),
+                log.topics,
+                log.data
+        )
     }
 
-    async fn process_events(&self, log_strings: Vec<String>) -> Result<(), String> {
+    async fn process_events(&self, logs: Vec<LogEntry>) -> Result<(), String> {
         let registration = PublicationRegistration {
             namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
             config: vec![],
@@ -248,7 +242,7 @@ impl ChainService {
             }
         }
 
-        let events: Vec<Event> = log_strings
+        let events: Vec<Event> = logs
             .iter()
             .enumerate()
             .map(|(index, log)| Event {
@@ -256,8 +250,10 @@ impl ChainService {
                 prev_id: None,
                 timestamp: time() / 1_000_000,
                 namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
-                data: ICRC16Value::Text(log.clone()),
+                data: ICRC16Value::Text(self.convert_log_to_string(log)),
                 headers: None,
+                address: log.address.clone(),
+                topics: Some(log.topics.clone()),
             })
             .collect();
 
@@ -296,4 +292,6 @@ impl ChainService {
         let topics = if topics.is_empty() { None } else { Some(topics) };
         (addresses, topics)
     }
+
+
 }
