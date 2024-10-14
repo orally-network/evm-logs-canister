@@ -12,7 +12,7 @@ thread_local! {
 
 #[init]
 async fn init() {
-    ic_cdk::println!("Test_canister initialized");
+    ic_cdk::println!("Test_canister2 initialized");
 }
 
 #[update]

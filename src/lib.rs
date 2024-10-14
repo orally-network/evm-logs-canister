@@ -132,6 +132,19 @@ fn get_active_filters() -> Vec<evm_logs_types::Filter> {
     // ]
 }
 
+#[update(name = "unsubscribe")]
+#[candid_method(update)]
+async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
+    subscription_manager::unsubscribe(ic_cdk::caller(), subscription_id)
+}
+
+
+#[query(name = "get_user_subscriptions")]
+#[candid_method(query)]
+fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
+    subscription_manager::get_user_subscriptions(ic_cdk::caller())
+}
+
 
 // Candid interface export
 

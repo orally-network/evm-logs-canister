@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use evm_logs_types::{
     PublicationInfo, SubscriptionInfo, Event, PublicationRegistration,
     RegisterPublicationResult, SubscriptionRegistration, RegisterSubscriptionResult,
-    PublishError, EventNotification, ConfirmationResult, ICRC16Map, ICRC16Value, Filter
+    PublishError, EventNotification, ConfirmationResult, ICRC16Map, ICRC16Value, Filter, UnsubscribeResult
 };
 use serde::{Serialize, Deserialize};
 
@@ -367,6 +367,48 @@ pub fn get_active_filters() -> Vec<Filter> {
             .collect()
     })
 }
+
+pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
+
+    let subscription_ids = SUBSCRIBERS.with(|subs| {
+        subs.borrow()
+            .get(&caller)
+            .cloned()
+            .unwrap_or_else(|| vec![]) 
+    });
+
+    SUBSCRIPTIONS.with(|subs| {
+        subscription_ids
+            .iter()
+            .filter_map(|id| subs.borrow().get(id).cloned()) 
+            .collect()
+    })
+}
+
+pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult{
+
+    let subscription_removed = SUBSCRIPTIONS.with(|subs| {
+        let mut subs = subs.borrow_mut();
+        subs.remove(&subscription_id)
+    });
+
+    if subscription_removed.is_none() {
+        return UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id));
+    }
+
+    SUBSCRIBERS.with(|subs| {
+        let mut subs = subs.borrow_mut();
+        if let Some(sub_list) = subs.get_mut(&caller) {
+            sub_list.retain(|id| *id != subscription_id);
+            if sub_list.is_empty() {
+                subs.remove(&caller);
+            }
+        }
+    });
+
+    UnsubscribeResult::Ok()
+}
+
 
 
 #[cfg(test)]

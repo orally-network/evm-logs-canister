@@ -154,6 +154,14 @@ pub enum RegisterSubscriptionResult {
     Err(RegisterSubscriptionError),
 }
 
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum UnsubscribeResult {
+    Ok(),
+    Err(String),
+}
+
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum RegisterSubscriptionError {
     Unauthorized,
