@@ -138,7 +138,7 @@ type UnsubscribeResult = variant {
 };
 
 service : {
-  call_icrc72_register_subscription: (principal, vec SubscriptionRegistration) -> ();
+  register_subscription: (principal, vec SubscriptionRegistration) -> ();
   icrc72_handle_notification: (EventNotification) -> ();
   get_notifications: () -> (vec EventNotification) query;
 }

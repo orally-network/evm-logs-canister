@@ -31,17 +31,17 @@ async fn init() {
     let monitoring_interval = Duration::from_secs(40);
 
     let chain_configs = vec![
-        ChainMonitoringParams {
+        ChainConfig {
             chain_name: "Ethereum".to_string(),
             rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
-        ChainMonitoringParams {
+        ChainConfig {
             chain_name: "Base".to_string(),
             rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
-        ChainMonitoringParams {
+        ChainConfig {
             chain_name: "Optimism".to_string(),
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
@@ -50,7 +50,7 @@ async fn init() {
 
     let services: Vec<Arc<ChainService>> = chain_configs
         .into_iter()
-        .map(|params| init_chain_service(params, monitoring_interval))
+        .map(|config| init_chain_service(config, monitoring_interval))
         .collect();
 
     CHAIN_SERVICES.with(|services_ref| {
@@ -61,19 +61,7 @@ async fn init() {
     ic_cdk::println!("EVM logs monitoring is started");
 }
 
-struct ChainMonitoringParams {
-    chain_name: String,
-    rpc_providers: RpcServices,
-    evm_rpc_canister: Principal,
-}
-
-fn init_chain_service(params: ChainMonitoringParams, monitoring_interval: Duration) -> Arc<ChainService> {
-    let config = ChainConfig {
-        chain_name: params.chain_name,
-        rpc_providers: params.rpc_providers,
-        evm_rpc_canister: params.evm_rpc_canister,
-    };
-
+fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc<ChainService> {
     let service = Arc::new(ChainService::new(config));
     service.clone().start_monitoring(monitoring_interval);
     service
@@ -82,18 +70,19 @@ fn init_chain_service(params: ChainMonitoringParams, monitoring_interval: Durati
 
 // Candid methods
 
-#[update(name = "icrc72_register_subscription")]
+// register subscription by specified filter(adresses and topics)
+#[update(name = "register_subscription")]
 #[candid_method(update)]
-async fn call_register_subscription(
+async fn register_subscription(
     registrations: Vec<SubscriptionRegistration>,
 ) -> Vec<RegisterSubscriptionResult> {
     subscription_manager::register_subscription(registrations).await
 }
 
-
-#[query(name = "icrc72_get_subscriptions")]
+// get all evm-logs-canister subscriptions info
+#[query(name = "get_subscriptions")]
 #[candid_method(query)]
-fn call_get_subscriptions(
+fn get_subscriptions(
     namespace: Option<String>,
     prev: Option<Nat>,
     take: Option<u64>,
@@ -102,23 +91,25 @@ fn call_get_subscriptions(
     subscription_manager::get_subscriptions_info(namespace, prev, take, stats_filter)
 }
 
+// get all subscriptions assigned to the user
+#[query(name = "get_user_subscriptions")]
+#[candid_method(query)]
+fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
+    subscription_manager::get_user_subscriptions(ic_cdk::caller())
+}
+
+// get all evm-logs-canister filters info
 #[query(name = "get_active_filters")]
 #[candid_method(query)]
 fn get_active_filters() -> Vec<evm_logs_types::Filter> {
     subscription_manager::get_active_filters()
 }
 
+// unsubscribe from subcription with specified ID
 #[update(name = "unsubscribe")]
 #[candid_method(update)]
 async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
     subscription_manager::unsubscribe(ic_cdk::caller(), subscription_id)
-}
-
-
-#[query(name = "get_user_subscriptions")]
-#[candid_method(query)]
-fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
-    subscription_manager::get_user_subscriptions(ic_cdk::caller())
 }
 
 #[query]

@@ -142,14 +142,9 @@ type UnsubscribeResult = variant {
 
 
 service : {
-  call_register_publication : (vec PublicationRegistration) -> (vec RegisterPublicationResult);
-  icrc72_register_subscription : (vec SubscriptionRegistration) -> (vec RegisterSubscriptionResult);
-  icrc72_publish : (vec Event) -> (vec opt variant { Ok : vec nat; Err : PublishError });
-  call_confirm_messages : (vec nat) -> (ConfirmationResult);
-  icrc72_handle_notification : (EventNotification) -> ();
-  icrc72_get_subscriptions : (namespace : opt text, prev : opt nat, take : opt nat64, stats_filter : opt vec ICRC16Map) -> (vec SubscriptionInfo) query;
-  get_user_subscriptions : (principal) -> (vec SubscriptionInfo) query;
-  get_chain_events : () -> (text);
-  get_active_filters: () -> (vec Filter) query;
+  register_subscription : (vec SubscriptionRegistration) -> (vec RegisterSubscriptionResult);
   unsubscribe : (nat) -> (UnsubscribeResult);
+  get_subscriptions : (namespace : opt text, prev : opt nat, take : opt nat64, stats_filter : opt vec ICRC16Map) -> (vec SubscriptionInfo) query;
+  get_user_subscriptions : () -> (vec SubscriptionInfo) query;
+  get_active_filters: () -> (vec Filter) query;
 }

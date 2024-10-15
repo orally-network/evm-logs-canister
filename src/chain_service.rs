@@ -1,9 +1,7 @@
 use crate::subscription_manager;
 use evm_logs_types::Filter;
 use crate::utils::get_latest_block_number;
-use evm_logs_types::{
-    PublicationRegistration, Event, RegisterPublicationResult, ICRC16Value,
-};
+use evm_logs_types::{Event, ICRC16Value};
 use num_traits::ToPrimitive;
 use candid::{Nat, Principal};
 use ic_cdk::api::time;
@@ -102,7 +100,7 @@ impl ChainService {
             return;
         }
 
-        let mut last_processed_block = *self.last_processed_block.borrow();
+        let last_processed_block = *self.last_processed_block.borrow();
 
         if last_processed_block == 0 {
             // Initialize last_processed_block to the latest block number
@@ -113,7 +111,6 @@ impl ChainService {
             .await
             {
                 Ok(latest_block_number) => {
-                    last_processed_block = latest_block_number;
                     *self.last_processed_block.borrow_mut() = latest_block_number;
                     ic_cdk::println!(
                         "Initialized last_processed_block to {} for {}",

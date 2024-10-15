@@ -1,10 +1,9 @@
 use ic_cdk::api::call::call;
-use candid::{Principal, CandidType};
+use candid::Principal;
 use ic_cdk_macros::{update, query, init};
-use serde::Deserialize;
 use std::cell::RefCell;
 
-use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification, ICRC16Map, ICRC16Value};
+use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification};
 
 thread_local! {
     static NOTIFICATIONS: RefCell<Vec<EventNotification>> = RefCell::new(Vec::new());
@@ -16,15 +15,15 @@ async fn init() {
 }
 
 #[update]
-async fn call_icrc72_register_subscription(canister_id: Principal, registrations: Vec<SubscriptionRegistration>) {
-    ic_cdk::println!("Calling icrc72_register_subscription for namespaces:");
+async fn register_subscription(canister_id: Principal, registrations: Vec<SubscriptionRegistration>) {
+    ic_cdk::println!("Calling register_subscription for namespaces:");
     for reg in &registrations {
         ic_cdk::println!(" - {:?}", reg.namespace);
     }
 
     let result: Result<(Vec<RegisterSubscriptionResult>,), _> = call(
         canister_id,
-        "icrc72_register_subscription",
+        "register_subscription",
         (registrations,),
     )
     .await;

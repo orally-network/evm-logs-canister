@@ -71,7 +71,7 @@ Notes:
 You can subscribe on the evm_logs_canister from another canister by specifying your filter(test_canister already built and deployed by the build scipt for demonstration):
 
 ```
-dfx canister call test_canister call_icrc72_register_subscription '(
+dfx canister call test_canister1 register_subscription '(
     principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
     vec {
         record {

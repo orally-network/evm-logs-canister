@@ -1,14 +1,11 @@
-use candid::{CandidType, Principal, Nat};
-use ic_cdk_macros::{init, post_upgrade, pre_upgrade};
+use candid::{Principal, Nat};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
 use evm_logs_types::{
-    PublicationInfo, SubscriptionInfo, Event, PublicationRegistration,
-    RegisterPublicationResult, SubscriptionRegistration, RegisterSubscriptionResult,
-    PublishError, EventNotification, ConfirmationResult, ICRC16Map, ICRC16Value, Filter, UnsubscribeResult
+    PublicationInfo, SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult,
+    PublishError, EventNotification, ICRC16Map, ICRC16Value, Filter, UnsubscribeResult
 };
-use serde::{Serialize, Deserialize};
 
 use crate::utils::current_timestamp;
 
@@ -147,7 +144,6 @@ pub async fn publish_events(
     events: Vec<Event>,
 ) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     let mut results = Vec::new();
-    let caller = ic_cdk::caller(); // Get the current caller (publisher)
 
     for mut event in events {
         // Generate a unique event ID
