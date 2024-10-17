@@ -1,24 +1,26 @@
 use candid::{Principal, Nat};
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::HashSet};
 use std::collections::HashMap;
 
 use evm_logs_types::{
-    SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult,
-    EventNotification, PublishError, ICRC16Map, ICRC16Value, Filter, UnsubscribeResult
+    SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult, RegisterSubscriptionError,
+    EventNotification, PublishError, Filter, UnsubscribeResult
 };
 
 use crate::utils::current_timestamp;
 
 thread_local! {
     static SUBSCRIPTIONS: RefCell<HashMap<Nat, SubscriptionInfo>> = RefCell::new(HashMap::new());
-    static PUBLISHERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
     static SUBSCRIBERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
     static EVENTS: RefCell<HashMap<Nat, Event>> = RefCell::new(HashMap::new());
 
-    static NEXT_PUBLICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     static NEXT_EVENT_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
+
+    // these fields are for performance optimization. ChainService will directly get these values and pass to evm-rpc-canister
+    static ADDRESSES: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
+    static TOPICS: RefCell<HashMap<Vec<String>, u64>> = RefCell::new(HashMap::new());
 }
 
 pub fn init() {
@@ -49,47 +51,6 @@ pub fn init() {
 // }
 
 
-fn parse_filter_from_config(config: &Vec<ICRC16Map>) -> Option<Filter> {
-    for map in config {
-        if let ICRC16Value::Text(key_str) = &map.key {
-            if key_str == "icrc72:subscription:filter" {
-                if let ICRC16Value::Text(filter_str) = &map.value {
-                    return parse_filter_string(filter_str);
-                }
-            }
-        }
-    }
-    None
-}
-
-fn parse_filter_string(filter_str: &str) -> Option<Filter> {
-    let mut addresses = Vec::new();
-    let mut topics = Vec::new();
-
-    let parts: Vec<&str> = filter_str.split("&&").collect();
-
-    for part in parts {
-        let part = part.trim();
-        if part.starts_with("address ==") {
-            let address = part["address ==".len()..].trim().to_string();
-            addresses.push(address);
-        } else if part.starts_with("topic ==") {
-            let topic = part["topic ==".len()..].trim().trim_matches('\'').to_string();
-            topics.push(vec![topic]);
-        }
-    }
-
-    if addresses.is_empty() {
-        return None;
-    }
-
-    Some(Filter {
-        addresses,
-        topics: if topics.is_empty() { None } else { Some(topics) },
-    })
-
-}
-
 pub async fn register_subscription(
     registrations: Vec<SubscriptionRegistration>,
 ) -> Vec<RegisterSubscriptionResult> {
@@ -97,6 +58,33 @@ pub async fn register_subscription(
     let mut results = Vec::new();
 
     for reg in registrations {
+        let filters= reg.filters.clone();
+
+        let existing_subscription = SUBSCRIBERS.with(|subs| {
+            subs.borrow()
+                .get(&caller)
+                .and_then(|sub_ids| {
+                    sub_ids.iter().find_map(|sub_id| {
+                        SUBSCRIPTIONS.with(|subs| {
+                            subs.borrow()
+                                .get(sub_id)
+                                .filter(|sub_info| sub_info.filters == filters)
+                                .cloned()
+                        })
+                    })
+                })
+        });
+
+        if let Some(_) = existing_subscription {
+            ic_cdk::println!(
+                "Subscription already exists for caller {} with the same filters",
+                caller
+            );
+            results.push(RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists));
+            continue;
+        }
+
+
         let sub_id = NEXT_SUBSCRIPTION_ID.with(|id| {
             let mut id = id.borrow_mut();
             let current_id = id.clone();
@@ -104,17 +92,38 @@ pub async fn register_subscription(
             current_id
         });
 
-        let filters= reg.filters.clone();
-
         let subscription_info = SubscriptionInfo {
             subscription_id: sub_id.clone(),
             subscriber_principal: caller,
             namespace: reg.namespace.clone(),
-            filters: filters,
+            filters: filters.clone(),
             skip: None,
             stats: vec![],
         };
 
+
+
+        ADDRESSES.with(|addr_map| {
+            let mut addr_count_map = addr_map.borrow_mut();
+            for filter in &filters {
+                for address in &filter.addresses {
+                    *addr_count_map.entry(address.clone()).or_insert(0) += 1;
+                }
+            }
+        });
+
+        TOPICS.with(|topic_map| {
+            let mut topic_count_map = topic_map.borrow_mut();
+            for filter in &filters {
+                if let Some(filter_topics) = &filter.topics {
+                    for topic in filter_topics {
+                        *topic_count_map.entry(topic.clone()).or_insert(0) += 1;
+                    }
+                }
+            }
+        });
+
+        
         SUBSCRIPTIONS.with(|subs| {
             subs.borrow_mut().insert(sub_id.clone(), subscription_info);
         });
@@ -282,7 +291,7 @@ pub fn get_subscriptions_info(
     subs_vec
 }
 
-/// Get Active Filters (Used by ChainService)
+
 pub fn get_active_filters() -> Vec<Filter> {
     SUBSCRIPTIONS.with(|subs| {
         subs.borrow()
@@ -291,6 +300,31 @@ pub fn get_active_filters() -> Vec<Filter> {
             .collect()
     })
 }
+
+
+// Get addresses and topics to pass to eth_getLogs. Must be unique
+pub fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
+    let addresses: Vec<String> = ADDRESSES.with(|addr| {
+        addr.borrow().keys().cloned().collect()
+    });
+
+    let topics: Option<Vec<Vec<String>>> = TOPICS.with(|tpc| {
+        let mut all_topics: Vec<String> = vec![];
+    
+        for topic_vec in tpc.borrow().keys() {
+            all_topics.extend(topic_vec.clone());  
+        }
+    
+        if all_topics.is_empty() {
+            None
+        } else {
+            Some(vec![all_topics])  
+        }
+    });
+
+    (addresses, topics)
+}
+
 
 
 pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
@@ -310,86 +344,61 @@ pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
     })
 }
 
-pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult{
-
+pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult {
     let subscription_removed = SUBSCRIPTIONS.with(|subs| {
         let mut subs = subs.borrow_mut();
         subs.remove(&subscription_id)
     });
 
-    if subscription_removed.is_none() {
-        return UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id));
-    }
+    if let Some(subscription_info) = subscription_removed {
+        let filters = subscription_info.filters;
 
-    SUBSCRIBERS.with(|subs| {
-        let mut subs = subs.borrow_mut();
-        if let Some(sub_list) = subs.get_mut(&caller) {
-            sub_list.retain(|id| *id != subscription_id);
-            if sub_list.is_empty() {
-                subs.remove(&caller);
+        ADDRESSES.with(|addr_map| {
+            let mut addr_count_map = addr_map.borrow_mut();
+            for filter in &filters {
+                for address in &filter.addresses {
+                    if let Some(count) = addr_count_map.get_mut(address) {
+                        *count -= 1;
+                        if *count == 0 {
+                            addr_count_map.remove(address);  
+                        }
+                    }
+                }
             }
-        }
-    });
+        });
 
-    UnsubscribeResult::Ok()
-}
+        TOPICS.with(|topic_map| {
+            let mut topic_count_map = topic_map.borrow_mut();
+            for filter in &filters {
+                if let Some(filter_topics) = &filter.topics {
+                    for topic in filter_topics {
+                        if let Some(count) = topic_count_map.get_mut(topic) {
+                            *count -= 1;
+                            if *count == 0 {
+                                topic_count_map.remove(topic);  
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
+        SUBSCRIBERS.with(|subs| {
+            let mut subs = subs.borrow_mut();
+            if let Some(sub_list) = subs.get_mut(&caller) {
+                sub_list.retain(|id| *id != subscription_id);
+                if sub_list.is_empty() {
+                    subs.remove(&caller);
+                }
+            }
+        });
 
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_filter_string_with_address() {
-        let filter_str = "address == 0x123";
-        let result = parse_filter_string(filter_str);
-        
-        println!("{}", filter_str);
-
-        assert!(result.is_some());
-        let filter = result.unwrap();
-        assert_eq!(filter.addresses, vec!["0x123".to_string()]);
-        assert!(filter.topics.is_none());
-    }
-
-    #[test]
-    fn test_parse_filter_string_with_address_and_topic() {
-        let filter_str = "address == 0x123 && topic == '0x456'";
-        let result = parse_filter_string(filter_str);
-        
-        assert!(result.is_some());
-        let filter = result.unwrap();
-        assert_eq!(filter.addresses, vec!["0x123".to_string()]);
-        assert_eq!(filter.topics, Some(vec![vec!["0x456".to_string()]]));
-    }
-
-    #[test]
-    fn test_parse_filter_string_with_multiple_addresses_and_topics() {
-        let filter_str = "address == 0x123 && topic == '0x456' && address == 0x789";
-        let result = parse_filter_string(filter_str);
-        
-        assert!(result.is_some());
-        let filter = result.unwrap();
-        assert_eq!(filter.addresses, vec!["0x123".to_string(), "0x789".to_string()]);
-        assert_eq!(filter.topics, Some(vec![vec!["0x456".to_string()]]));
-    }
-
-    #[test]
-    fn test_parse_filter_string_with_no_address() {
-        let filter_str = "topic == '0x456'";
-        let result = parse_filter_string(filter_str);
-        
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn test_parse_filter_string_with_empty_string() {
-        let filter_str = "";
-        let result = parse_filter_string(filter_str);
-        
-        assert!(result.is_none());
+        UnsubscribeResult::Ok()
+    } else {
+        UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))
     }
 }
+
+
 
 

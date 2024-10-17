@@ -75,7 +75,7 @@ dfx canister call test_canister2 register_subscription '(
     principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
     vec {
         record {
-            namespace = "com.example.myapp.events.Ethereum";
+            namespace = "com.events.Ethereum";
             filters = vec {
                 record {
                     addresses = vec { "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" };

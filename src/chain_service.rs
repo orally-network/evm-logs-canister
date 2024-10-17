@@ -12,6 +12,7 @@ use std::time::Duration;
 use evm_rpc_canister_types::{
     BlockTag, GetLogsArgs, GetLogsResult, MultiGetLogsResult, RpcServices, EvmRpcCanister, LogEntry,
 };
+use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct ChainConfig {
@@ -93,9 +94,9 @@ impl ChainService {
     async fn logs_fetching_and_processing_task(&self) {
 
         // Get filters from subscriptions
-        let filters = subscription_manager::get_active_filters();
+        let (addresses, topics) = subscription_manager::get_active_addresses_and_topics();
 
-        if filters.is_empty() {
+        if addresses.is_empty() && topics.is_none() {
             ic_cdk::println!("{} : No active filters to monitor. No fetching", self.config.chain_name);
             return;
         }
@@ -139,8 +140,6 @@ impl ChainService {
             from_block
         );
 
-        // Combine filters into addresses and topics
-        let (addresses, topics) = self.combine_filters(filters);
 
         // Fetch logs with combined filters
         match self
@@ -222,7 +221,7 @@ impl ChainService {
                 id: Nat::from(index as u64 + 1),
                 prev_id: None,
                 timestamp: time() / 1_000_000,
-                namespace: format!("com.example.myapp.events.{}", self.config.chain_name),
+                namespace: format!("com.events.{}", self.config.chain_name),
                 data: ICRC16Value::Text(self.convert_log_to_string(log)),
                 headers: None,
                 address: log.address.clone(),
@@ -250,21 +249,5 @@ impl ChainService {
         }
         Ok(())
     }
-
-    fn combine_filters(&self, filters: Vec<Filter>) -> (Vec<String>, Option<Vec<Vec<String>>>) {
-        let mut addresses = Vec::new();
-        let mut topics = Vec::new();
-
-        for filter in filters {
-            addresses.extend(filter.addresses);
-            if let Some(filter_topics) = filter.topics {
-                topics.extend(filter_topics);
-            }
-        }
-
-        let topics = if topics.is_empty() { None } else { Some(topics) };
-        (addresses, topics)
-    }
-
 
 }

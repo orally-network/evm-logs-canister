@@ -79,15 +79,11 @@ async fn register_subscription(
     subscription_manager::register_subscription(registrations).await
 }
 
-// get all evm-logs-canister subscriptions info
-#[query(name = "get_subscriptions")]
-#[candid_method(query)]
-fn get_subscriptions(
-    namespace: Option<String>,
-    from_id: Option<Nat>,
-    filters: Option<Vec<Filter>>,
-) -> Vec<SubscriptionInfo> {
-    subscription_manager::get_subscriptions_info(namespace, from_id, filters)
+// unsubscribe from subcription with specified ID
+#[update(name = "unsubscribe")]
+#[candid_method(update)]
+async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
+    subscription_manager::unsubscribe(ic_cdk::caller(), subscription_id)
 }
 
 // get all subscriptions assigned to the user
@@ -97,18 +93,31 @@ fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
     subscription_manager::get_user_subscriptions(ic_cdk::caller())
 }
 
-// get all evm-logs-canister filters info
+// generally for testing purpose
+
+// get all evm-logs-canister filters info. 
 #[query(name = "get_active_filters")]
 #[candid_method(query)]
 fn get_active_filters() -> Vec<evm_logs_types::Filter> {
     subscription_manager::get_active_filters()
 }
 
-// unsubscribe from subcription with specified ID
-#[update(name = "unsubscribe")]
-#[candid_method(update)]
-async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
-    subscription_manager::unsubscribe(ic_cdk::caller(), subscription_id)
+// get all evm-logs-canister addresses and topics which are being monitored. Must be unique
+#[query(name = "get_active_addresses_and_topics")]
+#[candid_method(query)]
+fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
+    subscription_manager::get_active_addresses_and_topics()
+}
+
+// get all evm-logs-canister subscriptions info
+#[query(name = "get_subscriptions")]
+#[candid_method(query)]
+fn get_subscriptions(
+    namespace: Option<String>,
+    from_id: Option<Nat>,
+    filters: Option<Vec<Filter>>,
+) -> Vec<SubscriptionInfo> {
+    subscription_manager::get_subscriptions_info(namespace, from_id, filters)
 }
 
 #[query]

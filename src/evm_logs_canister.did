@@ -120,4 +120,5 @@ service : {
   get_subscriptions : (namespace : opt text, from_id : opt nat, stats_filter : opt vec Filter) -> (vec SubscriptionInfo) query;
   get_user_subscriptions : () -> (vec SubscriptionInfo) query;
   get_active_filters: () -> (vec Filter) query;
+  get_active_addresses_and_topics: () -> (vec text, opt vec vec text) query;
 }
