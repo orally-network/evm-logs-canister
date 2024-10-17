@@ -72,31 +72,6 @@ type ICRC16ValueMap = record {
   value : ICRC16Value;
 };
 
-type PublicationRegistration = record {
-  namespace : text;
-  config : vec ICRC16Map;
-  memo : opt vec nat8;
-};
-
-type PublishError = variant {
-  Unauthorized : null;
-  ImproperId : text;
-  Busy : null;
-  GenericError : GenericError;
-};
-
-type RegisterPublicationError = variant {
-  Unauthorized : null;
-  UnauthorizedPublisher : record { namespace : text };
-  ImproperConfig : text;
-  GenericError : GenericError;
-};
-
-type RegisterPublicationResult = variant {
-  Ok : nat;
-  Err : RegisterPublicationError;
-};
-
 type RegisterSubscriptionError = variant {
   Unauthorized : null;
   UnauthorizedSubscriber : record { namespace : text };
@@ -118,15 +93,13 @@ type SubscriptionInfo = record {
   subscription_id : nat;
   subscriber_principal : principal;
   namespace : text;
-  config : vec ICRC16Map;
-  filter : opt text;
-  skip : opt Skip;
+  filters : vec Filter;
   stats : vec ICRC16Map;
 };
 
 type SubscriptionRegistration = record {
   namespace : text;
-  config : vec ICRC16Map;
+  filters : vec Filter;
   memo : opt vec nat8;
 };
 
@@ -144,7 +117,7 @@ type UnsubscribeResult = variant {
 service : {
   register_subscription : (vec SubscriptionRegistration) -> (vec RegisterSubscriptionResult);
   unsubscribe : (nat) -> (UnsubscribeResult);
-  get_subscriptions : (namespace : opt text, prev : opt nat, take : opt nat64, stats_filter : opt vec ICRC16Map) -> (vec SubscriptionInfo) query;
+  get_subscriptions : (namespace : opt text, from_id : opt nat, stats_filter : opt vec Filter) -> (vec SubscriptionInfo) query;
   get_user_subscriptions : () -> (vec SubscriptionInfo) query;
   get_active_filters: () -> (vec Filter) query;
 }

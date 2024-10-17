@@ -84,11 +84,10 @@ async fn register_subscription(
 #[candid_method(query)]
 fn get_subscriptions(
     namespace: Option<String>,
-    prev: Option<Nat>,
-    take: Option<u64>,
-    stats_filter: Option<Vec<ICRC16Map>>,
+    from_id: Option<Nat>,
+    filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
-    subscription_manager::get_subscriptions_info(namespace, prev, take, stats_filter)
+    subscription_manager::get_subscriptions_info(namespace, from_id, filters)
 }
 
 // get all subscriptions assigned to the user
