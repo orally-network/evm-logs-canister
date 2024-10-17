@@ -71,29 +71,19 @@ Notes:
 You can subscribe on the evm_logs_canister from another canister by specifying your filter(test_canister already built and deployed by the build scipt for demonstration):
 
 ```
-dfx canister call test_canister1 register_subscription '(
+dfx canister call test_canister2 register_subscription '(
     principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
     vec {
         record {
             namespace = "com.example.myapp.events.Ethereum";
-            config = vec {
+            filters = vec {
                 record {
-                    key = variant { Text = "icrc72:subscription:filter" };
-                    value = variant { Text = "address == 0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
-                }
+                    addresses = vec { "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" };
+                    topics = null;
+                };
             };
             memo = null;
         };
-        record {
-            namespace = "com.example.myapp.events.Optimism";
-            config = vec {
-                record {
-                    key = variant { Text = "icrc72:subscription:filter" };
-                    value = variant { Text = "address == 0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
-                }
-            };
-            memo = null;
-        }
     }
 )'
 ```

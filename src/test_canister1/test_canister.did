@@ -72,31 +72,6 @@ type ICRC16ValueMap = record {
   value : ICRC16Value;
 };
 
-type PublicationRegistration = record {
-  namespace : text;
-  config : vec ICRC16Map;
-  memo : opt vec nat8;
-};
-
-type PublishError = variant {
-  Unauthorized : null;
-  ImproperId : text;
-  Busy : null;
-  GenericError : GenericError;
-};
-
-type RegisterPublicationError = variant {
-  Unauthorized : null;
-  UnauthorizedPublisher : record { namespace : text };
-  ImproperConfig : text;
-  GenericError : GenericError;
-};
-
-type RegisterPublicationResult = variant {
-  Ok : nat;
-  Err : RegisterPublicationError;
-};
-
 type RegisterSubscriptionError = variant {
   Unauthorized : null;
   UnauthorizedSubscriber : record { namespace : text };
@@ -109,27 +84,25 @@ type RegisterSubscriptionResult = variant {
   Err : RegisterSubscriptionError;
 };
 
-type Skip = record {
-  modulus : nat;
-  offset : opt nat;
-};
 
 type SubscriptionInfo = record {
   subscription_id : nat;
   subscriber_principal : principal;
   namespace : text;
-  config : vec ICRC16Map;
-  filter : opt text;
-  skip : opt Skip;
+  filters : vec Filter;
   stats : vec ICRC16Map;
 };
 
 type SubscriptionRegistration = record {
   namespace : text;
-  config : vec ICRC16Map;
+  filters : vec Filter;
   memo : opt vec nat8;
 };
 
+type Filter = record {
+    addresses: vec text;
+    topics: opt vec vec text;
+};
 
 type UnsubscribeResult = variant {
     Ok : null;

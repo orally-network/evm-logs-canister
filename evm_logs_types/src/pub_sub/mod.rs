@@ -37,25 +37,12 @@ pub struct EventRelay {
     pub headers: Option<Vec<ICRC16Map>>,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct PublicationRegistration {
-    pub namespace: String,
-    pub config: Vec<ICRC16Map>,
-    pub memo: Option<Vec<u8>>, // Blob
-}
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SubscriptionRegistration {
     pub namespace: String,
-    pub config: Vec<ICRC16Map>,
+    pub filters: Vec<Filter>,
     pub memo: Option<Vec<u8>>, // Blob
-}
-
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct PublicationInfo {
-    pub namespace: String,
-    pub config: Vec<ICRC16Map>,
-    pub stats: Vec<ICRC16Map>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -63,8 +50,7 @@ pub struct SubscriptionInfo {
     pub subscription_id: Nat,
     pub subscriber_principal: Principal,
     pub namespace: String,
-    pub config: Vec<ICRC16Map>,
-    pub filter: Option<Filter>,
+    pub filters: Vec<Filter>,
     pub skip: Option<Skip>,
     pub stats: Vec<ICRC16Map>,
 }
@@ -134,19 +120,7 @@ pub struct GenericError {
     pub message: String,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub enum RegisterPublicationResult {
-    Ok(Nat), // pub id
-    Err(RegisterPublicationError),
-}
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub enum RegisterPublicationError {
-    Unauthorized,
-    UnauthorizedPublisher { namespace: String },
-    ImproperConfig(String),
-    GenericError(GenericError),
-}
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum RegisterSubscriptionResult {

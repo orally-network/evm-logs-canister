@@ -3,14 +3,13 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use evm_logs_types::{
-    PublicationInfo, SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult,
-    PublishError, EventNotification, ICRC16Map, ICRC16Value, Filter, UnsubscribeResult
+    SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult,
+    EventNotification, PublishError, ICRC16Map, ICRC16Value, Filter, UnsubscribeResult
 };
 
 use crate::utils::current_timestamp;
 
 thread_local! {
-    static PUBLICATIONS: RefCell<HashMap<Nat, PublicationInfo>> = RefCell::new(HashMap::new());
     static SUBSCRIPTIONS: RefCell<HashMap<Nat, SubscriptionInfo>> = RefCell::new(HashMap::new());
     static PUBLISHERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
     static SUBSCRIBERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
@@ -105,14 +104,13 @@ pub async fn register_subscription(
             current_id
         });
 
-        let filter = parse_filter_from_config(&reg.config);
+        let filters= reg.filters.clone();
 
         let subscription_info = SubscriptionInfo {
             subscription_id: sub_id.clone(),
             subscriber_principal: caller,
             namespace: reg.namespace.clone(),
-            config: reg.config.clone(),
-            filter,
+            filters: filters,
             skip: None,
             stats: vec![],
         };
@@ -186,7 +184,8 @@ async fn distribute_event(event: Event) {
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
-        if let Some(filter) = &sub.filter {
+        let filters= &sub.filters;
+        for filter in filters {
             // Check if the event matches the subscriber's filter
             if event_matches_filter(&event, filter) {
                 // Generate a unique notification ID
@@ -236,9 +235,7 @@ async fn distribute_event(event: Event) {
                     }
                 }
             }
-            // TODO
         }
-
     }
 }
 
@@ -258,9 +255,8 @@ fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool {
 
 pub fn get_subscriptions_info(
     namespace: Option<String>,
-    prev: Option<Nat>,
-    take: Option<u64>,
-    stats_filter: Option<Vec<ICRC16Map>>,
+    from_id: Option<Nat>,
+    filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
     let mut subs_vec =
         SUBSCRIPTIONS.with(|subs| subs.borrow().values().cloned().collect::<Vec<_>>());
@@ -269,7 +265,7 @@ pub fn get_subscriptions_info(
         subs_vec.retain(|sub| sub.namespace == ns);
     }
 
-    if let Some(prev_id) = prev {
+    if let Some(prev_id) = from_id {
         if let Some(pos) = subs_vec.iter().position(|sub| sub.subscription_id == prev_id) {
             if pos + 1 < subs_vec.len() {
                 subs_vec = subs_vec.split_off(pos + 1);
@@ -281,13 +277,7 @@ pub fn get_subscriptions_info(
         }
     }
 
-    if let Some(take_number) = take {
-        if subs_vec.len() > take_number as usize {
-            subs_vec.truncate(take_number as usize);
-        }
-    }
-
-    let _ = stats_filter; // To silence unused variable warning
+    let _ = filters; // To silence unused variable warning
 
     subs_vec
 }
@@ -297,12 +287,11 @@ pub fn get_active_filters() -> Vec<Filter> {
     SUBSCRIPTIONS.with(|subs| {
         subs.borrow()
             .values()
-            .filter_map(|sub| {
-                sub.filter.clone() 
-            })
+            .flat_map(|sub| sub.filters.clone().into_iter()) 
             .collect()
     })
 }
+
 
 pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
 
