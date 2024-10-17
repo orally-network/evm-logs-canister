@@ -55,7 +55,7 @@ pub struct SubscriptionInfo {
     pub stats: Vec<ICRC16Map>,
 }
 
-#[derive(CandidType, Clone, Debug, Serialize, Deserialize)]
+#[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
     pub addresses: Vec<String>,
     pub topics: Option<Vec<Vec<String>>>,
@@ -142,6 +142,7 @@ pub enum RegisterSubscriptionError {
     UnauthorizedSubscriber { namespace: String },
     ImproperConfig(String),
     GenericError(GenericError),
+    SameFilterExists,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
