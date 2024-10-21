@@ -20,7 +20,7 @@ thread_local! {
 
     // these fields are for performance optimization. ChainService will directly get these values and pass to evm-rpc-canister
     static ADDRESSES: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
-    static TOPICS: RefCell<HashMap<Vec<String>, u64>> = RefCell::new(HashMap::new());
+    static TOPICS: RefCell<HashMap<Vec<Vec<String>>, u64>> = RefCell::new(HashMap::new());
 }
 
 pub fn init() {
@@ -60,7 +60,7 @@ pub async fn register_subscription(
     for reg in registrations {
         let filters= reg.filters.clone();
 
-        let existing_subscription = SUBSCRIBERS.with(|subs| {
+        let is_subscription_exist = SUBSCRIBERS.with(|subs| {
             subs.borrow()
                 .get(&caller)
                 .and_then(|sub_ids| {
@@ -75,7 +75,7 @@ pub async fn register_subscription(
                 })
         });
 
-        if let Some(_) = existing_subscription {
+        if let Some(_) = is_subscription_exist {
             ic_cdk::println!(
                 "Subscription already exists for caller {} with the same filters",
                 caller
@@ -102,7 +102,6 @@ pub async fn register_subscription(
         };
 
 
-
         ADDRESSES.with(|addr_map| {
             let mut addr_count_map = addr_map.borrow_mut();
             for filter in &filters {
@@ -114,13 +113,13 @@ pub async fn register_subscription(
 
         TOPICS.with(|topic_map| {
             let mut topic_count_map = topic_map.borrow_mut();
+            
             for filter in &filters {
                 if let Some(filter_topics) = &filter.topics {
-                    for topic in filter_topics {
-                        *topic_count_map.entry(topic.clone()).or_insert(0) += 1;
-                    }
+                    *topic_count_map.entry(filter_topics.clone()).or_insert(0) += 1;
                 }
             }
+
         });
 
         
@@ -141,6 +140,7 @@ pub async fn register_subscription(
             reg.namespace,
         );
 
+        
         results.push(RegisterSubscriptionResult::Ok(sub_id));
     }
 
@@ -302,14 +302,14 @@ pub fn get_active_filters() -> Vec<Filter> {
 }
 
 
-// Get addresses and topics to pass to eth_getLogs. Must be unique
+// Get unique addresses and topics to pass to eth_getLogs.
 pub fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
     let addresses: Vec<String> = ADDRESSES.with(|addr| {
-        addr.borrow().keys().cloned().collect()
+        addr.borrow().keys().cloned().collect() 
     });
 
     let topics: Option<Vec<Vec<String>>> = TOPICS.with(|tpc| {
-        let mut all_topics: Vec<String> = vec![];
+        let mut all_topics: Vec<Vec<String>> = vec![]; 
     
         for topic_vec in tpc.borrow().keys() {
             all_topics.extend(topic_vec.clone());  
@@ -318,12 +318,13 @@ pub fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>
         if all_topics.is_empty() {
             None
         } else {
-            Some(vec![all_topics])  
+            Some(all_topics)  
         }
     });
 
     (addresses, topics)
 }
+
 
 
 
@@ -371,14 +372,12 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
             let mut topic_count_map = topic_map.borrow_mut();
             for filter in &filters {
                 if let Some(filter_topics) = &filter.topics {
-                    for topic in filter_topics {
-                        if let Some(count) = topic_count_map.get_mut(topic) {
+                        if let Some(count) = topic_count_map.get_mut(filter_topics) {
                             *count -= 1;
                             if *count == 0 {
-                                topic_count_map.remove(topic);  
+                                topic_count_map.remove(filter_topics);  
                             }
                         }
-                    }
                 }
             }
         });

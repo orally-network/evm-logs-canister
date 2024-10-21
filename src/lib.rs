@@ -32,17 +32,17 @@ async fn init() {
 
     let chain_configs = vec![
         ChainConfig {
-            chain_name: "Ethereum".to_string(),
+            chain_name: ChainName::Ethereum,
             rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainConfig {
-            chain_name: "Base".to_string(),
+            chain_name: ChainName::Base,
             rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainConfig {
-            chain_name: "Optimism".to_string(),
+            chain_name: ChainName::Optimism,
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },

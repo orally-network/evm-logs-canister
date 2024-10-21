@@ -1,5 +1,5 @@
 use crate::subscription_manager;
-use evm_logs_types::Filter;
+use evm_logs_types::ChainName;
 use crate::utils::get_latest_block_number;
 use evm_logs_types::{Event, ICRC16Value};
 use num_traits::ToPrimitive;
@@ -16,7 +16,7 @@ use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct ChainConfig {
-    pub chain_name: String,
+    pub chain_name: ChainName,
     pub rpc_providers: RpcServices,
     pub evm_rpc_canister: Principal,
 }
@@ -97,7 +97,7 @@ impl ChainService {
         let (addresses, topics) = subscription_manager::get_active_addresses_and_topics();
 
         if addresses.is_empty() && topics.is_none() {
-            ic_cdk::println!("{} : No active filters to monitor. No fetching", self.config.chain_name);
+            ic_cdk::println!("{:?} : No active filters to monitor. No fetching", self.config.chain_name);
             return;
         }
 
@@ -114,7 +114,7 @@ impl ChainService {
                 Ok(latest_block_number) => {
                     *self.last_processed_block.borrow_mut() = latest_block_number;
                     ic_cdk::println!(
-                        "Initialized last_processed_block to {} for {}",
+                        "Initialized last_processed_block to {} for {:?}",
                         latest_block_number,
                         self.config.chain_name
                     );
@@ -123,7 +123,7 @@ impl ChainService {
                 },
                 Err(err) => {
                     ic_cdk::println!(
-                        "Failed to initialize last_processed_block for {}: {}",
+                        "Failed to initialize last_processed_block for {:?}: {}",
                         self.config.chain_name,
                         err,
                     );
@@ -135,7 +135,7 @@ impl ChainService {
         let from_block = last_processed_block + 1;
 
         ic_cdk::println!(
-            "{}: Fetching logs from block {} to latest",
+            "{:?}: Fetching logs from block {} to latest",
             self.config.chain_name,
             from_block
         );
@@ -175,7 +175,7 @@ impl ChainService {
                     // No logs found; increment last_processed_block by 1
                     *self.last_processed_block.borrow_mut() = from_block;
                     ic_cdk::println!(
-                        "{}: No new logs found. Advancing to block {}",
+                        "{:?}: No new logs found. Advancing to block {}",
                         self.config.chain_name,
                         from_block
                     );
@@ -183,7 +183,7 @@ impl ChainService {
             }
             Err(e) => {
                 ic_cdk::println!(
-                    "Error during logs extraction for {}: {}",
+                    "Error during logs extraction for {:?}: {}",
                     self.config.chain_name,
                     e
                 );
@@ -199,7 +199,7 @@ impl ChainService {
 
     fn convert_log_to_string(&self, log: &LogEntry) -> String {
         format!(
-            "Chain: {}, Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
+            "Chain: {:?}, Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
             self.config.chain_name,
             log.address,
             log.transactionHash,
@@ -221,7 +221,7 @@ impl ChainService {
                 id: Nat::from(index as u64 + 1),
                 prev_id: None,
                 timestamp: time() / 1_000_000,
-                namespace: format!("com.events.{}", self.config.chain_name),
+                namespace: format!("com.events.{:?}", self.config.chain_name),
                 data: ICRC16Value::Text(self.convert_log_to_string(log)),
                 headers: None,
                 address: log.address.clone(),
