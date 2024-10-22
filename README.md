@@ -71,22 +71,37 @@ Notes:
 You can subscribe on the evm_logs_canister from another canister by specifying your filter(test_canister already built and deployed by the build scipt for demonstration):
 
 ```
-dfx canister call test_canister2 register_subscription '(
-    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-    vec {
-        record {
-            namespace = "com.events.Ethereum";
-            filters = vec {
-                record {
-                    addresses = vec { "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" };
-                    topics = null;
-                };
-            };
-            memo = null;
-        };
-    }
-)'
+  dfx canister call test_canister1 register_subscription '(
+      principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+      vec {
+          record {
+              namespace = "com.events.Ethereum";
+              filters = vec {
+                  record {
+                      addresses = vec { "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
+                      topics = opt vec {
+                        vec { "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822" };
+                        vec { "0x0000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad" };
+                      };
+                  };
+              };
+              
+              memo = null;
+          };
+      }
+  )'
 ```
+
+#### Strategy of EVM Topics Passing:
+When sending a filter to the EVM node, you can specify which log topics should match specific positions in the event. Here’s how the topic filters work:
+
+- [] (empty): Matches any transaction, as no specific topics are required.
+- [A]: Matches if the first topic of the transaction is A, with no restrictions on the following topics.
+- [null, B]: Matches any transaction with B in the second position, regardless of the first topic.
+- [A, B]: Matches transactions where A is in the first position and B is in the second.
+- [[A, B], [A, B]]: Matches if the first topic is either A or B, and the second topic is also either A or B. This creates an "OR" condition for each position.
+
+This strategy provides flexibility in filtering specific transactions based on topic order and values.
 
 ### Get your active subscriptions with IDs
 

@@ -3,6 +3,7 @@
 mod utils;
 mod subscription_manager;
 mod chain_service;
+mod topic_manager;
 
 use ic_cdk_macros::*;
 use candid::candid_method;
@@ -32,17 +33,17 @@ async fn init() {
 
     let chain_configs = vec![
         ChainConfig {
-            chain_name: "Ethereum".to_string(),
+            chain_name: ChainName::Ethereum,
             rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainConfig {
-            chain_name: "Base".to_string(),
+            chain_name: ChainName::Base,
             rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainConfig {
-            chain_name: "Optimism".to_string(),
+            chain_name: ChainName::Optimism,
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
@@ -118,6 +119,16 @@ fn get_subscriptions(
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
     subscription_manager::get_subscriptions_info(namespace, from_id, filters)
+}
+
+
+// only testing purpose
+#[update(name = "publish_events")]
+#[candid_method(update)]
+async fn icrc72_publish(
+    events: Vec<Event>,
+) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
+    subscription_manager::publish_events(events).await
 }
 
 #[query]

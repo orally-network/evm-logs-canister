@@ -1,10 +1,12 @@
 use candid::{Principal, Nat};
 use std::{cell::RefCell, collections::HashSet};
 use std::collections::HashMap;
+use crate::topic_manager::TopicManager;
+use crate::utils::event_matches_filter;
 
 use evm_logs_types::{
     SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult, RegisterSubscriptionError,
-    EventNotification, PublishError, Filter, UnsubscribeResult
+    EventNotification, PublishError, Filter, UnsubscribeResult, ICRC16Value
 };
 
 use crate::utils::current_timestamp;
@@ -18,38 +20,16 @@ thread_local! {
     static NEXT_EVENT_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
-    // these fields are for performance optimization. ChainService will directly get these values and pass to evm-rpc-canister
     static ADDRESSES: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
-    static TOPICS: RefCell<HashMap<Vec<String>, u64>> = RefCell::new(HashMap::new());
+    
+    static TOPICS_MANAGER: RefCell<TopicManager> = RefCell::new(TopicManager::new());
+
+
 }
 
 pub fn init() {
     ic_cdk::println!("SubscriptionManager initialized");
 }
-
-// #[pre_upgrade]
-// pub fn pre_upgrade() {
-//     let publications = PUBLICATIONS.with(|pubs| pubs.borrow().clone());
-//     let subscriptions = SUBSCRIPTIONS.with(|subs| subs.borrow().clone());
-//     let events = EVENTS.with(|evs| evs.borrow().clone());
-
-//     ic_cdk::storage::stable_save((publications, subscriptions, events))
-//         .expect("Failed to save stable state");
-// }
-
-// #[post_upgrade]
-// pub fn post_upgrade() {
-//     let (saved_publications, saved_subscriptions, saved_events): (
-//         HashMap<Nat, PublicationInfo>,
-//         HashMap<Nat, SubscriptionInfo>,
-//         HashMap<Nat, Event>,
-//     ) = ic_cdk::storage::stable_restore().expect("Failed to restore stable state");
-
-//     PUBLICATIONS.with(|pubs| *pubs.borrow_mut() = saved_publications);
-//     SUBSCRIPTIONS.with(|subs| *subs.borrow_mut() = saved_subscriptions);
-//     EVENTS.with(|evs| *evs.borrow_mut() = saved_events);
-// }
-
 
 pub async fn register_subscription(
     registrations: Vec<SubscriptionRegistration>,
@@ -60,7 +40,7 @@ pub async fn register_subscription(
     for reg in registrations {
         let filters= reg.filters.clone();
 
-        let existing_subscription = SUBSCRIBERS.with(|subs| {
+        let is_subscription_exist = SUBSCRIBERS.with(|subs| {
             subs.borrow()
                 .get(&caller)
                 .and_then(|sub_ids| {
@@ -75,7 +55,7 @@ pub async fn register_subscription(
                 })
         });
 
-        if let Some(_) = existing_subscription {
+        if let Some(_) = is_subscription_exist {
             ic_cdk::println!(
                 "Subscription already exists for caller {} with the same filters",
                 caller
@@ -102,7 +82,6 @@ pub async fn register_subscription(
         };
 
 
-
         ADDRESSES.with(|addr_map| {
             let mut addr_count_map = addr_map.borrow_mut();
             for filter in &filters {
@@ -112,17 +91,15 @@ pub async fn register_subscription(
             }
         });
 
-        TOPICS.with(|topic_map| {
-            let mut topic_count_map = topic_map.borrow_mut();
+        TOPICS_MANAGER.with(|manager| {
+            let mut manager = manager.borrow_mut();
             for filter in &filters {
-                if let Some(filter_topics) = &filter.topics {
-                    for topic in filter_topics {
-                        *topic_count_map.entry(topic.clone()).or_insert(0) += 1;
-                    }
-                }
+                manager.add_filter(&filter.topics);
             }
+            ic_cdk::println!("TOPICS MANAGER: {:?}", manager.subscriptions_accept_any_topic_at_position);
         });
-
+        
+        
         
         SUBSCRIPTIONS.with(|subs| {
             subs.borrow_mut().insert(sub_id.clone(), subscription_info);
@@ -141,11 +118,15 @@ pub async fn register_subscription(
             reg.namespace,
         );
 
+        
         results.push(RegisterSubscriptionResult::Ok(sub_id));
     }
 
     results
 }
+
+
+
 
 pub async fn publish_events(
     events: Vec<Event>,
@@ -248,20 +229,6 @@ async fn distribute_event(event: Event) {
     }
 }
 
-// Function to check if the event matches the subscriber's filter
-fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool {
-    let event_address = event.address.trim().to_lowercase();
-
-    if subscribers_filter.addresses.iter().any(|address| { address.trim().to_lowercase() == event_address}) {
-        return true;
-    }
-
-    // TODO TOPICS CHECK
-
-    false
-}
-
-
 pub fn get_subscriptions_info(
     namespace: Option<String>,
     from_id: Option<Nat>,
@@ -302,24 +269,14 @@ pub fn get_active_filters() -> Vec<Filter> {
 }
 
 
-// Get addresses and topics to pass to eth_getLogs. Must be unique
+// Get unique addresses and topics to pass to eth_getLogs.
 pub fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
     let addresses: Vec<String> = ADDRESSES.with(|addr| {
         addr.borrow().keys().cloned().collect()
     });
 
-    let topics: Option<Vec<Vec<String>>> = TOPICS.with(|tpc| {
-        let mut all_topics: Vec<String> = vec![];
-    
-        for topic_vec in tpc.borrow().keys() {
-            all_topics.extend(topic_vec.clone());  
-        }
-    
-        if all_topics.is_empty() {
-            None
-        } else {
-            Some(vec![all_topics])  
-        }
+    let topics = TOPICS_MANAGER.with(|manager| {
+        manager.borrow().get_combined_topics()
     });
 
     (addresses, topics)
@@ -367,19 +324,10 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
             }
         });
 
-        TOPICS.with(|topic_map| {
-            let mut topic_count_map = topic_map.borrow_mut();
+        TOPICS_MANAGER.with(|manager| {
+            let mut manager = manager.borrow_mut();
             for filter in &filters {
-                if let Some(filter_topics) = &filter.topics {
-                    for topic in filter_topics {
-                        if let Some(count) = topic_count_map.get_mut(topic) {
-                            *count -= 1;
-                            if *count == 0 {
-                                topic_count_map.remove(topic);  
-                            }
-                        }
-                    }
-                }
+                manager.remove_filter(&filter.topics);
             }
         });
 
@@ -398,6 +346,8 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
         UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))
     }
 }
+
+
 
 
 

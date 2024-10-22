@@ -55,6 +55,13 @@ pub struct SubscriptionInfo {
     pub stats: Vec<ICRC16Map>,
 }
 
+#[derive(Clone, Debug)]
+pub enum ChainName {
+    Ethereum,
+    Base,
+    Optimism,
+}
+
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
     pub addresses: Vec<String>,
@@ -69,31 +76,38 @@ pub struct Skip {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum ICRC16Value {
-    Array(Vec<ICRC16Value>),
-    Blob(Vec<u8>),
     Bool(bool),
     Bytes(Vec<u8>),
-    Class(Vec<ICRC16Property>),
     Float(f64),
-    Floats(Vec<f64>),
-    Int(i128),
-    Int16(i16),
-    Int32(i32),
-    Int64(i64),
-    Int8(i8),
     Map(Vec<ICRC16Map>),
-    ValueMap(Vec<ICRC16ValueMap>),
     Nat(u128),
-    Nat16(u16),
-    Nat32(u32),
-    Nat64(u64),
-    Nat8(u8),
-    Nats(Vec<u128>),
-    Option(Box<ICRC16Value>),
     Principal(Principal),
-    Set(Vec<ICRC16Value>),
     Text(String),
 }
+
+impl TryFrom<ICRC16Value> for Vec<u8> {
+    type Error = &'static str;
+
+    fn try_from(value: ICRC16Value) -> Result<Self, Self::Error> {
+        match value {
+            ICRC16Value::Text(text) => Ok(text.into_bytes()),
+            _ => Err("Cannot convert non-text value to Vec<u8>"),
+        }
+    }
+}
+
+// experimental
+impl TryFrom<ICRC16Value> for String{
+    type Error = &'static str;
+
+    fn try_from(value: ICRC16Value) -> Result<Self, Self::Error> {
+        match value {
+            ICRC16Value::Text(text) => Ok(text),
+            _ => Err("Cannot convert non-text value to String"),
+        }
+    }
+}
+
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct ICRC16Property {

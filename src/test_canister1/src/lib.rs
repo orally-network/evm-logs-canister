@@ -4,6 +4,8 @@ use ic_cdk_macros::{update, query, init};
 use std::cell::RefCell;
 use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification, UnsubscribeResult};
 
+
+
 thread_local! {
     static NOTIFICATIONS: RefCell<Vec<EventNotification>> = RefCell::new(Vec::new());
 }
@@ -41,6 +43,9 @@ async fn register_subscription(canister_id: Principal, registrations: Vec<Subscr
 async fn icrc72_handle_notification(notification: EventNotification) {
     ic_cdk::println!("Received notification for event ID: {:?}", notification.event_id);
     ic_cdk::println!("Notification details: {:?}", notification);
+
+    // let data = String::try_from(notification.clone().data).expect("Failed to convert ICRC16Value to String");
+    // println!("{}", data);
 
     NOTIFICATIONS.with(|notifs| {
         notifs.borrow_mut().push(notification);
@@ -107,3 +112,4 @@ fn get_candid_pointer() -> String {
 }
 
 candid::export_service!();
+
