@@ -109,12 +109,32 @@ type UnsubscribeResult = variant {
     Err : text;
 };
 
+type SwapEventData = record {
+    sender: SolidityToken;
+    amount0: SolidityToken;
+    amount1: SolidityToken;
+};
+
+type SolidityToken = variant {
+    Address: text;
+    FixedBytes: vec nat8;
+    Bytes: vec nat8;
+    Int: text;
+    Uint: text;
+    Bool: bool;
+    String: text;
+    FixedArray: vec SolidityToken;
+    Array: vec SolidityToken;
+    Tuple: vec SolidityToken;
+};
+
 service : {
   register_subscription: (principal, vec SubscriptionRegistration) -> ();
   icrc72_handle_notification: (EventNotification) -> ();
   get_notifications: () -> (vec EventNotification) query;
   unsubscribe: (principal, nat) -> ();
   get_subscriptions: (principal) -> (vec SubscriptionInfo);
+  get_swap_events_data: () -> (vec SwapEventData) query;
 }
 
 
