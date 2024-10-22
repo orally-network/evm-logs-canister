@@ -113,6 +113,12 @@ type UnsubscribeResult = variant {
     Err : text;
 };
 
+type PublishError = variant {
+  Unauthorized : null;
+  ImproperId : text;
+  Busy : null;
+  GenericError : GenericError;
+};
 
 service : {
   register_subscription : (vec SubscriptionRegistration) -> (vec RegisterSubscriptionResult);
@@ -121,4 +127,5 @@ service : {
   get_user_subscriptions : () -> (vec SubscriptionInfo) query;
   get_active_filters: () -> (vec Filter) query;
   get_active_addresses_and_topics: () -> (vec text, opt vec vec text) query;
+  icrc72_publish : (vec Event) -> (vec opt variant { Ok : vec nat; Err : PublishError });
 }

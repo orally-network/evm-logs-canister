@@ -1,7 +1,7 @@
 #!/usr/bin/make
 POCKET_IC_BIN := ./pocket-ic
 EVM_LOGS_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/evm_logs_canister.wasm
-TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister.wasm
+TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister1.wasm
 .DEFAULT_GOAL: help
 
 .PHONY: help

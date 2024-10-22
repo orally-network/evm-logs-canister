@@ -3,6 +3,7 @@
 mod utils;
 mod subscription_manager;
 mod chain_service;
+mod topic_manager;
 
 use ic_cdk_macros::*;
 use candid::candid_method;
@@ -118,6 +119,16 @@ fn get_subscriptions(
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
     subscription_manager::get_subscriptions_info(namespace, from_id, filters)
+}
+
+
+// only testing purpose
+#[update(name = "publish_events")]
+#[candid_method(update)]
+async fn icrc72_publish(
+    events: Vec<Event>,
+) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
+    subscription_manager::publish_events(events).await
 }
 
 #[query]
