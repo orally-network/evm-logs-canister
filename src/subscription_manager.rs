@@ -196,6 +196,7 @@ async fn distribute_event(event: Event) {
                     data: event.data.clone(),
                     tx_hash: event.tx_hash.clone(),
                     headers: event.headers.clone(),
+                    topics: event.topics.clone().unwrap(),
                     source: ic_cdk::api::id(),
                     filter: None, // We don't need to store the filter in the notification
                 };

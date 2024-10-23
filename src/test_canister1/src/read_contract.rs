@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct SwapEventData {
     pub tx_hash: String,
+    pub sender: SolidityToken,
+    pub receiver: SolidityToken,
     pub amount0: SolidityToken,
     pub amount1: SolidityToken,
     pub sqrtPriceX96: SolidityToken,

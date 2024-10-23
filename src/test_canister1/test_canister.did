@@ -19,6 +19,7 @@ type EventNotification = record {
   timestamp : nat64;
   namespace : text;
   data : ICRC16Value;
+  topics: opt vec text;
   headers : opt vec ICRC16Map;
   source : principal;
   filter : opt text;
@@ -111,6 +112,8 @@ type UnsubscribeResult = variant {
 
 type SwapEventData = record {
     tx_hash: text;
+    sender: SolidityToken;
+    receiver: SolidityToken;
     amount0: SolidityToken;
     amount1: SolidityToken;
     sqrtPriceX96: SolidityToken;

@@ -8,7 +8,7 @@ pub struct Event {
     pub timestamp: u64, // UTC Nanoseconds
     pub namespace: String,
     pub address: String,
-    pub topics: Option<Vec<String>>,
+    pub topics: Option<Vec<String>>, // TODO remove optional(?)
     pub data: ICRC16Value,
     pub tx_hash: String,
     pub headers: Option<Vec<ICRC16Map>>,
@@ -22,6 +22,7 @@ pub struct EventNotification {
     pub timestamp: u64,
     pub namespace: String,
     pub data: ICRC16Value,
+    pub topics: Vec<String>,
     pub tx_hash: String,
     pub headers: Option<Vec<ICRC16Map>>,
     pub source: Principal,
