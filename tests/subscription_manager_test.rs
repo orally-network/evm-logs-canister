@@ -103,7 +103,8 @@ async fn test_event_publishing_and_notification_delivery() {
         data: ICRC16Value::Text("Test event data".to_string()),
         headers: None,
         address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(), // Example address
-        topics:None // Example topic
+        topics:None,  // Example topic
+        tx_hash: "".to_string(),
     };
     let publish_events_result = pic
         .update_call(
