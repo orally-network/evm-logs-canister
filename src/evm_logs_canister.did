@@ -19,6 +19,7 @@ type EventNotification = record {
   timestamp : nat64;
   namespace : text;
   data : ICRC16Value;
+  tx_hash: text;
   headers : opt vec ICRC16Map;
   source : principal;
   filter : opt text;

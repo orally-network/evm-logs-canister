@@ -106,6 +106,7 @@ mod tests {
             headers: None,
             address: address.to_string(),
             topics: topics.map(|t| t.into_iter().map(|s| s.to_string()).collect()),
+            tx_hash: "".to_string(),
         }
     }
 

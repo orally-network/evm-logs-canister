@@ -222,10 +222,11 @@ impl ChainService {
                 prev_id: None,
                 timestamp: time() / 1_000_000,
                 namespace: format!("com.events.{:?}", self.config.chain_name),
-                data: ICRC16Value::Text(self.convert_log_to_string(log)),
-                headers: None,
+                data: ICRC16Value::Text(log.data.clone()),
                 address: log.address.clone(),
                 topics: Some(log.topics.clone()),
+                tx_hash: log.transactionHash.clone().unwrap(),
+                headers: None,
             })
             .collect();
 

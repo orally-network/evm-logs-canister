@@ -7,10 +7,11 @@ pub struct Event {
     pub prev_id: Option<Nat>,
     pub timestamp: u64, // UTC Nanoseconds
     pub namespace: String,
-    pub data: ICRC16Value,
-    pub headers: Option<Vec<ICRC16Map>>,
     pub address: String,
-    pub topics: Option<Vec<String>>
+    pub topics: Option<Vec<String>>,
+    pub data: ICRC16Value,
+    pub tx_hash: String,
+    pub headers: Option<Vec<ICRC16Map>>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -21,6 +22,7 @@ pub struct EventNotification {
     pub timestamp: u64,
     pub namespace: String,
     pub data: ICRC16Value,
+    pub tx_hash: String,
     pub headers: Option<Vec<ICRC16Map>>,
     pub source: Principal,
     pub filter: Option<String>,
@@ -97,16 +99,24 @@ impl TryFrom<ICRC16Value> for Vec<u8> {
 }
 
 // experimental
-impl TryFrom<ICRC16Value> for String{
+impl TryFrom<ICRC16Value> for String {
     type Error = &'static str;
 
     fn try_from(value: ICRC16Value) -> Result<Self, Self::Error> {
         match value {
-            ICRC16Value::Text(text) => Ok(text),
+            ICRC16Value::Text(text) => {
+                
+                if text.len() >= 2 {
+                    Ok(text[2..].to_string())  
+                } else {
+                    Err("String is too short to remove first two characters")
+                }
+            }
             _ => Err("Cannot convert non-text value to String"),
         }
     }
 }
+
 
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

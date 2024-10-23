@@ -110,9 +110,12 @@ type UnsubscribeResult = variant {
 };
 
 type SwapEventData = record {
-    sender: SolidityToken;
+    tx_hash: text;
     amount0: SolidityToken;
     amount1: SolidityToken;
+    sqrtPriceX96: SolidityToken;
+    liquidity: SolidityToken;
+    tick: SolidityToken;
 };
 
 type SolidityToken = variant {
