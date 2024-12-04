@@ -6,7 +6,7 @@ use num_traits::ToPrimitive;
 use evm_rpc_canister_types::{
     BlockTag, EvmRpcCanister, GetBlockByNumberResult, MultiGetBlockByNumberResult, RpcServices
 };
-use evm_logs_types:: {ICRC16Value, Filter, Event};
+use evm_logs_types:: {Filter, Event};
 
 thread_local! {
     static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));
@@ -95,7 +95,7 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use evm_logs_types::ICRC16Value; 
     fn create_event(address: &str, topics: Option<Vec<&str>>) -> Event {
         Event {
             id: Nat::from(1u8),

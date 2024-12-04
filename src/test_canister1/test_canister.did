@@ -20,6 +20,7 @@ type EventNotification = record {
   namespace : text;
   data : ICRC16Value;
   topics: opt vec text;
+  tx_hash: text;
   headers : opt vec ICRC16Map;
   source : principal;
   filter : opt text;

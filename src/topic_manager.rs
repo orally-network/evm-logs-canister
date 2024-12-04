@@ -56,24 +56,23 @@ impl TopicManager {
     
 
     pub fn remove_filter(&mut self, filter_topics: &Option<Vec<Vec<String>>>) {
-        if self.total_subscriptions > Nat::from(0u32) {
+        if self.total_subscriptions > 0u32 {
             self.total_subscriptions -= Nat::from(1u32);
         }
 
         if let Some(filter_topics) = filter_topics {
             for (i, topics_at_pos) in filter_topics.iter().enumerate() {
                 if topics_at_pos.is_empty() {
-                    if self.subscriptions_accept_any_topic_at_position.len() > i {
-                        if self.subscriptions_accept_any_topic_at_position[i] > Nat::from(0u32) {
-                            self.subscriptions_accept_any_topic_at_position[i] -= Nat::from(1u32);
-                        }
+                    if self.subscriptions_accept_any_topic_at_position.len() > i && self.subscriptions_accept_any_topic_at_position[i] > 0u32 {
+                        self.subscriptions_accept_any_topic_at_position[i] -= Nat::from(1u32);
                     }
-                } else {
+                } 
+                else {
                     for topic in topics_at_pos {
                         if let Some(count) = self.topic_counts[i].get_mut(topic) {
-                            if *count > Nat::from(0u32) {
+                            if *count > 0u32 {
                                 *count -= Nat::from(1u32);
-                                if *count == Nat::from(0u32) {
+                                if *count == 0u32 {
                                     self.topics[i].remove(topic);
                                     self.topic_counts[i].remove(topic);
                                 }
@@ -84,7 +83,7 @@ impl TopicManager {
             }
         } else {
             for i in 0..self.subscriptions_accept_any_topic_at_position.len() {
-                if self.subscriptions_accept_any_topic_at_position[i] > Nat::from(0u32) {
+                if self.subscriptions_accept_any_topic_at_position[i] > 0u32 {
                     self.subscriptions_accept_any_topic_at_position[i] -= Nat::from(1u32);
                 }
             }
@@ -97,7 +96,7 @@ impl TopicManager {
 
         for i in 0..self.topics.len() {
             if self.subscriptions_accept_any_topic_at_position.len() > i &&
-               self.subscriptions_accept_any_topic_at_position[i] > Nat::from(0u32) {
+               self.subscriptions_accept_any_topic_at_position[i] > 0u32 {
                 include_positions = false;
                 break;
             } else if !self.topics[i].is_empty() {

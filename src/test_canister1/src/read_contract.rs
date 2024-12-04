@@ -1,9 +1,8 @@
 use std::str::FromStr;
 
-use candid::{CandidType, Nat};
+use candid::CandidType;
 use ic_web3_rs::{
-    ethabi::{encode, Token},
-    signing::keccak256,
+    ethabi::Token,
     types::{H160, U256},
 };
 use serde::{Deserialize, Serialize};

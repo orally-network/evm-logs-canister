@@ -22,7 +22,7 @@ use evm_rpc_canister_types::{
 };
 
 thread_local! {
-    static CHAIN_SERVICES: RefCell<Vec<Arc<ChainService>>> = RefCell::new(Vec::new());
+    static CHAIN_SERVICES: RefCell<Vec<Arc<ChainService>>> = const { RefCell::new(Vec::new()) };
 }
 
 #[init]

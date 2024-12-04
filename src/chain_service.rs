@@ -12,7 +12,6 @@ use std::time::Duration;
 use evm_rpc_canister_types::{
     BlockTag, GetLogsArgs, GetLogsResult, MultiGetLogsResult, RpcServices, EvmRpcCanister, LogEntry,
 };
-use std::collections::HashSet;
 
 #[derive(Clone)]
 pub struct ChainConfig {

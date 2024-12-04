@@ -1,12 +1,12 @@
 use candid::{Principal, Nat};
-use std::{cell::RefCell, collections::HashSet};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use crate::topic_manager::TopicManager;
 use crate::utils::event_matches_filter;
 
 use evm_logs_types::{
     SubscriptionInfo, Event, SubscriptionRegistration, RegisterSubscriptionResult, RegisterSubscriptionError,
-    EventNotification, PublishError, Filter, UnsubscribeResult, ICRC16Value
+    EventNotification, PublishError, Filter, UnsubscribeResult
 };
 
 use crate::utils::current_timestamp;
@@ -23,8 +23,6 @@ thread_local! {
     static ADDRESSES: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
     
     static TOPICS_MANAGER: RefCell<TopicManager> = RefCell::new(TopicManager::new());
-
-
 }
 
 pub fn init() {
@@ -55,7 +53,7 @@ pub async fn register_subscription(
                 })
         });
 
-        if let Some(_) = is_subscription_exist {
+        if is_subscription_exist.is_some() {
             ic_cdk::println!(
                 "Subscription already exists for caller {} with the same filters",
                 caller
@@ -99,8 +97,6 @@ pub async fn register_subscription(
             ic_cdk::println!("TOPICS MANAGER: {:?}", manager.subscriptions_accept_any_topic_at_position);
         });
         
-        
-        
         SUBSCRIPTIONS.with(|subs| {
             subs.borrow_mut().insert(sub_id.clone(), subscription_info);
         });
@@ -108,7 +104,7 @@ pub async fn register_subscription(
         SUBSCRIBERS.with(|subs| {
             subs.borrow_mut()
                 .entry(caller)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(sub_id.clone());
         });
 
@@ -117,16 +113,12 @@ pub async fn register_subscription(
             sub_id,
             reg.namespace,
         );
-
         
         results.push(RegisterSubscriptionResult::Ok(sub_id));
     }
 
     results
 }
-
-
-
 
 pub async fn publish_events(
     events: Vec<Event>,
@@ -146,15 +138,12 @@ pub async fn publish_events(
         event.id = event_id.clone();
         event.timestamp = current_timestamp();
 
-        // Store the event in the EVENTS collection
         EVENTS.with(|evs| {
             evs.borrow_mut().insert(event_id.clone(), event.clone());
         });
 
-        // Distribute the event to subscribers
         distribute_event(event).await;
 
-        // Append the result of the event publication
         results.push(Some(Ok(vec![event_id])));
     }
 
@@ -203,7 +192,7 @@ async fn distribute_event(event: Event) {
 
                 // Send the notification to the subscriber
                 let result: Result<(), String> = ic_cdk::api::call::call(
-                    sub.subscriber_principal, // Use the subscriber's Principal
+                    sub.subscriber_principal, 
                     "icrc72_handle_notification",
                     (notification.clone(),),
                 )
@@ -285,14 +274,13 @@ pub fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>
 }
 
 
-
 pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
 
     let subscription_ids = SUBSCRIBERS.with(|subs| {
         subs.borrow()
             .get(&caller)
             .cloned()
-            .unwrap_or_else(|| vec![]) 
+            .unwrap_or_else(Vec::new) 
     });
 
     SUBSCRIPTIONS.with(|subs| {

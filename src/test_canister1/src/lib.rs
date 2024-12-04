@@ -1,10 +1,9 @@
 use ic_cdk::api::call::call;
 use ic_cdk_macros::{update, query, init};
 use candid::Principal;
-use std::{cell::RefCell, str::FromStr};
+use std::cell::RefCell;
 use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification, UnsubscribeResult};
 use ic_web3_rs::ethabi::{decode, ParamType};
-use std::convert::TryInto;
 use ic_web3_rs::types::H160;
 use hex;
 use hex::FromHex;
@@ -12,8 +11,6 @@ use hex::FromHex;
 mod read_contract;
 
 use read_contract::{SolidityToken, SwapEventData};
-
-const DECIMALS: i128 = 10i128.pow(18); // Constant representing 10^18
 
 thread_local! {
     static NOTIFICATIONS: RefCell<Vec<EventNotification>> = RefCell::new(Vec::new());
