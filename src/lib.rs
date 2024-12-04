@@ -10,7 +10,7 @@ use candid::candid_method;
 
 use candid::{Nat, Principal};
 use ic_cdk_macros::query;
-use chain_service::{ChainService, ChainConfig};
+use chain_service::{service::ChainService, ChainConfig};
 use std::cell::RefCell;
 use std::time::Duration;
 use std::sync::Arc;
@@ -91,7 +91,7 @@ async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
 #[query(name = "get_user_subscriptions")]
 #[candid_method(query)]
 fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
-    subscription_manager::get_user_subscriptions(ic_cdk::caller())
+    subscription_manager::queries::get_user_subscriptions(ic_cdk::caller())
 }
 
 // generally for testing purpose
@@ -100,14 +100,14 @@ fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
 #[query(name = "get_active_filters")]
 #[candid_method(query)]
 fn get_active_filters() -> Vec<evm_logs_types::Filter> {
-    subscription_manager::get_active_filters()
+    subscription_manager::queries::get_active_filters()
 }
 
 // get all evm-logs-canister addresses and topics which are being monitored. Must be unique
 #[query(name = "get_active_addresses_and_topics")]
 #[candid_method(query)]
 fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    subscription_manager::get_active_addresses_and_topics()
+    subscription_manager::queries::get_active_addresses_and_topics()
 }
 
 // get all evm-logs-canister subscriptions info
@@ -118,7 +118,7 @@ fn get_subscriptions(
     from_id: Option<Nat>,
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
-    subscription_manager::get_subscriptions_info(namespace, from_id, filters)
+    subscription_manager::queries::get_subscriptions_info(namespace, from_id, filters)
 }
 
 
@@ -128,7 +128,7 @@ fn get_subscriptions(
 async fn icrc72_publish(
     events: Vec<Event>,
 ) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
-    subscription_manager::publish_events(events).await
+    subscription_manager::events_publisher::publish_events(events).await
 }
 
 #[query]

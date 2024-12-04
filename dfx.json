@@ -26,7 +26,7 @@
     "test_canister1": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/test_canister1.wasm",
-      "candid": "src/test_canister1/test_canister.did",
+      "candid": "src/canister_testing/test_canister1/test_canister.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister1",
       "metadata": [
         {
@@ -38,7 +38,7 @@
     "test_canister2": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/test_canister2.wasm",
-      "candid": "src/test_canister2/test_canister.did",
+      "candid": "src/canister_testing/test_canister2/test_canister.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister2",
       "metadata": [
         {

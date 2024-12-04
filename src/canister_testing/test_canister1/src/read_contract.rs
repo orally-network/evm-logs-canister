@@ -15,7 +15,7 @@ pub struct SwapEventData {
     pub receiver: SolidityToken,
     pub amount0: SolidityToken,
     pub amount1: SolidityToken,
-    pub sqrtPriceX96: SolidityToken,
+    pub sqrt_price_x96: SolidityToken,
     pub liquidity: SolidityToken,
     pub tick: SolidityToken,
 }

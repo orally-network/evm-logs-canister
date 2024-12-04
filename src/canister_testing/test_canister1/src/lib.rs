@@ -212,7 +212,7 @@ fn get_swap_events_data() -> Vec<SwapEventData> {
                     receiver,
                     amount0: decoded_data[0].clone(),
                     amount1: decoded_data[1].clone(),
-                    sqrtPriceX96: decoded_data[2].clone(),
+                    sqrt_price_x96: decoded_data[2].clone(),
                     liquidity: decoded_data[3].clone(),
                     tick: decoded_data[4].clone(),
                 };
