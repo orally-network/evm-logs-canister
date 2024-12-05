@@ -4,13 +4,12 @@ use evm_logs_types::{
     SubscriptionRegistration, RegisterSubscriptionResult, RegisterSubscriptionError,
     UnsubscribeResult, SubscriptionInfo,
 };
-use ic_cdk;
 
 pub mod state;
 pub mod queries;
 pub mod events_publisher;
 
-use state::{SUBSCRIPTIONS, SUBSCRIBERS, ADDRESSES, TOPICS_MANAGER};
+use state::{SUBSCRIPTIONS, SUBSCRIBERS, TOPICS_MANAGER};
 
 pub fn init() {
     ic_cdk::println!("SubscriptionManager initialized");
@@ -66,19 +65,10 @@ pub async fn register_subscription(
             stats: vec![],
         };
 
-        ADDRESSES.with(|addr_map| {
-            let mut addr_count_map = addr_map.borrow_mut();
-            for filter in &filters {
-                for address in &filter.addresses {
-                    *addr_count_map.entry(address.clone()).or_insert(0) += 1;
-                }
-            }
-        });
-
         TOPICS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
             for filter in &filters {
-                manager.add_filter(&filter.topics);
+                manager.add_filter(&filter);
             }
             ic_cdk::println!("TOPICS MANAGER: {:?}", manager.subscriptions_accept_any_topic_at_position);
         });
@@ -116,24 +106,10 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
     if let Some(subscription_info) = subscription_removed {
         let filters = subscription_info.filters;
 
-        state::ADDRESSES.with(|addr_map| {
-            let mut addr_count_map = addr_map.borrow_mut();
-            for filter in &filters {
-                for address in &filter.addresses {
-                    if let Some(count) = addr_count_map.get_mut(address) {
-                        *count -= 1;
-                        if *count == 0 {
-                            addr_count_map.remove(address);  
-                        }
-                    }
-                }
-            }
-        });
-
         TOPICS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
             for filter in &filters {
-                manager.remove_filter(&filter.topics);
+                manager.remove_filter(filter);
             }
         });
 

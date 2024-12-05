@@ -3,7 +3,7 @@
 mod utils;
 mod subscription_manager;
 mod chain_service;
-mod topic_manager;
+mod log_filters;
 
 use ic_cdk_macros::*;
 use candid::candid_method;

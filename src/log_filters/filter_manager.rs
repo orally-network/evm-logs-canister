@@ -1,27 +1,36 @@
 use std::collections::{HashMap, HashSet};
 use candid::Nat;
+use evm_logs_types::Filter;
 
-pub struct TopicManager {
+type TopicsPosition = Vec<String>;
+
+pub struct FilterManager {
     topics: Vec<HashSet<String>>,               
-    topic_counts: Vec<HashMap<String, Nat>>,    
+    topic_counts: Vec<HashMap<String, Nat>>,
+    addresses: HashMap<String, Nat>,    
     pub subscriptions_accept_any_topic_at_position: Vec<Nat>, 
     total_subscriptions: Nat,                   
 }
 
-impl TopicManager {
+impl FilterManager {
     pub fn new() -> Self {
-        TopicManager {
+        FilterManager {
             topics: Vec::new(),
             topic_counts: Vec::new(),
+            addresses: HashMap::new(),
             subscriptions_accept_any_topic_at_position: Vec::new(),
             total_subscriptions: Nat::from(0u32),
         }
     }
 
-    pub fn add_filter(&mut self, filter_topics: &Option<Vec<Vec<String>>>) {
+    pub fn add_filter(&mut self, filter: &Filter) {
         self.total_subscriptions += Nat::from(1u32);
     
-        if let Some(filter_topics) = filter_topics {
+        for address in &filter.addresses {
+            *self.addresses.entry(address.clone()).or_insert(Nat::from(0u32)) += Nat::from(1u32);
+        }
+
+        if let Some(filter_topics) = &filter.topics {
             let num_positions = filter_topics.len();
             for i in 0..4 {
                 while self.topics.len() <= i {
@@ -55,12 +64,21 @@ impl TopicManager {
     }
     
 
-    pub fn remove_filter(&mut self, filter_topics: &Option<Vec<Vec<String>>>) {
+    pub fn remove_filter(&mut self, filter: &Filter) {
         if self.total_subscriptions > 0u32 {
             self.total_subscriptions -= Nat::from(1u32);
         }
 
-        if let Some(filter_topics) = filter_topics {
+        for address in &filter.addresses {
+            if let Some(count) = self.addresses.get_mut(address) {
+                *count -= Nat::from(1u32);
+                if *count == 0u32 {
+                    self.addresses.remove(address);
+                }
+            }
+        }
+
+        if let Some(filter_topics) = &filter.topics {
             for (i, topics_at_pos) in filter_topics.iter().enumerate() {
                 if topics_at_pos.is_empty() {
                     if self.subscriptions_accept_any_topic_at_position.len() > i && self.subscriptions_accept_any_topic_at_position[i] > 0u32 {
@@ -90,7 +108,7 @@ impl TopicManager {
         }
     }
 
-    pub fn get_combined_topics(&self) -> Option<Vec<Vec<String>>> {
+    pub fn get_combined_topics(&self) -> Option<Vec<TopicsPosition>> {
         let mut combined_topics = Vec::new();
         let mut include_positions = true;
 
@@ -115,4 +133,13 @@ impl TopicManager {
             None 
         }
     }
+
+    pub fn get_active_addresses_and_topics(&self) -> (Vec<String>, Option<Vec<Vec<String>>>) {
+        let addresses: Vec<String> = self.addresses.keys().cloned().collect();
+
+        let topics = self.get_combined_topics();
+
+        (addresses, topics)
+    }
+
 }

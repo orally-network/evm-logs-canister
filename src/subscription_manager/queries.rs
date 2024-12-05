@@ -1,7 +1,7 @@
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{SubscriptionInfo, Filter};
-use super::state::{SUBSCRIPTIONS, SUBSCRIBERS, ADDRESSES, TOPICS_MANAGER};
+use super::state::{SUBSCRIPTIONS, SUBSCRIBERS, TOPICS_MANAGER};
 
 pub fn get_subscriptions_info(
     namespace: Option<String>,
@@ -45,17 +45,11 @@ pub fn get_active_filters() -> Vec<Filter> {
 
 // Get unique addresses and topics to pass to eth_getLogs.
 pub fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    let addresses: Vec<String> = ADDRESSES.with(|addr| {
-        addr.borrow().keys().cloned().collect()
-    });
-
-    let topics = TOPICS_MANAGER.with(|manager| {
-        manager.borrow().get_combined_topics()
-    });
-
-    (addresses, topics)
+    TOPICS_MANAGER.with(|manager| {
+        let manager = manager.borrow();
+        manager.get_active_addresses_and_topics()
+    })
 }
-
 
 pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
 
