@@ -2,8 +2,8 @@
 members = [
     ".",
     "evm_logs_types",
-    "src/test_canister1",
-    "src/test_canister2",
+    "src/canister_testing/test_canister1",
+    "src/canister_testing/test_canister2",
 ]
 
 [package]
