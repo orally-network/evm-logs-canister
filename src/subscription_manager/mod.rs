@@ -70,7 +70,6 @@ pub async fn register_subscription(
             for filter in &filters {
                 manager.add_filter(&filter);
             }
-            ic_cdk::println!("TOPICS MANAGER: {:?}", manager.subscriptions_accept_any_topic_at_position);
         });
 
         SUBSCRIPTIONS.with(|subs| {
