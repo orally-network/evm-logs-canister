@@ -68,7 +68,7 @@ pub async fn register_subscription(
         TOPICS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
             for filter in &filters {
-                manager.add_filter(&filter);
+                manager.add_filter(filter);
             }
         });
 

@@ -14,7 +14,5 @@ thread_local! {
     pub static NEXT_EVENT_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
-    // pub static ADDRESSES: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
-
     pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::new());
 }
