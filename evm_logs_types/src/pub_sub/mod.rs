@@ -1,6 +1,24 @@
 use candid::{CandidType, Deserialize, Principal, Nat};
 use serde::Serialize;
 
+// A note on specifying topic filters:
+
+// A transaction with a log with topics [A, B] will be matched by the following topic filters:
+
+// [] “anything”
+// [A] “A in first position (and anything after)”
+// [null, B] “anything in first position AND B in second position (and anything after)”
+// [A, B] “A in first position AND B in second position (and anything after)”
+// [[A, B], [A, B]] “(A OR B) in first position AND (A OR B) in second position (and anything after)”
+
+type TopicsPosition = Vec<String>;
+
+#[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Filter {
+    pub addresses: Vec<String>,
+    pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
+}
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct Event {
     pub id: Nat,
@@ -63,12 +81,6 @@ pub enum ChainName {
     Ethereum,
     Base,
     Optimism,
-}
-
-#[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Filter {
-    pub addresses: Vec<String>,
-    pub topics: Option<Vec<Vec<String>>>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

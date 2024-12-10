@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use ic_cdk_timers::set_timer_interval;
 use crate::utils::get_latest_block_number;
+use crate::subscription_manager::queries;
 use ic_cdk;
 
 use super::service::ChainService;
@@ -25,7 +26,7 @@ pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration)
 
 impl ChainService {
     pub async fn logs_fetching_and_processing_task(&self) {
-        let (addresses, topics) = crate::subscription_manager::queries::get_active_addresses_and_topics();
+        let (addresses, topics) = queries::get_active_addresses_and_topics();
 
         if addresses.is_empty() && topics.is_none() {
             ic_cdk::println!("{:?} : No active filters to monitor. No fetching", self.config.chain_name);
