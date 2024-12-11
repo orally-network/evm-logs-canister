@@ -117,7 +117,7 @@ type SwapEventData = record {
     receiver: SolidityToken;
     amount0: SolidityToken;
     amount1: SolidityToken;
-    sqrtPriceX96: SolidityToken;
+    sqrt_price_x96: SolidityToken;
     liquidity: SolidityToken;
     tick: SolidityToken;
 };
