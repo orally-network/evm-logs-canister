@@ -91,13 +91,13 @@ type SubscriptionInfo = record {
   subscription_id : nat;
   subscriber_principal : principal;
   namespace : text;
-  filters : vec Filter;
+  filter : Filter;
   stats : vec ICRC16Map;
 };
 
 type SubscriptionRegistration = record {
   namespace : text;
-  filters : vec Filter;
+  filter : Filter;
   memo : opt vec nat8;
 };
 
@@ -136,7 +136,7 @@ type SolidityToken = variant {
 };
 
 service : {
-  register_subscription: (principal, vec SubscriptionRegistration) -> ();
+  register_subscription: (principal, SubscriptionRegistration) -> ();
   icrc72_handle_notification: (EventNotification) -> ();
   get_notifications: () -> (vec EventNotification) query;
   unsubscribe: (principal, nat) -> ();

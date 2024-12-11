@@ -37,7 +37,7 @@ pub fn get_active_filters() -> Vec<Filter> {
     SUBSCRIPTIONS.with(|subs| {
         subs.borrow()
             .values()
-            .flat_map(|sub| sub.filters.clone().into_iter())
+            .map(|sub| sub.filter.clone())
             .collect()
     })
 }

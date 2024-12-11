@@ -62,7 +62,7 @@ pub struct EventRelay {
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SubscriptionRegistration {
     pub namespace: String,
-    pub filters: Vec<Filter>,
+    pub filter: Filter,
     pub memo: Option<Vec<u8>>, // Blob
 }
 
@@ -71,7 +71,7 @@ pub struct SubscriptionInfo {
     pub subscription_id: Nat,
     pub subscriber_principal: Principal,
     pub namespace: String,
-    pub filters: Vec<Filter>,
+    pub filter: Filter,
     pub skip: Option<Skip>,
     pub stats: Vec<ICRC16Map>,
 }

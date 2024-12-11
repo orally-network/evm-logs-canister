@@ -22,16 +22,14 @@ async fn init() {
 }
 
 #[update]
-async fn register_subscription(canister_id: Principal, registrations: Vec<SubscriptionRegistration>) {
-    ic_cdk::println!("Calling register_subscription for namespaces:");
-    for reg in &registrations {
-        ic_cdk::println!(" - {:?}", reg.namespace);
-    }
+async fn register_subscription(canister_id: Principal, registration: SubscriptionRegistration) {
+    ic_cdk::println!("Calling register_subscription for namespace - {:?}", registration.namespace);
+    ic_cdk::println!(" - {:?}", registration.namespace);
 
-    let result: Result<(Vec<RegisterSubscriptionResult>,), _> = call(
+    let result: Result<(RegisterSubscriptionResult,), _> = call(
         canister_id,
         "register_subscription",
-        (registrations,),
+        (registration,),
     )
     .await;
 

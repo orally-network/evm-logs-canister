@@ -47,57 +47,55 @@ async fn distribute_event(event: Event) {
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
-        let filters= &sub.filters;
-        for filter in filters {
-            // Check if the event matches the subscriber's filter
-            if event_matches_filter(&event, filter) {
-                // Generate a unique notification ID
-                let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
-                    let mut id = id.borrow_mut();
-                    let current_id = id.clone();
-                    *id += Nat::from(1u32);
-                    current_id
-                });
+        let filter= &sub.filter;
+        // Check if the event matches the subscriber's filter
+        if event_matches_filter(&event, filter) {
+            // Generate a unique notification ID
+            let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
+                let mut id = id.borrow_mut();
+                let current_id = id.clone();
+                *id += Nat::from(1u32);
+                current_id
+            });
 
-                // Create the notification to send
-                let notification = EventNotification {
-                    id: notification_id.clone(),
-                    event_id: event.id.clone(),
-                    event_prev_id: event.prev_id.clone(),
-                    timestamp: current_timestamp(),
-                    namespace: event.namespace.clone(),
-                    data: event.data.clone(),
-                    tx_hash: event.tx_hash.clone(),
-                    headers: event.headers.clone(),
-                    topics: event.topics.clone().unwrap_or_default(),
-                    source: ic_cdk::api::id(),
-                    filter: None, // Ми не зберігаємо фільтр у нотифікації
-                };
+            // Create the notification to send
+            let notification = EventNotification {
+                id: notification_id.clone(),
+                event_id: event.id.clone(),
+                event_prev_id: event.prev_id.clone(),
+                timestamp: current_timestamp(),
+                namespace: event.namespace.clone(),
+                data: event.data.clone(),
+                tx_hash: event.tx_hash.clone(),
+                headers: event.headers.clone(),
+                topics: event.topics.clone().unwrap_or_default(),
+                source: ic_cdk::api::id(),
+                filter: None, // Ми не зберігаємо фільтр у нотифікації
+            };
 
-                // Send the notification to the subscriber
-                let result: Result<(), String> = call(
-                    sub.subscriber_principal,
-                    "icrc72_handle_notification",
-                    (notification.clone(),),
-                )
-                .await
-                .map_err(|e| format!("Failed to send notification: {:?}", e));
+            // Send the notification to the subscriber
+            let result: Result<(), String> = call(
+                sub.subscriber_principal,
+                "icrc72_handle_notification",
+                (notification.clone(),),
+            )
+            .await
+            .map_err(|e| format!("Failed to send notification: {:?}", e));
 
-                match result {
-                    Ok(_) => {
-                        ic_cdk::println!(
-                            "Notification sent to subscriber {}: Notification ID={}",
-                            sub.subscriber_principal,
-                            notification_id
-                        );
-                    }
-                    Err(err) => {
-                        ic_cdk::println!(
-                            "Error sending notification to subscriber {}: {}",
-                            sub.subscriber_principal,
-                            err
-                        );
-                    }
+            match result {
+                Ok(_) => {
+                    ic_cdk::println!(
+                        "Notification sent to subscriber {}: Notification ID={}",
+                        sub.subscriber_principal,
+                        notification_id
+                    );
+                }
+                Err(err) => {
+                    ic_cdk::println!(
+                        "Error sending notification to subscriber {}: {}",
+                        sub.subscriber_principal,
+                        err
+                    );
                 }
             }
         }

@@ -75,9 +75,9 @@ fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc
 #[update(name = "register_subscription")]
 #[candid_method(update)]
 async fn register_subscription(
-    registrations: Vec<SubscriptionRegistration>,
-) -> Vec<RegisterSubscriptionResult> {
-    subscription_manager::register_subscription(registrations).await
+    registration: SubscriptionRegistration,
+) -> RegisterSubscriptionResult {
+    subscription_manager::register_subscription(registration).await
 }
 
 // unsubscribe from subcription with specified ID
