@@ -15,7 +15,7 @@ type TopicsPosition = Vec<String>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
-    pub addresses: Vec<String>,
+    pub address: Vec<String>, // TODO one address
     pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
 }
 
@@ -34,7 +34,7 @@ pub struct Event {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct EventNotification {
-    pub id: Nat,
+    pub sub_id: Nat,
     pub event_id: Nat,
     pub event_prev_id: Option<Nat>,
     pub timestamp: u64,

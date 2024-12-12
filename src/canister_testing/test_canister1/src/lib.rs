@@ -1,61 +1,36 @@
+pub mod read_contract;
+pub mod utils;
+pub mod state;
+pub mod decoders;
+
 use ic_cdk::api::call::call;
 use ic_cdk_macros::{update, query, init};
 use candid::Principal;
-use std::cell::RefCell;
-use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification, UnsubscribeResult};
-use ic_web3_rs::ethabi::{decode, ParamType};
+use evm_logs_types::{EventNotification, UnsubscribeResult};
 use ic_web3_rs::types::H160;
 use hex;
 use hex::FromHex;
-
-mod read_contract;
-
 use read_contract::{SolidityToken, SwapEventData};
-
-thread_local! {
-    static NOTIFICATIONS: RefCell<Vec<EventNotification>> = RefCell::new(Vec::new());
-}
+use utils::{create_base_swaps_config, create_ethereum_sync_config, register_subscription_and_map_decoder};
+use state::NOTIFICATIONS;
+use decoders::decode_swap_event_data;
+use state::DECODERS;
 
 #[init]
 async fn init() {
     ic_cdk::println!("Test_canister1 initialized");
 }
 
+// Candid update methods
 #[update]
-async fn register_subscription(canister_id: Principal, registration: SubscriptionRegistration) {
-    ic_cdk::println!("Calling register_subscription for namespace - {:?}", registration.namespace);
-    ic_cdk::println!(" - {:?}", registration.namespace);
+async fn register_subscription(canister_id: Principal) {
+    ic_cdk::println!("Starting subscription registration");
 
-    let result: Result<(RegisterSubscriptionResult,), _> = call(
-        canister_id,
-        "register_subscription",
-        (registration,),
-    )
-    .await;
+    let base_swaps_filter = create_base_swaps_config();
+    let eth_sync_filter = create_ethereum_sync_config(); 
 
-    match result {
-        Ok((response,)) => {
-            ic_cdk::println!("Success: {:?}", response);
-        }
-        Err(e) => {
-            ic_cdk::println!("Error calling canister: {:?}", e);
-        }
-    }
-}
-
-#[update]
-async fn icrc72_handle_notification(notification: EventNotification) {
-    ic_cdk::println!("Received notification for event ID: {:?}", notification.event_id);
-    ic_cdk::println!("Notification details: {:?}", notification);
-
-    NOTIFICATIONS.with(|notifs| {
-        notifs.borrow_mut().push(notification);
-    });
-}
-
-#[query]
-fn get_notifications() -> Vec<EventNotification> {
-    NOTIFICATIONS.with(|notifs| notifs.borrow().clone())
+    register_subscription_and_map_decoder(canister_id, base_swaps_filter, decode_swap_event_data).await;
+    register_subscription_and_map_decoder(canister_id, eth_sync_filter, decode_swap_event_data).await;
 }
 
 #[update]
@@ -68,7 +43,7 @@ async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
         (subscription_id.clone(),),
     )
     .await;
-
+    // TODO remove decoder
     match result {
         Ok((response,)) => match response {
             UnsubscribeResult::Ok() => ic_cdk::println!("Successfully unsubscribed from {:?}", subscription_id),
@@ -78,6 +53,65 @@ async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
             ic_cdk::println!("Error calling canister: {:?}", e);
         }
     }
+}
+
+#[update]
+async fn icrc72_handle_notification(notification: EventNotification) {
+    ic_cdk::println!("Received notification for event ID: {:?}", notification.event_id);
+    ic_cdk::println!("Notification details: {:?}", notification);
+
+    NOTIFICATIONS.with(|notifs| {
+        notifs.borrow_mut().push(notification.clone());
+    });
+
+    let maybe_decoded = DECODERS.with(|decoders| {
+        if let Some(decoder) = decoders.borrow().get(&notification.sub_id) {
+
+            // Convert notification.data to String, removing "0x" prefix if present
+            let data_str = match String::try_from(notification.data.clone()) {
+                Ok(s) => s.trim_start_matches("0x").to_string(),
+                Err(e) => {
+                    ic_cdk::println!("Error converting notification data to String: {:?}", e);
+                    return None;
+                }
+            };
+
+            // hex => bytes
+            let data = match hex::decode(&data_str) {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    ic_cdk::println!("Error decoding data hex string: {:?}", e);
+                    return None;
+                }
+            };
+
+            // Decode event data
+            match decoder(data) {
+                Ok(decoded_tokens) => Some(decoded_tokens),
+                Err(e) => {
+                    ic_cdk::println!("Error decoding event data: {:?}", e);
+                    None
+                }
+            }
+        }
+        else {
+            ic_cdk::println!("No decoder found for subscription_id: {:?}", notification.sub_id);
+            None
+        }
+
+        // if let Some(decoded_tokens) = maybe_decoded {
+        //     DECODED_NOTIFICATIONS.with(|decoded| {
+        //         decoded.borrow_mut().push((notification, decoded_tokens));
+        //     });
+        // }
+        
+    });
+    // Decode each notification depending on the sub_id(map decoder to each event)
+}
+
+#[query]
+fn get_notifications() -> Vec<EventNotification> {
+    NOTIFICATIONS.with(|notifs| notifs.borrow().clone())
 }
 
 #[update]
@@ -103,26 +137,6 @@ async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::Subscr
     }
 }
 
-fn decode_event_data(data: Vec<u8>) -> Result<Vec<SolidityToken>, String> {
-    // index_topic_1 address sender, index_topic_2 address recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick
-    
-    let param_types = vec![
-        ParamType::Int(256), // amount0
-        ParamType::Int(256), // amount1
-        ParamType::Int(256), // sqrtPriceX96
-        ParamType::Int(256), // liquidity
-        ParamType::Int(256),   // tick
-    ];
-
-    let decoded_tokens = decode(&param_types, &data)
-        .map_err(|e| format!("Decoding error: {:?}", e))?;
-
-    let result = decoded_tokens.into_iter().map(SolidityToken::from).collect();
-    Ok(result)
-}
-
-
-
 
 #[query]
 fn get_swap_events_data() -> Vec<SwapEventData> {
@@ -138,7 +152,6 @@ fn get_swap_events_data() -> Vec<SwapEventData> {
                 }
             };
 
-            // Decode the data
             let data: Vec<u8> = match hex::decode(&data_str) {
                 Ok(bytes) => bytes,
                 Err(e) => {
@@ -148,7 +161,7 @@ fn get_swap_events_data() -> Vec<SwapEventData> {
             };
 
             // Decode event data
-            let decoded_data = match decode_event_data(data) {
+            let decoded_data = match decode_swap_event_data(data) {
                 Ok(tokens) => tokens,
                 Err(e) => {
                     ic_cdk::println!("Error decoding event data: {:?}", e);

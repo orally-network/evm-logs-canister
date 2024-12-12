@@ -13,7 +13,7 @@ type Event = record {
 };
 
 type EventNotification = record {
-  id : nat;
+  sub_id : nat;
   event_id : nat;
   event_prev_id : opt nat;
   timestamp : nat64;
@@ -136,7 +136,7 @@ type SolidityToken = variant {
 };
 
 service : {
-  register_subscription: (principal, SubscriptionRegistration) -> ();
+  register_subscription: (principal) -> ();
   icrc72_handle_notification: (EventNotification) -> ();
   get_notifications: () -> (vec EventNotification) query;
   unsubscribe: (principal, nat) -> ();

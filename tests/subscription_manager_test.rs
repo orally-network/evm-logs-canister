@@ -54,7 +54,7 @@ async fn test_event_publishing_and_notification_delivery() {
         namespace: "test_namespace".to_string(),
         filter:
             Filter {
-                addresses: vec!["0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string()],
+                address: vec!["0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string()],
                 topics: None, 
             },
         memo: None,

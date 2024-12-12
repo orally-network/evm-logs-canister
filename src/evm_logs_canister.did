@@ -13,7 +13,7 @@ type Event = record {
 };
 
 type EventNotification = record {
-  id : nat;
+  sub_id : nat;
   event_id : nat;
   event_prev_id : opt nat;
   timestamp : nat64;

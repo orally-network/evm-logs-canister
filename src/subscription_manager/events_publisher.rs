@@ -60,7 +60,7 @@ async fn distribute_event(event: Event) {
 
             // Create the notification to send
             let notification = EventNotification {
-                id: notification_id.clone(),
+                sub_id: sub.subscription_id.clone(),
                 event_id: event.id.clone(),
                 event_prev_id: event.prev_id.clone(),
                 timestamp: current_timestamp(),
@@ -70,7 +70,7 @@ async fn distribute_event(event: Event) {
                 headers: event.headers.clone(),
                 topics: event.topics.clone().unwrap_or_default(),
                 source: ic_cdk::api::id(),
-                filter: None, // Ми не зберігаємо фільтр у нотифікації
+                filter: None,
             };
 
             // Send the notification to the subscriber
