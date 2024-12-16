@@ -84,6 +84,50 @@ pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
     }
 }
 
+pub fn create_primex_deposit_config() -> SubscriptionRegistration {
+    // address and topics to monitor
+    let address = vec!["0x12c125181Eb7c944EaEfcB2AE881475870f0Aff3".to_string()];
+
+    let topics = Some(vec![
+        vec![
+            "0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62".to_string(),
+        ],
+    ]);
+
+    let filter = Filter {
+        address,
+        topics,
+    };
+
+    SubscriptionRegistration {
+        namespace: "com.events.Polygon".to_string(),
+        filter,
+        memo: None,
+    }
+}
+
+pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
+    // address and topics to monitor
+    let address = vec!["0x7574eb42ca208a4f6960eccafdf186d627dcc175".to_string()];
+
+    let topics = Some(vec![
+        vec![
+            "0x257e057bb61920d8d0ed2cb7b720ac7f9c513cd1110bc9fa543079154f45f435".to_string(),
+        ],
+    ]);
+
+    let filter = Filter {
+        address,
+        topics,
+    };
+
+    SubscriptionRegistration {
+        namespace: "com.events.Ethereum".to_string(),
+        filter,
+        memo: None,
+    }
+}
+
 /// Extracts and decodes the event data bytes from the notification.
 /// This function converts the event's data from a hex string to raw bytes.
 /// Returns an error if any step of the conversion fails.

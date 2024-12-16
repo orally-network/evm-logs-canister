@@ -39,3 +39,31 @@ pub fn ethereum_sync_decoder(notification: &EventNotification) -> Result<Vec<Sol
     let result = decoded_tokens.into_iter().map(SolidityToken::from).collect();
     Ok(result)
 }
+
+pub fn primex_deposit_decoder(notification: &EventNotification) -> Result<Vec<SolidityToken>, String> {
+    let data = extract_data_bytes(notification)?;
+
+    let param_types = vec![
+        ParamType::Int(256), // amount
+    ];
+
+    let decoded_tokens = decode(&param_types, &data)
+        .map_err(|e| format!("Decoding error: {:?}", e))?;
+
+    let result = decoded_tokens.into_iter().map(SolidityToken::from).collect();
+    Ok(result)
+}
+
+pub fn chainfusion_deposit_decoder(notification: &EventNotification) -> Result<Vec<SolidityToken>, String> {
+    let data = extract_data_bytes(notification)?;
+
+    let param_types = vec![
+        ParamType::Int(256), // amount
+    ];
+
+    let decoded_tokens = decode(&param_types, &data)
+        .map_err(|e| format!("Decoding error: {:?}", e))?;
+
+    let result = decoded_tokens.into_iter().map(SolidityToken::from).collect();
+    Ok(result)
+}

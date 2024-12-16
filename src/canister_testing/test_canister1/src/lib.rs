@@ -9,7 +9,7 @@ use candid::Principal;
 use evm_logs_types::{EventNotification, UnsubscribeResult};
 use utils::{create_base_swaps_config, create_ethereum_sync_config, register_subscription_and_map_decoder};
 use state::NOTIFICATIONS;
-use decoders::{ethereum_sync_decoder, swap_event_data_decoder};
+use decoders::{ethereum_sync_decoder, swap_event_data_decoder, primex_deposit_decoder, chainfusion_deposit_decoder};
 use state::{DECODERS, DECODED_NOTIFICATIONS};
 use crate::read_contract::SolidityToken;
 use candid::{CandidType, Deserialize};
@@ -32,9 +32,13 @@ async fn subscribe(canister_id: Principal) {
 
     let base_swaps_filter = create_base_swaps_config();
     let eth_sync_filter = create_ethereum_sync_config(); 
+    let primex_deposit_filter = create_base_swaps_config();
+    let chainfusion_deposit_filter = create_ethereum_sync_config(); 
 
     register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
     register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;
+    register_subscription_and_map_decoder(canister_id, primex_deposit_filter, primex_deposit_decoder).await;
+    register_subscription_and_map_decoder(canister_id, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
 }
 
 #[update]

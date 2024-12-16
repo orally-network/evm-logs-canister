@@ -81,6 +81,7 @@ pub enum ChainName {
     Ethereum,
     Base,
     Optimism,
+    Polygon,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
