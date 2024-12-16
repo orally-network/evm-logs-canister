@@ -1,18 +1,24 @@
-pub mod read_contract;
-pub mod utils;
-pub mod state;
 pub mod decoders;
+pub mod read_contract;
+pub mod state;
+pub mod utils;
 
-use ic_cdk::api::call::call;
-use ic_cdk_macros::{update, query, init};
-use candid::Principal;
-use evm_logs_types::{EventNotification, UnsubscribeResult};
-use utils::{create_base_swaps_config, create_chainfusion_deposit_config, create_ethereum_sync_config, create_primex_deposit_config, register_subscription_and_map_decoder};
-use state::NOTIFICATIONS;
-use decoders::{ethereum_sync_decoder, swap_event_data_decoder, primex_deposit_decoder, chainfusion_deposit_decoder};
-use state::{DECODERS, DECODED_NOTIFICATIONS};
 use crate::read_contract::SolidityToken;
+use candid::Principal;
 use candid::{CandidType, Deserialize};
+use decoders::{
+    chainfusion_deposit_decoder, ethereum_sync_decoder, primex_deposit_decoder,
+    swap_event_data_decoder,
+};
+use evm_logs_types::{EventNotification, UnsubscribeResult};
+use ic_cdk::api::call::call;
+use ic_cdk_macros::{init, query, update};
+use state::NOTIFICATIONS;
+use state::{DECODED_NOTIFICATIONS, DECODERS};
+use utils::{
+    create_base_swaps_config, create_chainfusion_deposit_config, create_ethereum_sync_config,
+    create_primex_deposit_config, register_subscription_and_map_decoder,
+};
 
 #[derive(CandidType, Deserialize, Clone)]
 struct DecodedNotification {
@@ -31,30 +37,43 @@ async fn subscribe(canister_id: Principal) {
     ic_cdk::println!("Starting subscription registration");
 
     let base_swaps_filter = create_base_swaps_config();
-    let eth_sync_filter = create_ethereum_sync_config(); 
+    let eth_sync_filter = create_ethereum_sync_config();
     let primex_deposit_filter = create_primex_deposit_config();
     let chainfusion_deposit_filter = create_chainfusion_deposit_config();
 
-    register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
-    register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;
-    register_subscription_and_map_decoder(canister_id, primex_deposit_filter, primex_deposit_decoder).await;
-    register_subscription_and_map_decoder(canister_id, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
+    register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder)
+        .await;
+    register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder)
+        .await;
+    register_subscription_and_map_decoder(
+        canister_id,
+        primex_deposit_filter,
+        primex_deposit_decoder,
+    )
+    .await;
+    register_subscription_and_map_decoder(
+        canister_id,
+        chainfusion_deposit_filter,
+        chainfusion_deposit_decoder,
+    )
+    .await;
 }
 
 #[update]
 async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
-    ic_cdk::println!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
+    ic_cdk::println!(
+        "Calling unsubscribe for subscription ID: {:?}",
+        subscription_id
+    );
 
-    let result: Result<(evm_logs_types::UnsubscribeResult,), _> = call(
-        canister_id,
-        "unsubscribe",
-        (subscription_id.clone(),),
-    )
-    .await;
+    let result: Result<(evm_logs_types::UnsubscribeResult,), _> =
+        call(canister_id, "unsubscribe", (subscription_id.clone(),)).await;
     // TODO remove decoder
     match result {
         Ok((response,)) => match response {
-            UnsubscribeResult::Ok() => ic_cdk::println!("Successfully unsubscribed from {:?}", subscription_id),
+            UnsubscribeResult::Ok() => {
+                ic_cdk::println!("Successfully unsubscribed from {:?}", subscription_id)
+            }
             UnsubscribeResult::Err(err) => ic_cdk::println!("Error unsubscribing: {:?}", err),
         },
         Err(e) => {
@@ -65,7 +84,10 @@ async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
 
 #[update]
 async fn handle_notification(notification: EventNotification) {
-    ic_cdk::println!("Received notification for event ID: {:?}", notification.event_id);
+    ic_cdk::println!(
+        "Received notification for event ID: {:?}",
+        notification.event_id
+    );
     ic_cdk::println!("Notification details: {:?}", notification);
 
     NOTIFICATIONS.with(|notifs| {
@@ -77,7 +99,9 @@ async fn handle_notification(notification: EventNotification) {
             match decoder(&notification) {
                 Ok(decoded_tokens) => {
                     DECODED_NOTIFICATIONS.with(|decoded| {
-                        decoded.borrow_mut().push((notification.clone(), decoded_tokens));
+                        decoded
+                            .borrow_mut()
+                            .push((notification.clone(), decoded_tokens));
                     });
                 }
                 Err(e) => {
@@ -85,7 +109,10 @@ async fn handle_notification(notification: EventNotification) {
                 }
             }
         } else {
-            ic_cdk::println!("No decoder found for subscription_id: {:?}", notification.sub_id);
+            ic_cdk::println!(
+                "No decoder found for subscription_id: {:?}",
+                notification.sub_id
+            );
         }
     });
 }
@@ -93,12 +120,14 @@ async fn handle_notification(notification: EventNotification) {
 #[query]
 fn get_decoded_notifications() -> Vec<DecodedNotification> {
     DECODED_NOTIFICATIONS.with(|decoded| {
-        decoded.borrow().iter().map(|(notif, toks)| {
-            DecodedNotification {
+        decoded
+            .borrow()
+            .iter()
+            .map(|(notif, toks)| DecodedNotification {
                 notification: notif.clone(),
                 tokens: toks.clone(),
-            }
-        }).collect()
+            })
+            .collect()
     })
 }
 
@@ -111,21 +140,17 @@ fn get_notifications() -> Vec<EventNotification> {
 async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::SubscriptionInfo> {
     ic_cdk::println!("Calling get_subscriptions");
 
-    let result: Result<(Vec<evm_logs_types::SubscriptionInfo>,), _> = call(
-        canister_id,
-        "get_user_subscriptions",
-        ()
-    )
-    .await;
+    let result: Result<(Vec<evm_logs_types::SubscriptionInfo>,), _> =
+        call(canister_id, "get_user_subscriptions", ()).await;
 
     match result {
         Ok((subscriptions,)) => {
             ic_cdk::println!("Successfully fetched subscriptions: {:?}", subscriptions);
             subscriptions
-        },
+        }
         Err(e) => {
             ic_cdk::println!("Error fetching subscriptions: {:?}", e);
-            vec![] 
+            vec![]
         }
     }
 }

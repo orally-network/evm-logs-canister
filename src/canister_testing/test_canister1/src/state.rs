@@ -1,8 +1,8 @@
-use std::cell::RefCell;
-use candid::Nat;
-use std::collections::HashMap;
 use crate::read_contract::SolidityToken;
+use candid::Nat;
 use evm_logs_types::EventNotification;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 thread_local! {
     pub static NOTIFICATIONS: RefCell<Vec<EventNotification>> = RefCell::new(Vec::new());

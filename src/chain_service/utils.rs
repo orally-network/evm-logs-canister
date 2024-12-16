@@ -1,5 +1,5 @@
-use evm_rpc_canister_types::LogEntry;
 use evm_logs_types::ChainName;
+use evm_rpc_canister_types::LogEntry;
 
 pub fn convert_log_to_string(chain_name: &ChainName, log: &LogEntry) -> String {
     format!(
@@ -7,8 +7,7 @@ pub fn convert_log_to_string(chain_name: &ChainName, log: &LogEntry) -> String {
         chain_name,
         log.address,
         log.transactionHash,
-        log
-            .blockNumber
+        log.blockNumber
             .as_ref()
             .map(|n| n.0.clone())
             .unwrap_or_default(),

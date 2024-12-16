@@ -1,19 +1,19 @@
-use std::sync::Arc;
-use ic_cdk_timers::set_timer_interval;
-use crate::utils::get_latest_block_number;
 use crate::subscription_manager::queries;
+use crate::utils::get_latest_block_number;
 use ic_cdk;
+use ic_cdk_timers::set_timer_interval;
+use std::sync::Arc;
 
-use super::service::ChainService;
-use super::logs_fetcher::fetch_logs;
 use super::events_processor::process_events;
-use super::utils::{print_logs, convert_log_to_string};
-use std::time::Duration;
+use super::logs_fetcher::fetch_logs;
+use super::service::ChainService;
+use super::utils::{convert_log_to_string, print_logs};
 use num_traits::ToPrimitive;
+use std::time::Duration;
 
 pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration) {
     let service_clone = Arc::clone(&service);
-    
+
     let timer_id = set_timer_interval(interval, move || {
         let service_inner = Arc::clone(&service_clone);
         ic_cdk::spawn(async move {
@@ -29,7 +29,10 @@ impl ChainService {
         let (addresses, topics) = queries::get_active_addresses_and_topics();
 
         if addresses.is_empty() && topics.is_none() {
-            ic_cdk::println!("{:?} : No active filters to monitor. No fetching", self.config.chain_name);
+            ic_cdk::println!(
+                "{:?} : No active filters to monitor. No fetching",
+                self.config.chain_name
+            );
             return;
         }
 
@@ -37,10 +40,7 @@ impl ChainService {
 
         if last_processed_block == 0 {
             // Initialize last_processed_block
-            match get_latest_block_number(
-                &self.evm_rpc,
-                self.config.rpc_providers.clone(),
-            ).await {
+            match get_latest_block_number(&self.evm_rpc, self.config.rpc_providers.clone()).await {
                 Ok(latest_block_number) => {
                     *self.last_processed_block.borrow_mut() = latest_block_number;
                     ic_cdk::println!(
@@ -49,7 +49,7 @@ impl ChainService {
                         self.config.chain_name
                     );
                     return;
-                },
+                }
                 Err(err) => {
                     ic_cdk::println!(
                         "Failed to initialize last_processed_block for {:?}: {}",
@@ -57,7 +57,7 @@ impl ChainService {
                         err,
                     );
                     return;
-                },
+                }
             }
         }
 
@@ -69,7 +69,15 @@ impl ChainService {
             from_block
         );
 
-        match fetch_logs(&self.evm_rpc, &self.config.rpc_providers, from_block, Some(addresses), topics).await {
+        match fetch_logs(
+            &self.evm_rpc,
+            &self.config.rpc_providers,
+            from_block,
+            Some(addresses),
+            topics,
+        )
+        .await
+        {
             Ok(logs) => {
                 if !logs.is_empty() {
                     let max_block_number = logs
@@ -80,9 +88,15 @@ impl ChainService {
                         .unwrap_or(last_processed_block);
 
                     *self.last_processed_block.borrow_mut() = max_block_number;
-                    ic_cdk::println!("Last processed block new value: {}", *self.last_processed_block.borrow());
+                    ic_cdk::println!(
+                        "Last processed block new value: {}",
+                        *self.last_processed_block.borrow()
+                    );
 
-                    let log_strings: Vec<String> = logs.iter().map(|log| convert_log_to_string(&self.config.chain_name, log)).collect();
+                    let log_strings: Vec<String> = logs
+                        .iter()
+                        .map(|log| convert_log_to_string(&self.config.chain_name, log))
+                        .collect();
                     print_logs(&log_strings);
 
                     if let Err(e) = process_events(self, logs).await {
@@ -96,7 +110,7 @@ impl ChainService {
                         from_block
                     );
                 }
-            },
+            }
             Err(e) => {
                 ic_cdk::println!(
                     "Error during logs extraction for {:?}: {}",

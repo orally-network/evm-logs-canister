@@ -1,25 +1,23 @@
 // lib.rs
 
-mod utils;
-mod subscription_manager;
 mod chain_service;
 mod log_filters;
+mod subscription_manager;
+mod utils;
 
-use ic_cdk_macros::*;
 use candid::candid_method;
+use ic_cdk_macros::*;
 
 use candid::{Nat, Principal};
-use ic_cdk_macros::query;
 use chain_service::{service::ChainService, ChainConfig};
+use ic_cdk_macros::query;
 use std::cell::RefCell;
-use std::time::Duration;
 use std::sync::Arc;
+use std::time::Duration;
 
 use evm_logs_types::*;
 
-use evm_rpc_canister_types::{
-    EthMainnetService, L2MainnetService, RpcServices, RpcApi,
-};
+use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcServices};
 
 thread_local! {
     static CHAIN_SERVICES: RefCell<Vec<Arc<ChainService>>> = const { RefCell::new(Vec::new()) };
@@ -51,12 +49,10 @@ async fn init() {
             chain_name: ChainName::Polygon,
             rpc_providers: RpcServices::Custom {
                 chainId: 137,
-                services: vec![
-                    RpcApi {
-                        url: "https://polygon-rpc.com".to_string(),
-                        headers: None,
-                    }
-                ],
+                services: vec![RpcApi {
+                    url: "https://polygon-rpc.com".to_string(),
+                    headers: None,
+                }],
             },
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
@@ -80,7 +76,6 @@ fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc
     service.clone().start_monitoring(monitoring_interval);
     service
 }
-
 
 // Candid methods
 
@@ -109,7 +104,7 @@ fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
 
 // generally for testing purpose
 
-// get all evm-logs-canister filters info. 
+// get all evm-logs-canister filters info.
 #[query(name = "get_active_filters")]
 #[candid_method(query)]
 fn get_active_filters() -> Vec<evm_logs_types::Filter> {
@@ -134,13 +129,10 @@ fn get_subscriptions(
     subscription_manager::queries::get_subscriptions_info(namespace, from_id, filters)
 }
 
-
 // only testing purpose
 #[update(name = "publish_events")]
 #[candid_method(update)]
-async fn icrc72_publish(
-    events: Vec<Event>,
-) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
+async fn icrc72_publish(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     subscription_manager::events_publisher::publish_events(events).await
 }
 

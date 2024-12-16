@@ -1,13 +1,11 @@
-use candid::Nat;
-use evm_logs_types::{Event, PublishError, EventNotification};
+use super::state::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::utils::{current_timestamp, event_matches_filter};
-use super::state::{SUBSCRIPTIONS, EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID};
-use ic_cdk::api::call::call;
+use candid::Nat;
+use evm_logs_types::{Event, EventNotification, PublishError};
 use ic_cdk;
+use ic_cdk::api::call::call;
 
-pub async fn publish_events(
-    events: Vec<Event>,
-) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
+pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     let mut results = Vec::new();
 
     for mut event in events {
@@ -47,7 +45,7 @@ async fn distribute_event(event: Event) {
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
-        let filter= &sub.filter;
+        let filter = &sub.filter;
         // Check if the event matches the subscriber's filter
         if event_matches_filter(&event, filter) {
             // Generate a unique notification ID

@@ -1,25 +1,25 @@
-use pocket_ic::WasmResult;
-use pocket_ic::nonblocking::PocketIc;
 use candid;
-use tokio::time::sleep;
+use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{
-    SubscriptionRegistration, Event, EventNotification, ICRC16Value, 
-    RegisterSubscriptionResult, Filter
+    Event, EventNotification, Filter, ICRC16Value, RegisterSubscriptionResult,
+    SubscriptionRegistration,
 };
+use pocket_ic::nonblocking::PocketIc;
+use pocket_ic::WasmResult;
 use std::time::Duration;
-use candid::Nat;
-
+use tokio::time::sleep;
 
 #[tokio::test]
 async fn test_event_publishing_and_notification_delivery() {
     let pic = PocketIc::new().await;
 
     let subscription_manager_canister_id = pic.create_canister().await;
-    pic.add_cycles(subscription_manager_canister_id, 2_000_000_000_000).await;
+    pic.add_cycles(subscription_manager_canister_id, 2_000_000_000_000)
+        .await;
 
-    let subscription_manager_wasm_path = std::env::var("EVM_LOGS_CANISTER_PATH")
-        .expect("EVM_LOGS_CANISTER_PATH must be set");
+    let subscription_manager_wasm_path =
+        std::env::var("EVM_LOGS_CANISTER_PATH").expect("EVM_LOGS_CANISTER_PATH must be set");
     let subscription_manager_wasm_bytes = tokio::fs::read(subscription_manager_wasm_path)
         .await
         .expect("Failed to read the subscription manager WASM file");
@@ -33,11 +33,12 @@ async fn test_event_publishing_and_notification_delivery() {
 
     // Create the subscriber canister
     let subscriber_canister_id = pic.create_canister().await;
-    pic.add_cycles(subscriber_canister_id, 2_000_000_000_000).await;
+    pic.add_cycles(subscriber_canister_id, 2_000_000_000_000)
+        .await;
 
     // Install the subscriber wasm
-    let subscriber_wasm_path = std::env::var("TEST_CANISTER_WASM_PATH")
-        .expect("TEST_CANISTER_WASM_PATH must be set");
+    let subscriber_wasm_path =
+        std::env::var("TEST_CANISTER_WASM_PATH").expect("TEST_CANISTER_WASM_PATH must be set");
     let subscriber_wasm_bytes = tokio::fs::read(subscriber_wasm_path)
         .await
         .expect("Failed to read the subscriber WASM file");
@@ -52,18 +53,17 @@ async fn test_event_publishing_and_notification_delivery() {
     // Register a subscription from the subscriber canister
     let subscription_registration = SubscriptionRegistration {
         namespace: "test_namespace".to_string(),
-        filter:
-            Filter {
-                address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
-                topics: None, 
-            },
+        filter: Filter {
+            address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
+            topics: None,
+        },
         memo: None,
     };
 
     let register_subscription_result = pic
         .update_call(
             subscription_manager_canister_id,
-            subscriber_canister_id, 
+            subscriber_canister_id,
             "register_subscription",
             candid::encode_one(subscription_registration.clone()).unwrap(),
         )
@@ -91,7 +91,7 @@ async fn test_event_publishing_and_notification_delivery() {
     }
 
     // Register a publication
-    let publisher_principal = Principal::anonymous(); 
+    let publisher_principal = Principal::anonymous();
 
     // Publish an event
     let event = Event {
@@ -102,7 +102,7 @@ async fn test_event_publishing_and_notification_delivery() {
         data: ICRC16Value::Text("Test event data".to_string()),
         headers: None,
         address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(), // Example address
-        topics:None,  // Example topic
+        topics: None,                                                      // Example topic
         tx_hash: "".to_string(),
     };
     let publish_events_result = pic
@@ -117,7 +117,8 @@ async fn test_event_publishing_and_notification_delivery() {
     // Check the event publishing result
     match publish_events_result {
         Ok(WasmResult::Reply(data)) => {
-            let decoded_results: Vec<Option<Result<Vec<Nat>, String>>> = candid::decode_one(&data).unwrap();
+            let decoded_results: Vec<Option<Result<Vec<Nat>, String>>> =
+                candid::decode_one(&data).unwrap();
             match &decoded_results[0] {
                 Some(Ok(event_ids)) => {
                     println!("Event published successfully, IDs: {:?}", event_ids);
@@ -160,7 +161,10 @@ async fn test_event_publishing_and_notification_delivery() {
             println!("Received notifications: {:?}", notifications);
             assert_eq!(notifications.len(), 1, "Expected one notification");
             let notification = &notifications[0];
-            assert_eq!(notification.namespace, "test_namespace", "Incorrect namespace");
+            assert_eq!(
+                notification.namespace, "test_namespace",
+                "Incorrect namespace"
+            );
             assert_eq!(notification.event_id, Nat::from(1u64), "Incorrect event_id");
             if let ICRC16Value::Text(ref text) = notification.data {
                 assert_eq!(text, "Test event data", "Incorrect event data");
@@ -177,5 +181,3 @@ async fn test_event_publishing_and_notification_delivery() {
         }
     }
 }
-
-

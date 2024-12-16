@@ -1,9 +1,9 @@
-use evm_rpc_canister_types::LogEntry;
-use evm_logs_types::{Event, ICRC16Value};
-use candid::Nat;
-use ic_cdk::api::time;
-use crate::subscription_manager::events_publisher::publish_events;
 use super::service::ChainService;
+use crate::subscription_manager::events_publisher::publish_events;
+use candid::Nat;
+use evm_logs_types::{Event, ICRC16Value};
+use evm_rpc_canister_types::LogEntry;
+use ic_cdk::api::time;
 
 pub async fn process_events(service: &ChainService, logs: Vec<LogEntry>) -> Result<(), String> {
     let events: Vec<Event> = logs

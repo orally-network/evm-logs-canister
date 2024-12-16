@@ -1,4 +1,4 @@
-use candid::{CandidType, Deserialize, Principal, Nat};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 
 // A note on specifying topic filters:
@@ -15,7 +15,7 @@ type TopicsPosition = Vec<String>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
-    pub address: String, 
+    pub address: String,
     pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
 }
 
@@ -57,7 +57,6 @@ pub struct EventRelay {
     pub data: ICRC16Value,
     pub headers: Option<Vec<ICRC16Map>>,
 }
-
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SubscriptionRegistration {
@@ -119,9 +118,8 @@ impl TryFrom<ICRC16Value> for String {
     fn try_from(value: ICRC16Value) -> Result<Self, Self::Error> {
         match value {
             ICRC16Value::Text(text) => {
-                
                 if text.len() >= 2 {
-                    Ok(text[2..].to_string())  
+                    Ok(text[2..].to_string())
                 } else {
                     Err("String is too short to remove first two characters")
                 }
@@ -130,8 +128,6 @@ impl TryFrom<ICRC16Value> for String {
         }
     }
 }
-
-
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct ICRC16Property {
@@ -158,21 +154,17 @@ pub struct GenericError {
     pub message: String,
 }
 
-
-
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum RegisterSubscriptionResult {
     Ok(Nat), // sub id
     Err(RegisterSubscriptionError),
 }
 
-
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum UnsubscribeResult {
     Ok(),
     Err(String),
 }
-
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum RegisterSubscriptionError {

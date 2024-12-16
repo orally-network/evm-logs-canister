@@ -1,7 +1,7 @@
-use evm_rpc_canister_types::{
-    BlockTag, GetLogsArgs, GetLogsResult, MultiGetLogsResult, RpcServices, EvmRpcCanister, LogEntry,
-};
 use candid::Nat;
+use evm_rpc_canister_types::{
+    BlockTag, EvmRpcCanister, GetLogsArgs, GetLogsResult, LogEntry, MultiGetLogsResult, RpcServices,
+};
 
 pub async fn fetch_logs(
     evm_rpc: &EvmRpcCanister,

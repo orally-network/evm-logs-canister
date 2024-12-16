@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use candid::Nat;
 use evm_logs_types::Filter;
+use std::collections::HashMap;
 
 const MAX_TOPICS: usize = 4;
 
@@ -8,9 +8,9 @@ type TopicsPosition = Vec<String>;
 
 pub struct FilterManager {
     topic_counts: Vec<HashMap<String, Nat>>,
-    addresses: HashMap<String, Nat>,    
-    accept_any_topic_at_position: Vec<Nat>, 
-    total_subscriptions: Nat,                   
+    addresses: HashMap<String, Nat>,
+    accept_any_topic_at_position: Vec<Nat>,
+    total_subscriptions: Nat,
 }
 
 impl FilterManager {
@@ -26,18 +26,22 @@ impl FilterManager {
     /// Adds a new filter (subscription) to the manager, updating counts for addresses and topics.
     pub fn add_filter(&mut self, filter: &Filter) {
         self.total_subscriptions += Nat::from(1u32);
-    
-        *self.addresses.entry(filter.address.clone()).or_insert(Nat::from(0u32)) += Nat::from(1u32);
+
+        *self
+            .addresses
+            .entry(filter.address.clone())
+            .or_insert(Nat::from(0u32)) += Nat::from(1u32);
 
         if let Some(filter_topics) = &filter.topics {
             for (i, topics_at_pos) in filter_topics.iter().enumerate() {
                 if topics_at_pos.is_empty() {
                     // Position will accept any topic if empty
                     self.accept_any_topic_at_position[i] += Nat::from(1u32);
-                }
-                else {
+                } else {
                     for topic in topics_at_pos {
-                        *self.topic_counts[i].entry(topic.clone()).or_insert(Nat::from(0u32)) += Nat::from(1u32);
+                        *self.topic_counts[i]
+                            .entry(topic.clone())
+                            .or_insert(Nat::from(0u32)) += Nat::from(1u32);
                     }
                 }
             }
@@ -46,15 +50,14 @@ impl FilterManager {
             for i in filter_topics.len()..MAX_TOPICS {
                 self.accept_any_topic_at_position[i] += Nat::from(1u32);
             }
-        }
-        else {
+        } else {
             // No topics specified => all positions accept any topic.
             for i in 0..MAX_TOPICS {
                 self.accept_any_topic_at_position[i] += Nat::from(1u32);
-            }        
+            }
         }
     }
-    
+
     /// Removes a filter (subscription) from the manager, decrementing counts accordingly.
     pub fn remove_filter(&mut self, filter: &Filter) {
         if self.total_subscriptions > 0u32 {
@@ -71,11 +74,12 @@ impl FilterManager {
         if let Some(filter_topics) = &filter.topics {
             for (i, topics_at_pos) in filter_topics.iter().enumerate() {
                 if topics_at_pos.is_empty() {
-                    if self.accept_any_topic_at_position.len() > i && self.accept_any_topic_at_position[i] > 0u32 {
+                    if self.accept_any_topic_at_position.len() > i
+                        && self.accept_any_topic_at_position[i] > 0u32
+                    {
                         self.accept_any_topic_at_position[i] -= Nat::from(1u32);
                     }
-                } 
-                else {
+                } else {
                     for topic in topics_at_pos {
                         if let Some(count) = self.topic_counts[i].get_mut(topic) {
                             *count -= Nat::from(1u32);
@@ -92,11 +96,11 @@ impl FilterManager {
             for i in filter_topics.len()..MAX_TOPICS {
                 self.accept_any_topic_at_position[i] -= Nat::from(1u32);
             }
-        }
-        else {
+        } else {
             // No topics => decrement "accept any" count for all positions
             for i in 0..MAX_TOPICS {
-                if self.accept_any_topic_at_position[i] > 0u32 { // always should happen
+                if self.accept_any_topic_at_position[i] > 0u32 {
+                    // always should happen
                     self.accept_any_topic_at_position[i] -= Nat::from(1u32);
                 }
             }
@@ -115,7 +119,8 @@ impl FilterManager {
             } else {
                 // If we have a set of topics, return them; otherwise, return an empty vector.
                 if !self.topic_counts[i].is_empty() {
-                    let position_topics: Vec<String> = self.topic_counts[i].keys().cloned().collect();
+                    let position_topics: Vec<String> =
+                        self.topic_counts[i].keys().cloned().collect();
                     combined_topics.push(position_topics);
                 } else {
                     // No "accept any" and no topics => empty vector
@@ -141,7 +146,6 @@ impl FilterManager {
 
         (addresses, topics)
     }
-
 }
 
 #[cfg(test)]
@@ -153,9 +157,10 @@ mod tests {
         Filter {
             address: addresses.into_iter().map(|s| s.to_string()).collect(),
             topics: topics.map(|outer| {
-                outer.into_iter()
-                     .map(|inner| inner.into_iter().map(|s| s.to_string()).collect())
-                     .collect()
+                outer
+                    .into_iter()
+                    .map(|inner| inner.into_iter().map(|s| s.to_string()).collect())
+                    .collect()
             }),
         }
     }
@@ -165,7 +170,7 @@ mod tests {
         let mut manager = FilterManager::new();
         let filter = make_filter(
             vec!["address1", "address2"],
-            Some(vec![vec!["topic1"], vec!["topic2"], vec![], vec!["topic4"]])
+            Some(vec![vec!["topic1"], vec!["topic2"], vec![], vec!["topic4"]]),
         );
 
         manager.add_filter(&filter);
@@ -178,10 +183,18 @@ mod tests {
         assert_eq!(manager.addresses.get("address2"), Some(&Nat::from(1u32)));
 
         // Check topic counts.
-        assert_eq!(manager.topic_counts[0].get("topic1"), Some(&Nat::from(1u32)));
-        assert_eq!(manager.topic_counts[1].get("topic2"), Some(&Nat::from(1u32)));
-        assert_eq!(manager.topic_counts[3].get("topic4"), Some(&Nat::from(1u32)));
-
+        assert_eq!(
+            manager.topic_counts[0].get("topic1"),
+            Some(&Nat::from(1u32))
+        );
+        assert_eq!(
+            manager.topic_counts[1].get("topic2"),
+            Some(&Nat::from(1u32))
+        );
+        assert_eq!(
+            manager.topic_counts[3].get("topic4"),
+            Some(&Nat::from(1u32))
+        );
 
         // The third position is an empty vector => accept_any_topic_at_position should increase.
         assert_eq!(manager.accept_any_topic_at_position[2], Nat::from(1u32));
@@ -196,12 +209,12 @@ mod tests {
         let mut manager = FilterManager::new();
         let filter = make_filter(
             vec!["address1"],
-            Some(vec![vec!["topic1"], vec![], vec!["topic3"], vec!["topic4"]])
+            Some(vec![vec!["topic1"], vec![], vec!["topic3"], vec!["topic4"]]),
         );
-        
+
         manager.add_filter(&filter);
         assert_eq!(manager.total_subscriptions, Nat::from(1u32));
-        
+
         // Remove the same filter
         manager.remove_filter(&filter);
         assert_eq!(manager.total_subscriptions, Nat::from(0u32));
@@ -220,9 +233,15 @@ mod tests {
     #[test]
     fn test_add_multiple_filters_with_overlap() {
         let mut manager = FilterManager::new();
-        
-        let filter1 = make_filter(vec!["address1"], Some(vec![vec!["topic1"], vec!["topic2"], vec!["topic3"], vec![]]));
-        let filter2 = make_filter(vec!["address2"], Some(vec![vec!["topic1"], vec!["topic4"], vec![], vec![]]));
+
+        let filter1 = make_filter(
+            vec!["address1"],
+            Some(vec![vec!["topic1"], vec!["topic2"], vec!["topic3"], vec![]]),
+        );
+        let filter2 = make_filter(
+            vec!["address2"],
+            Some(vec![vec!["topic1"], vec!["topic4"], vec![], vec![]]),
+        );
         let filter3 = make_filter(vec!["address3"], None); // No topics => all accept any
 
         manager.add_filter(&filter1);
@@ -237,12 +256,24 @@ mod tests {
         assert_eq!(manager.addresses.get("address3"), Some(&Nat::from(1u32)));
 
         // Check topics for position 0: filter1 and filter2 add "A"
-        assert_eq!(manager.topic_counts[0].get("topic1"), Some(&Nat::from(2u32))); // Two filters use A
-        // Position 1: "B" from filter1, "X" from filter2
-        assert_eq!(manager.topic_counts[1].get("topic2"), Some(&Nat::from(1u32)));
-        assert_eq!(manager.topic_counts[1].get("topic4"), Some(&Nat::from(1u32)));
+        assert_eq!(
+            manager.topic_counts[0].get("topic1"),
+            Some(&Nat::from(2u32))
+        ); // Two filters use A
+           // Position 1: "B" from filter1, "X" from filter2
+        assert_eq!(
+            manager.topic_counts[1].get("topic2"),
+            Some(&Nat::from(1u32))
+        );
+        assert_eq!(
+            manager.topic_counts[1].get("topic4"),
+            Some(&Nat::from(1u32))
+        );
         // Position 2: "C" from filter1, filter2 had empty => accept_any
-        assert_eq!(manager.topic_counts[2].get("topic3"), Some(&Nat::from(1u32)));
+        assert_eq!(
+            manager.topic_counts[2].get("topic3"),
+            Some(&Nat::from(1u32))
+        );
 
         // Check accept_any_topic_at_position
         // filter1: last position (3) empty => accept_any_topic_at_position[3] += 1
@@ -277,9 +308,15 @@ mod tests {
     #[test]
     fn test_remove_some_filters_with_overlap() {
         let mut manager = FilterManager::new();
-        
-        let filter1 = make_filter(vec!["address1"], Some(vec![vec!["topic1"], vec!["topic2"], vec!["topic3"], vec![]]));
-        let filter2 = make_filter(vec!["address2"], Some(vec![vec!["topic1"], vec!["topic4"], vec![], vec![]]));
+
+        let filter1 = make_filter(
+            vec!["address1"],
+            Some(vec![vec!["topic1"], vec!["topic2"], vec!["topic3"], vec![]]),
+        );
+        let filter2 = make_filter(
+            vec!["address2"],
+            Some(vec![vec!["topic1"], vec!["topic4"], vec![], vec![]]),
+        );
         let filter3 = make_filter(vec!["address3"], None); // No topics => all accept any
 
         manager.add_filter(&filter1);
@@ -304,11 +341,20 @@ mod tests {
         // Only filter1 remains:
         //   topics: [ ["A"], ["B"], ["C"], [] ]
         // So for position 0 remains "A" with count 1
-        assert_eq!(manager.topic_counts[0].get("topic1"), Some(&Nat::from(1u32)));
+        assert_eq!(
+            manager.topic_counts[0].get("topic1"),
+            Some(&Nat::from(1u32))
+        );
         // Position 1: "B" with count 1
-        assert_eq!(manager.topic_counts[1].get("topic2"), Some(&Nat::from(1u32)));
+        assert_eq!(
+            manager.topic_counts[1].get("topic2"),
+            Some(&Nat::from(1u32))
+        );
         // Position 2: "C" with count 1
-        assert_eq!(manager.topic_counts[2].get("topic3"), Some(&Nat::from(1u32)));
+        assert_eq!(
+            manager.topic_counts[2].get("topic3"),
+            Some(&Nat::from(1u32))
+        );
         // Position 3: empty => accept_any_topic_at_position[3] should be 1 (from filter1 only)
         // Since filter1 had that position empty, it sets accept_any = 1
         assert_eq!(manager.accept_any_topic_at_position[3], Nat::from(1u32));
@@ -328,14 +374,22 @@ mod tests {
     #[test]
     fn test_get_combined_topics() {
         let mut manager = FilterManager::new();
-        
+
         let filter_no_topics = make_filter(vec!["address1"], None);
         manager.add_filter(&filter_no_topics);
 
         // get_combined_topics should return None because all positions are accept any
         assert!(manager.get_combined_topics().is_none());
 
-        let filter_with_topics = make_filter(vec!["address2"], Some(vec![vec!["topic1"], vec!["topic2"], vec!["topic3"], vec!["topic4"]]));
+        let filter_with_topics = make_filter(
+            vec!["address2"],
+            Some(vec![
+                vec!["topic1"],
+                vec!["topic2"],
+                vec!["topic3"],
+                vec!["topic4"],
+            ]),
+        );
         manager.add_filter(&filter_with_topics);
 
         // Now part of it accepts any and part has specific topics.
@@ -360,16 +414,18 @@ mod tests {
 
     #[test]
     fn test_get_active_addresses_and_topics1() {
-
         let mut manager = FilterManager::new();
-        let filter1 = make_filter(vec!["address1"], Some(vec![vec!["topicA"], vec![], vec!["topicC"], vec![]]));
+        let filter1 = make_filter(
+            vec!["address1"],
+            Some(vec![vec!["topicA"], vec![], vec!["topicC"], vec![]]),
+        );
         let filter2 = make_filter(vec!["address2"], None); // Accept any for all
 
         manager.add_filter(&filter1);
         manager.add_filter(&filter2);
 
         let (addresses, topics) = manager.get_active_addresses_and_topics();
-        
+
         // Check addresses
         assert!(addresses.contains(&"address1".to_string()));
         assert!(addresses.contains(&"address2".to_string()));
@@ -385,7 +441,6 @@ mod tests {
         let topics = topics.unwrap();
         // First position: A
         assert_eq!(topics[0], vec!["topicA".to_string()]);
-
     }
 
     #[test]
@@ -397,29 +452,26 @@ mod tests {
         let filter_full_topics = make_filter(
             vec!["address1"],
             Some(vec![
-                vec!["topicA1"], 
-                vec!["topicA2"], 
-                vec!["topicA3"], 
-                vec!["topicA4"]
-            ])
+                vec!["topicA1"],
+                vec!["topicA2"],
+                vec!["topicA3"],
+                vec!["topicA4"],
+            ]),
         );
-        
+
         // 2. Filter with partially defined topics and partially empty (accept any)
         let filter_partial = make_filter(
             vec!["address2"],
             Some(vec![
-                vec!["topicB1"],   // position 0: specific topic
-                vec![],            // position 1: empty => accept any
-                vec!["topicB3"],   // position 2: specific topic
-                vec![]             // position 3: empty => accept any
-            ])
+                vec!["topicB1"], // position 0: specific topic
+                vec![],          // position 1: empty => accept any
+                vec!["topicB3"], // position 2: specific topic
+                vec![],          // position 3: empty => accept any
+            ]),
         );
 
         // 3. Filter with no topics (all positions accept any)
-        let filter_none = make_filter(
-            vec!["address3"],
-            None
-        );
+        let filter_none = make_filter(vec!["address3"], None);
 
         // Add all filters
         manager.add_filter(&filter_full_topics);
@@ -470,50 +522,47 @@ mod tests {
         let filter1 = make_filter(
             vec!["address1"],
             Some(vec![
-                vec!["topicA1"],  // position 0: specific topic
-                vec!["topicA2"],  // position 1: specific topic
-                vec![],           // position 2: empty => accept any
-                vec![]            // position 3: empty => accept any
-            ])
+                vec!["topicA1"], // position 0: specific topic
+                vec!["topicA2"], // position 1: specific topic
+                vec![],          // position 2: empty => accept any
+                vec![],          // position 3: empty => accept any
+            ]),
         );
 
         // 2. A filter with multiple addresses and full topics
         let filter2 = make_filter(
             vec!["address2", "address3"],
             Some(vec![
-                vec!["topicB1"], 
+                vec!["topicB1"],
                 vec!["topicB2"],
                 vec!["topicB3"],
-                vec!["topicB4"]
-            ])
+                vec!["topicB4"],
+            ]),
         );
 
         // 3. A filter with no topics
-        let filter3 = make_filter(
-            vec!["address4"],
-            None
-        );
+        let filter3 = make_filter(vec!["address4"], None);
 
         // 4. A filter where two positions are full and two are empty
         let filter4 = make_filter(
             vec!["address5"],
             Some(vec![
-                vec!["topicC1"], 
-                vec![],          // empty => accept any
+                vec!["topicC1"],
+                vec![], // empty => accept any
                 vec!["topicC3"],
-                vec![]           // empty => accept any
-            ])
+                vec![], // empty => accept any
+            ]),
         );
 
         // 5. A filter with one address and only one position filled (others empty)
         let filter5 = make_filter(
             vec!["address6"],
             Some(vec![
-                vec!["topicD1"], 
-                vec![],          // accept any
-                vec![],          // accept any
-                vec![]           // accept any
-            ])
+                vec!["topicD1"],
+                vec![], // accept any
+                vec![], // accept any
+                vec![], // accept any
+            ]),
         );
 
         // Add all these filters
@@ -525,7 +574,9 @@ mod tests {
 
         // Check that all addresses are present
         let (addresses, topics) = manager.get_active_addresses_and_topics();
-        for addr in &["address1","address2","address3","address4","address5","address6"] {
+        for addr in &[
+            "address1", "address2", "address3", "address4", "address5", "address6",
+        ] {
             assert!(addresses.contains(&addr.to_string()));
         }
 
@@ -563,6 +614,4 @@ mod tests {
         assert_eq!(topics[2], vec!["topicB3".to_string()]);
         assert_eq!(topics[3], vec!["topicB4".to_string()]);
     }
-
-
 }

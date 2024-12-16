@@ -1,9 +1,9 @@
 use super::config::ChainConfig;
 use super::monitoring::start_monitoring_internal;
 use evm_rpc_canister_types::EvmRpcCanister;
+use ic_cdk_timers::TimerId;
 use std::cell::RefCell;
 use std::sync::Arc;
-use ic_cdk_timers::TimerId;
 
 pub struct ChainService {
     pub config: ChainConfig,

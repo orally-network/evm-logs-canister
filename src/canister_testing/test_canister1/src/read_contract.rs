@@ -7,7 +7,6 @@ use ic_web3_rs::{
 };
 use serde::{Deserialize, Serialize};
 
-
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct SwapEventData {
     pub tx_hash: String,
@@ -19,7 +18,6 @@ pub struct SwapEventData {
     pub liquidity: SolidityToken,
     pub tick: SolidityToken,
 }
-
 
 /// SolidityToken is a representation of a web3_rs Token, but with CandidType support
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -81,4 +79,3 @@ impl From<SolidityToken> for Token {
         }
     }
 }
-

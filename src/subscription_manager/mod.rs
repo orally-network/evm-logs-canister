@@ -1,15 +1,15 @@
-use candid::Principal;
 use candid::Nat;
+use candid::Principal;
 use evm_logs_types::{
-    SubscriptionRegistration, RegisterSubscriptionResult, RegisterSubscriptionError,
-    UnsubscribeResult, SubscriptionInfo,
+    RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
+    SubscriptionRegistration, UnsubscribeResult,
 };
 
-pub mod state;
-pub mod queries;
 pub mod events_publisher;
+pub mod queries;
+pub mod state;
 
-use state::{SUBSCRIPTIONS, SUBSCRIBERS, TOPICS_MANAGER};
+use state::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
 
 pub fn init() {
     ic_cdk::println!("SubscriptionManager initialized");
@@ -22,18 +22,16 @@ pub async fn register_subscription(
     let filter = registration.filter.clone();
 
     let is_subscription_exist = SUBSCRIBERS.with(|subs| {
-        subs.borrow()
-            .get(&caller)
-            .and_then(|sub_ids| {
-                sub_ids.iter().find_map(|sub_id| {
-                    state::SUBSCRIPTIONS.with(|subs| {
-                        subs.borrow()
-                            .get(sub_id)
-                            .filter(|sub_info| sub_info.filter == filter)
-                            .cloned()
-                    })
+        subs.borrow().get(&caller).and_then(|sub_ids| {
+            sub_ids.iter().find_map(|sub_id| {
+                state::SUBSCRIPTIONS.with(|subs| {
+                    subs.borrow()
+                        .get(sub_id)
+                        .filter(|sub_info| sub_info.filter == filter)
+                        .cloned()
                 })
             })
+        })
     });
 
     if is_subscription_exist.is_some() {
@@ -111,6 +109,9 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
 
         UnsubscribeResult::Ok()
     } else {
-        UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))
+        UnsubscribeResult::Err(format!(
+            "Subscription with ID {} not found",
+            subscription_id
+        ))
     }
 }

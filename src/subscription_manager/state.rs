@@ -1,9 +1,9 @@
+use crate::log_filters::filter_manager::FilterManager;
+use candid::{Nat, Principal};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use candid::{Principal, Nat};
-use crate::log_filters::filter_manager::FilterManager;
 
-use evm_logs_types::{SubscriptionInfo, Event};
+use evm_logs_types::{Event, SubscriptionInfo};
 
 thread_local! {
     pub static SUBSCRIPTIONS: RefCell<HashMap<Nat, SubscriptionInfo>> = RefCell::new(HashMap::new());

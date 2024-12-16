@@ -1,12 +1,12 @@
-use std::cell::RefCell;
-use ic_cdk::api::time;
 use candid::Nat;
+use ic_cdk::api::time;
 use num_traits::ToPrimitive;
+use std::cell::RefCell;
 
+use evm_logs_types::{Event, Filter};
 use evm_rpc_canister_types::{
-    BlockTag, EvmRpcCanister, GetBlockByNumberResult, MultiGetBlockByNumberResult, RpcServices
+    BlockTag, EvmRpcCanister, GetBlockByNumberResult, MultiGetBlockByNumberResult, RpcServices,
 };
-use evm_logs_types:: {Filter, Event};
 
 thread_local! {
     static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));
@@ -32,7 +32,11 @@ pub async fn get_latest_block_number(
     match result {
         MultiGetBlockByNumberResult::Consistent(res) => match res {
             GetBlockByNumberResult::Ok(block) => {
-                let block_number = block.number.0.to_u64().ok_or("Failed to convert block number to u64")?;
+                let block_number = block
+                    .number
+                    .0
+                    .to_u64()
+                    .ok_or("Failed to convert block number to u64")?;
                 Ok(block_number)
             }
             GetBlockByNumberResult::Err(err) => Err(format!("RPC error: {:?}", err)),
@@ -92,7 +96,7 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use evm_logs_types::ICRC16Value; 
+    use evm_logs_types::ICRC16Value;
     fn create_event(address: &str, topics: Option<Vec<&str>>) -> Event {
         Event {
             id: Nat::from(1u8),
@@ -182,4 +186,3 @@ mod tests {
         assert!(!event_matches_filter(&event, &filter));
     }
 }
-
