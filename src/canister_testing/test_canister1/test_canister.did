@@ -111,17 +111,6 @@ type UnsubscribeResult = variant {
     Err : text;
 };
 
-type SwapEventData = record {
-    tx_hash: text;
-    sender: SolidityToken;
-    receiver: SolidityToken;
-    amount0: SolidityToken;
-    amount1: SolidityToken;
-    sqrt_price_x96: SolidityToken;
-    liquidity: SolidityToken;
-    tick: SolidityToken;
-};
-
 type SolidityToken = variant {
     Address: text;
     FixedBytes: vec nat8;
@@ -146,6 +135,5 @@ service : {
   handle_notification: (EventNotification) -> ();
   get_notifications: () -> (vec EventNotification) query;
   get_subscriptions: (principal) -> (vec SubscriptionInfo);
-  get_swap_events_data: () -> (vec SwapEventData) query;
   get_decoded_notifications: () -> (vec DecodedNotification) query;
 }

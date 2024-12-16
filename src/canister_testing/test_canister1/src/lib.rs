@@ -4,17 +4,21 @@ pub mod state;
 pub mod utils;
 
 use crate::read_contract::SolidityToken;
-use candid::Principal;
-use candid::{CandidType, Deserialize};
+
+use candid::{CandidType, Deserialize, Principal};
+
 use decoders::{
     chainfusion_deposit_decoder, ethereum_sync_decoder, primex_deposit_decoder,
     swap_event_data_decoder,
 };
+
 use evm_logs_types::{EventNotification, UnsubscribeResult};
+
 use ic_cdk::api::call::call;
 use ic_cdk_macros::{init, query, update};
-use state::NOTIFICATIONS;
-use state::{DECODED_NOTIFICATIONS, DECODERS};
+
+use state::{DECODED_NOTIFICATIONS, DECODERS, NOTIFICATIONS};
+
 use utils::{
     create_base_swaps_config, create_chainfusion_deposit_config, create_ethereum_sync_config,
     create_primex_deposit_config, register_subscription_and_map_decoder,
@@ -41,34 +45,19 @@ async fn subscribe(canister_id: Principal) {
     let primex_deposit_filter = create_primex_deposit_config();
     let chainfusion_deposit_filter = create_chainfusion_deposit_config();
 
-    register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder)
-        .await;
-    register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder)
-        .await;
-    register_subscription_and_map_decoder(
-        canister_id,
-        primex_deposit_filter,
-        primex_deposit_decoder,
-    )
-    .await;
-    register_subscription_and_map_decoder(
-        canister_id,
-        chainfusion_deposit_filter,
-        chainfusion_deposit_decoder,
-    )
-    .await;
+    register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
+    register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;
+    register_subscription_and_map_decoder(canister_id, primex_deposit_filter, primex_deposit_decoder).await;
+    register_subscription_and_map_decoder(canister_id, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
 }
 
 #[update]
 async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
-    ic_cdk::println!(
-        "Calling unsubscribe for subscription ID: {:?}",
-        subscription_id
-    );
+    ic_cdk::println!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
 
     let result: Result<(evm_logs_types::UnsubscribeResult,), _> =
         call(canister_id, "unsubscribe", (subscription_id.clone(),)).await;
-    // TODO remove decoder
+    // TODO remove corresponding decoder
     match result {
         Ok((response,)) => match response {
             UnsubscribeResult::Ok() => {
@@ -94,6 +83,7 @@ async fn handle_notification(notification: EventNotification) {
         notifs.borrow_mut().push(notification.clone());
     });
 
+    // decode each notification in corresponding way and save decoded data
     DECODERS.with(|decoders| {
         if let Some(decoder) = decoders.borrow().get(&notification.sub_id) {
             match decoder(&notification) {
