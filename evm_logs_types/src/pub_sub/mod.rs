@@ -15,7 +15,7 @@ type TopicsPosition = Vec<String>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
-    pub address: Vec<String>, // TODO one address
+    pub address: String, 
     pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
 }
 

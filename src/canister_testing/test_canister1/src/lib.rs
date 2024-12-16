@@ -7,7 +7,7 @@ use ic_cdk::api::call::call;
 use ic_cdk_macros::{update, query, init};
 use candid::Principal;
 use evm_logs_types::{EventNotification, UnsubscribeResult};
-use utils::{create_base_swaps_config, create_ethereum_sync_config, register_subscription_and_map_decoder};
+use utils::{create_base_swaps_config, create_chainfusion_deposit_config, create_ethereum_sync_config, create_primex_deposit_config, register_subscription_and_map_decoder};
 use state::NOTIFICATIONS;
 use decoders::{ethereum_sync_decoder, swap_event_data_decoder, primex_deposit_decoder, chainfusion_deposit_decoder};
 use state::{DECODERS, DECODED_NOTIFICATIONS};
@@ -32,8 +32,8 @@ async fn subscribe(canister_id: Principal) {
 
     let base_swaps_filter = create_base_swaps_config();
     let eth_sync_filter = create_ethereum_sync_config(); 
-    let primex_deposit_filter = create_base_swaps_config();
-    let chainfusion_deposit_filter = create_ethereum_sync_config(); 
+    let primex_deposit_filter = create_primex_deposit_config();
+    let chainfusion_deposit_filter = create_chainfusion_deposit_config();
 
     register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
     register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;

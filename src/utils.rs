@@ -48,11 +48,8 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
     let event_address = event.address.trim().to_lowercase();
 
     // Check if event address matches any subscriber address
-    if !subscribers_filter
-        .address
-        .iter()
-        .any(|address| address.trim().to_lowercase() == event_address)
-    {
+    let filter_address = subscribers_filter.address.trim().to_lowercase();
+    if filter_address != event_address {
         return false;
     }
 

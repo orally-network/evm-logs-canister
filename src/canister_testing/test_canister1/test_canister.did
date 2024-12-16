@@ -102,7 +102,7 @@ type SubscriptionRegistration = record {
 };
 
 type Filter = record {
-    addresses: vec text;
+    address: text;
     topics: opt vec vec text;
 };
 
