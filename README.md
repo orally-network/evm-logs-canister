@@ -1,4 +1,4 @@
-# evm-logs-cainster
+# evm-logs-canister
 
 ## Overview
 
@@ -17,15 +17,12 @@ Our solution introduces a publish-subscribe (pub/sub) proxy model that allows de
 ### Components
 - **Developer**: The user who subscribes to and interacts with the canister.
 - **SubscriptionManager**: Manages all subscriptions, including creation, updating, and deletion.
-- **ChainService[]**: A collection of services, one for each supported blockchain. Each service manages its connection, fetching logs, and notifying subscribed canisters.
-  - **EventListener**: Periodically fetches logs based on active filters.
-  - **EventEmitter**: Distributes fetched logs to the appropriate subscribers.
+- **ChainService**: A collection of services, one for each supported blockchain. Each service manages its connection, fetching logs, and notifying subscribed canisters.
 
 ### Subscription Process: Implementation following [Pub-Sub ICRC72 standard](https://github.com/icdevs/ICEventsWG/blob/main/Meetings/20240529/icrc72draft.md)
 1. **Subscription Creation**:
-   - Developers call the `subscribe(filter, config)` method to initiate a subscription.
-   - The `filter` includes `chain_id`, `contract_address`, and `topics`.
-   - The `config` can optionally include `fulfill_func_name` to specify the method name where logs should be delivered within the subscriber canister. If not provided, logs are sent to the default `fulfill_log(sub_id, LogEntry)` method.
+   - Developers call the `subscribe(filter)` method to initiate a subscription.
+   - The `filter` includes `chain`, `contract_address`, and `topics`.
    - Cycles are attached to the call for subscription fees and are deducted as logs are fetched and delivered. The base fee for listening logs will be shared between all subscribers, and the individual fee will be deducted after the subscriber gets the log. 
 
 2. **Subscription Management**:
@@ -61,38 +58,46 @@ Notes:
    make deploy
    ```
    
-### After these steps you can use evm-logs-canister functionality by calling implemented candid method.
+#### After these steps you can use evm-logs-canister functionality by calling implemented candid methods.
 
 
 ## Canister methods
 
 ### Subscription
 
-You can subscribe on the evm_logs_canister from another canister by specifying your filter(test_canister already built and deployed by the build scipt for demonstration):
+You can subscribe on the evm_logs_canister from another canister by specifying your filter in the code. 
+All you need is just initialize *SubscriptionRegistration* struct with your custom filter:
 
 ```
-  dfx canister call test_canister1 register_subscription '(
-      principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-      vec {
-          record {
-              namespace = "com.events.Ethereum";
-              filters = vec {
-                  record {
-                      addresses = vec { "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
-                      topics = opt vec {
-                        vec { "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822" };
-                        vec { "0x0000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad" };
-                      };
-                  };
-              };
-              
-              memo = null;
-          };
-      }
-  )'
+pub struct SubscriptionRegistration {
+    pub namespace: String,
+    pub filter: Filter,
+    pub memo: Option<Vec<u8>>, // Blob
+}
 ```
 
-#### Strategy of EVM Topics Passing:
+Example:
+
+```
+pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
+    let address = "0x7574eb42ca208a4f6960eccafdf186d627dcc175".to_string();
+    let topics = Some(vec![vec![
+        "0x257e057bb61920d8d0ed2cb7b720ac7f9c513cd1110bc9fa543079154f45f435".to_string(),
+    ]]);
+
+    let filter = Filter { address, topics };
+
+    SubscriptionRegistration {
+        namespace: "com.events.Ethereum".to_string(),
+        filter,
+        memo: None,
+    }
+}
+```
+After *SubscriptionRegistration* is initialized you are free to subscribe to evm-logs-canister with this filter
+
+
+####  EVM Topics Passing
 When sending a filter to the EVM node, you can specify which log topics should match specific positions in the event. Here’s how the topic filters work:
 
 - [] (empty): Matches any transaction, as no specific topics are required.
@@ -102,6 +107,12 @@ When sending a filter to the EVM node, you can specify which log topics should m
 - [[A, B], [A, B]]: Matches if the first topic is either A or B, and the second topic is also either A or B. This creates an "OR" condition for each position.
 
 This strategy provides flexibility in filtering specific transactions based on topic order and values.
+
+### Events decoding
+After subscribing, you will receive EVM events at certain intervals. You can implement your own decoder 
+to decode event data. A common use case would be to map a specific decoder to each subscription filter
+creation, since each evm event has its own data format, a special decoding approach must be applied.
+Common use cases and its implementations can be checked in test_canister source code of this repo. 
 
 ### Get your active subscriptions with IDs
 

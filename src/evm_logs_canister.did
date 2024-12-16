@@ -122,7 +122,7 @@ type PublishError = variant {
 };
 
 service : {
-  register_subscription : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
+  subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
   unsubscribe : (nat) -> (UnsubscribeResult);
   get_subscriptions : (namespace : opt text, from_id : opt nat, stats_filter : opt vec Filter) -> (vec SubscriptionInfo) query;
   get_user_subscriptions : () -> (vec SubscriptionInfo) query;

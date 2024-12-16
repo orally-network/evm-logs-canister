@@ -80,9 +80,9 @@ fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc
 // Candid methods
 
 // register subscription by specified filter(adresses and topics)
-#[update(name = "register_subscription")]
+#[update(name = "subscribe")]
 #[candid_method(update)]
-async fn register_subscription(
+async fn subscribe(
     registration: SubscriptionRegistration,
 ) -> RegisterSubscriptionResult {
     subscription_manager::register_subscription(registration).await

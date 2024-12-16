@@ -17,7 +17,7 @@ pub async fn register_subscription_and_map_decoder(
     );
 
     let result: Result<(RegisterSubscriptionResult,), _> =
-        call(canister_id, "register_subscription", (subscription,)).await;
+        call(canister_id, "subscribe", (subscription,)).await;
 
     match result {
         Ok((response,)) => match response {
@@ -91,9 +91,7 @@ pub fn create_primex_deposit_config() -> SubscriptionRegistration {
 }
 
 pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
-    // address and topics to monitor
     let address = "0x7574eb42ca208a4f6960eccafdf186d627dcc175".to_string();
-
     let topics = Some(vec![vec![
         "0x257e057bb61920d8d0ed2cb7b720ac7f9c513cd1110bc9fa543079154f45f435".to_string(),
     ]]);
