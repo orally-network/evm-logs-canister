@@ -135,14 +135,17 @@ type SolidityToken = variant {
     Tuple: vec SolidityToken;
 };
 
+type DecodedNotification = record {
+  notification: EventNotification;
+  tokens: vec SolidityToken;
+};
+
 service : {
-  register_subscription: (principal) -> ();
-  icrc72_handle_notification: (EventNotification) -> ();
-  get_notifications: () -> (vec EventNotification) query;
+  subscribe: (principal) -> ();
   unsubscribe: (principal, nat) -> ();
+  handle_notification: (EventNotification) -> ();
+  get_notifications: () -> (vec EventNotification) query;
   get_subscriptions: (principal) -> (vec SubscriptionInfo);
   get_swap_events_data: () -> (vec SwapEventData) query;
+  get_decoded_notifications: () -> (vec DecodedNotification) query;
 }
-
-
-

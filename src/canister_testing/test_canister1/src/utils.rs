@@ -2,7 +2,7 @@
 use evm_logs_types::Filter;
 use candid::Principal;
 use crate::read_contract::SolidityToken;
-use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult};
+use evm_logs_types::{SubscriptionRegistration, RegisterSubscriptionResult, EventNotification};
 use ic_cdk::api::call::call;
 use super::state::DECODERS;
 
@@ -11,7 +11,7 @@ use super::state::DECODERS;
 pub async fn register_subscription_and_map_decoder(
     canister_id: Principal,
     subscription: SubscriptionRegistration,
-    decoder: fn(Vec<u8>) -> Result<Vec<SolidityToken>, String>
+    decoder: fn(&EventNotification) -> Result<Vec<SolidityToken>, String>
 ) {
     ic_cdk::println!("Registering subscription with filter: {:?}", subscription.filter);
 
@@ -82,4 +82,27 @@ pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
         filter,
         memo: None,
     }
+}
+
+/// Extracts and decodes the event data bytes from the notification.
+/// This function converts the event's data from a hex string to raw bytes.
+/// Returns an error if any step of the conversion fails.
+pub fn extract_data_bytes(notification: &EventNotification) -> Result<Vec<u8>, String> {
+    // Convert the notification data into a hex string without the "0x" prefix
+    let data_str = match String::try_from(notification.data.clone()) {
+        Ok(s) => s.trim_start_matches("0x").to_string(),
+        Err(e) => {
+            return Err(format!("Error converting notification data to String: {:?}", e));
+        }
+    };
+
+    // Decode the hex string into bytes
+    let data = match hex::decode(&data_str) {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            return Err(format!("Error decoding data hex string: {:?}", e));
+        }
+    };
+
+    Ok(data)
 }

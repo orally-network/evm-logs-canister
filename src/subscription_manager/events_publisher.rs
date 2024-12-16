@@ -76,7 +76,7 @@ async fn distribute_event(event: Event) {
             // Send the notification to the subscriber
             let result: Result<(), String> = call(
                 sub.subscriber_principal,
-                "icrc72_handle_notification",
+                "handle_notification",
                 (notification.clone(),),
             )
             .await

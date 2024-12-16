@@ -34,7 +34,7 @@ async fn init() {
     let chain_configs = vec![
         ChainConfig {
             chain_name: ChainName::Ethereum,
-            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
+            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainConfig {
