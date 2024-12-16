@@ -26,7 +26,7 @@ pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration)
 
 impl ChainService {
     pub async fn logs_fetching_and_processing_task(&self) {
-        let (addresses, topics) = queries::get_active_addresses_and_topics();
+        let (addresses, topics) = queries::get_active_addresses_and_topics(self.config.chain_name.clone());
 
         if addresses.is_empty() && topics.is_none() {
             ic_cdk::println!(

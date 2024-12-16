@@ -15,7 +15,7 @@ async fn test_event_publishing_and_notification_delivery() {
     let pic = PocketIc::new().await;
 
     let subscription_manager_canister_id = pic.create_canister().await;
-    pic.add_cycles(subscription_manager_canister_id, 2_000_000_000_000)
+    pic.add_cycles(subscription_manager_canister_id, 4_000_000_000_000)
         .await;
 
     let subscription_manager_wasm_path =
@@ -33,7 +33,7 @@ async fn test_event_publishing_and_notification_delivery() {
 
     // Create the subscriber canister
     let subscriber_canister_id = pic.create_canister().await;
-    pic.add_cycles(subscriber_canister_id, 2_000_000_000_000)
+    pic.add_cycles(subscriber_canister_id, 4_000_000_000_000)
         .await;
 
     // Install the subscriber wasm
@@ -50,9 +50,28 @@ async fn test_event_publishing_and_notification_delivery() {
     )
     .await;
 
+    // Create the subscriber canister
+    let proxy_canister_id = pic.create_canister().await;
+    pic.add_cycles(proxy_canister_id, 4_000_000_000_000)
+        .await;
+
+    // Install the subscriber wasm
+    let proxy_canister_wasm_path =
+        std::env::var("PROXY_CANISTER_WASM_PATH").expect("PROXY_CANISTER_WASM_PATH must be set");
+    let proxy_wasm_bytes = tokio::fs::read(proxy_canister_wasm_path)
+        .await
+        .expect("Failed to read the proxy canister WASM file");
+    pic.install_canister(
+        proxy_canister_id,
+        proxy_wasm_bytes.to_vec(),
+        vec![],
+        None,
+    )
+    .await;
+
     // Register a subscription from the subscriber canister
     let subscription_registration = SubscriptionRegistration {
-        namespace: "test_namespace".to_string(),
+        chain: "Ethereum".to_string(),
         filter: Filter {
             address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
             topics: None,
@@ -64,7 +83,7 @@ async fn test_event_publishing_and_notification_delivery() {
         .update_call(
             subscription_manager_canister_id,
             subscriber_canister_id,
-            "register_subscription",
+            "subscribe",
             candid::encode_one(subscription_registration.clone()).unwrap(),
         )
         .await;
@@ -98,7 +117,7 @@ async fn test_event_publishing_and_notification_delivery() {
         id: Nat::from(0u64), // ID will be assigned by the canister
         prev_id: None,
         timestamp: 0,
-        namespace: "test_namespace".to_string(),
+        namespace: "Ethereum".to_string(),
         data: ICRC16Value::Text("Test event data".to_string()),
         headers: None,
         address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(), // Example address

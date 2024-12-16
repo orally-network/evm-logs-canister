@@ -112,11 +112,11 @@ fn get_active_filters() -> Vec<evm_logs_types::Filter> {
 }
 
 // get all evm-logs-canister addresses and topics which are being monitored. Must be unique
-#[query(name = "get_active_addresses_and_topics")]
-#[candid_method(query)]
-fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    subscription_manager::queries::get_active_addresses_and_topics()
-}
+// #[query(name = "get_active_addresses_and_topics")]
+// #[candid_method(query)]
+// fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
+//     subscription_manager::queries::get_active_addresses_and_topics()
+// }
 
 // get all evm-logs-canister subscriptions info
 #[query(name = "get_subscriptions")]

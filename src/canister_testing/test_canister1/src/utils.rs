@@ -50,7 +50,7 @@ pub fn create_base_swaps_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        namespace: "com.events.Base".to_string(),
+        chain: "Base".to_string(),
         filter,
         memo: None,
     }
@@ -67,7 +67,7 @@ pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        namespace: "com.events.Ethereum".to_string(),
+        chain: "Ethereum".to_string(),
         filter,
         memo: None,
     }
@@ -84,7 +84,7 @@ pub fn create_primex_deposit_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        namespace: "com.events.Polygon".to_string(),
+        chain: "Polygon".to_string(),
         filter,
         memo: None,
     }
@@ -99,7 +99,7 @@ pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        namespace: "com.events.Ethereum".to_string(),
+        chain: "Ethereum".to_string(),
         filter,
         memo: None,
     }
