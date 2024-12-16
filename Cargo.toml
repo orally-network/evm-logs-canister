@@ -22,11 +22,10 @@ ic-cdk-timers = "0.3"
 ic-cdk-macros = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-evm-rpc-canister-types = "3.0.0"
+evm-rpc-canister-types = { git = "https://github.com/malteish/ReTransICP.git", branch = "fix/blockType" }
 evm_logs_types = {path = "evm_logs_types"}
 tokio = "1.40.0"
 num-traits = "0.2"
-
 
 [dev-dependencies]
 pocket-ic = "4.0.0"

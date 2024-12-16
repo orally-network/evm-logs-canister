@@ -14,8 +14,8 @@
     },
     "evm_rpc": {
       "type": "custom",
-      "candid": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/download/release-2024-05-23/evm_rpc.did",
-      "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/download/release-2024-05-23/evm_rpc.wasm.gz",
+      "candid": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/download/v2.2.0/evm_rpc.did",
+      "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/download/v2.2.0/evm_rpc.wasm.gz",
       "remote": {
         "id": {
           "ic": "7hfb6-caaaa-aaaar-qadga-cai"
