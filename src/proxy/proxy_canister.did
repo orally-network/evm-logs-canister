@@ -1,0 +1,23 @@
+type Filter = record {
+    address: text;
+    topics: opt vec vec text;
+};
+
+type EventNotification = record {
+  sub_id : nat;
+  event_id : nat;
+  event_prev_id : opt nat;
+  timestamp : nat64;
+  namespace : text;
+  data : vec nat8;
+  tx_hash : opt text;
+  headers : vec record { text; text };
+  topics : vec text;
+  source : principal;
+  filter : opt Filter;
+};
+
+service : {
+  send_notification : (principal, EventNotification) -> (variant { Ok; Err : text });
+  __get_candid_interface_tmp_hack : () -> (text) query;
+}

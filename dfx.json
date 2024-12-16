@@ -46,6 +46,18 @@
           "value": "src/test_canister2/test_canister.did"
         }
       ]
+    },
+    "proxy_canister": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/proxy_canister.wasm",
+      "candid": "src/proxy/proxy_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package proxy_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "src/proxy_canister/proxy_canister.did"
+        }
+      ]
     }
   },
   "version": 1
