@@ -48,11 +48,8 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
     let event_address = event.address.trim().to_lowercase();
 
     // Check if event address matches any subscriber address
-    if !subscribers_filter
-        .addresses
-        .iter()
-        .any(|address| address.trim().to_lowercase() == event_address)
-    {
+    let filter_address = subscribers_filter.address.trim().to_lowercase();
+    if filter_address != event_address {
         return false;
     }
 
@@ -112,7 +109,7 @@ mod tests {
 
     fn create_filter(addresses: Vec<&str>, topics: Option<Vec<Vec<&str>>>) -> Filter {
         Filter {
-            addresses: addresses.into_iter().map(|s| s.to_string()).collect(),
+            address: addresses.into_iter().map(|s| s.to_string()).collect(),
             topics: topics.map(|ts| {
                 ts.into_iter()
                     .map(|topic_set| topic_set.into_iter().map(|s| s.to_string()).collect())

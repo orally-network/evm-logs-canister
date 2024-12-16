@@ -27,9 +27,7 @@ impl FilterManager {
     pub fn add_filter(&mut self, filter: &Filter) {
         self.total_subscriptions += Nat::from(1u32);
     
-        for address in &filter.addresses {
-            *self.addresses.entry(address.clone()).or_insert(Nat::from(0u32)) += Nat::from(1u32);
-        }
+        *self.addresses.entry(filter.address.clone()).or_insert(Nat::from(0u32)) += Nat::from(1u32);
 
         if let Some(filter_topics) = &filter.topics {
             for (i, topics_at_pos) in filter_topics.iter().enumerate() {
@@ -63,12 +61,10 @@ impl FilterManager {
             self.total_subscriptions -= Nat::from(1u32);
         }
 
-        for address in &filter.addresses {
-            if let Some(count) = self.addresses.get_mut(address) {
-                *count -= Nat::from(1u32);
-                if *count == 0u32 {
-                    self.addresses.remove(address);
-                }
+        if let Some(count) = self.addresses.get_mut(&filter.address) {
+            *count -= Nat::from(1u32);
+            if *count == 0u32 {
+                self.addresses.remove(&filter.address);
             }
         }
 
@@ -155,7 +151,7 @@ mod tests {
 
     fn make_filter(addresses: Vec<&str>, topics: Option<Vec<Vec<&str>>>) -> Filter {
         Filter {
-            addresses: addresses.into_iter().map(|s| s.to_string()).collect(),
+            address: addresses.into_iter().map(|s| s.to_string()).collect(),
             topics: topics.map(|outer| {
                 outer.into_iter()
                      .map(|inner| inner.into_iter().map(|s| s.to_string()).collect())

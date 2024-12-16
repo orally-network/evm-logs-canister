@@ -15,7 +15,7 @@ type TopicsPosition = Vec<String>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
-    pub addresses: Vec<String>,
+    pub address: String, 
     pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
 }
 
@@ -34,7 +34,7 @@ pub struct Event {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct EventNotification {
-    pub id: Nat,
+    pub sub_id: Nat,
     pub event_id: Nat,
     pub event_prev_id: Option<Nat>,
     pub timestamp: u64,
@@ -62,7 +62,7 @@ pub struct EventRelay {
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SubscriptionRegistration {
     pub namespace: String,
-    pub filters: Vec<Filter>,
+    pub filter: Filter,
     pub memo: Option<Vec<u8>>, // Blob
 }
 
@@ -71,7 +71,7 @@ pub struct SubscriptionInfo {
     pub subscription_id: Nat,
     pub subscriber_principal: Principal,
     pub namespace: String,
-    pub filters: Vec<Filter>,
+    pub filter: Filter,
     pub skip: Option<Skip>,
     pub stats: Vec<ICRC16Map>,
 }
@@ -81,6 +81,7 @@ pub enum ChainName {
     Ethereum,
     Base,
     Optimism,
+    Polygon,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

@@ -18,7 +18,7 @@ use std::sync::Arc;
 use evm_logs_types::*;
 
 use evm_rpc_canister_types::{
-    EthMainnetService, L2MainnetService, RpcServices,
+    EthMainnetService, L2MainnetService, RpcServices, RpcApi,
 };
 
 thread_local! {
@@ -34,7 +34,7 @@ async fn init() {
     let chain_configs = vec![
         ChainConfig {
             chain_name: ChainName::Ethereum,
-            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::Alchemy])),
+            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::PublicNode])),
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
         ChainConfig {
@@ -45,6 +45,19 @@ async fn init() {
         ChainConfig {
             chain_name: ChainName::Optimism,
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
+            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+        },
+        ChainConfig {
+            chain_name: ChainName::Polygon,
+            rpc_providers: RpcServices::Custom {
+                chainId: 137,
+                services: vec![
+                    RpcApi {
+                        url: "https://polygon-rpc.com".to_string(),
+                        headers: None,
+                    }
+                ],
+            },
             evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
         },
     ];
@@ -75,9 +88,9 @@ fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc
 #[update(name = "register_subscription")]
 #[candid_method(update)]
 async fn register_subscription(
-    registrations: Vec<SubscriptionRegistration>,
-) -> Vec<RegisterSubscriptionResult> {
-    subscription_manager::register_subscription(registrations).await
+    registration: SubscriptionRegistration,
+) -> RegisterSubscriptionResult {
+    subscription_manager::register_subscription(registration).await
 }
 
 // unsubscribe from subcription with specified ID

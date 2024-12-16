@@ -13,7 +13,7 @@ type Event = record {
 };
 
 type EventNotification = record {
-  id : nat;
+  sub_id : nat;
   event_id : nat;
   event_prev_id : opt nat;
   timestamp : nat64;
@@ -91,18 +91,18 @@ type SubscriptionInfo = record {
   subscription_id : nat;
   subscriber_principal : principal;
   namespace : text;
-  filters : vec Filter;
+  filter : Filter;
   stats : vec ICRC16Map;
 };
 
 type SubscriptionRegistration = record {
   namespace : text;
-  filters : vec Filter;
+  filter : Filter;
   memo : opt vec nat8;
 };
 
 type Filter = record {
-    addresses: vec text;
+    address: text;
     topics: opt vec vec text;
 };
 
@@ -135,14 +135,17 @@ type SolidityToken = variant {
     Tuple: vec SolidityToken;
 };
 
+type DecodedNotification = record {
+  notification: EventNotification;
+  tokens: vec SolidityToken;
+};
+
 service : {
-  register_subscription: (principal, vec SubscriptionRegistration) -> ();
-  icrc72_handle_notification: (EventNotification) -> ();
-  get_notifications: () -> (vec EventNotification) query;
+  subscribe: (principal) -> ();
   unsubscribe: (principal, nat) -> ();
+  handle_notification: (EventNotification) -> ();
+  get_notifications: () -> (vec EventNotification) query;
   get_subscriptions: (principal) -> (vec SubscriptionInfo);
   get_swap_events_data: () -> (vec SwapEventData) query;
+  get_decoded_notifications: () -> (vec DecodedNotification) query;
 }
-
-
-

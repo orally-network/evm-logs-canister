@@ -52,12 +52,11 @@ async fn test_event_publishing_and_notification_delivery() {
     // Register a subscription from the subscriber canister
     let subscription_registration = SubscriptionRegistration {
         namespace: "test_namespace".to_string(),
-        filters: vec![
+        filter:
             Filter {
-                addresses: vec!["0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string()],
+                address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
                 topics: None, 
-            }
-        ],
+            },
         memo: None,
     };
 
@@ -66,15 +65,15 @@ async fn test_event_publishing_and_notification_delivery() {
             subscription_manager_canister_id,
             subscriber_canister_id, 
             "register_subscription",
-            candid::encode_one(vec![subscription_registration.clone()]).unwrap(),
+            candid::encode_one(subscription_registration.clone()).unwrap(),
         )
         .await;
 
     // Check the subscription registration result
     match register_subscription_result {
         Ok(WasmResult::Reply(data)) => {
-            let decoded_result: Vec<RegisterSubscriptionResult> = candid::decode_one(&data).unwrap();
-            match &decoded_result[0] {
+            let decoded_result: RegisterSubscriptionResult = candid::decode_one(&data).unwrap();
+            match &decoded_result {
                 RegisterSubscriptionResult::Ok(sub_id) => {
                     println!("Subscription successfully created, ID: {:?}", sub_id);
                 }

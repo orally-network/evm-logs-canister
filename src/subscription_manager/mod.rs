@@ -16,85 +16,74 @@ pub fn init() {
 }
 
 pub async fn register_subscription(
-    registrations: Vec<SubscriptionRegistration>,
-) -> Vec<RegisterSubscriptionResult> {
+    registration: SubscriptionRegistration,
+) -> RegisterSubscriptionResult {
     let caller = ic_cdk::caller();
-    let mut results = Vec::new();
+    let filter = registration.filter.clone();
 
-    for reg in registrations {
-        let filters= reg.filters.clone();
-
-        let is_subscription_exist = SUBSCRIBERS.with(|subs| {
-            subs.borrow()
-                .get(&caller)
-                .and_then(|sub_ids| {
-                    sub_ids.iter().find_map(|sub_id| {
-                        state::SUBSCRIPTIONS.with(|subs| {
-                            subs.borrow()
-                                .get(sub_id)
-                                .filter(|sub_info| sub_info.filters == filters)
-                                .cloned()
-                        })
+    let is_subscription_exist = SUBSCRIBERS.with(|subs| {
+        subs.borrow()
+            .get(&caller)
+            .and_then(|sub_ids| {
+                sub_ids.iter().find_map(|sub_id| {
+                    state::SUBSCRIPTIONS.with(|subs| {
+                        subs.borrow()
+                            .get(sub_id)
+                            .filter(|sub_info| sub_info.filter == filter)
+                            .cloned()
                     })
                 })
-        });
+            })
+    });
 
-        if is_subscription_exist.is_some() {
-            ic_cdk::println!(
-                "Subscription already exists for caller {} with the same filters",
-                caller
-            );
-            results.push(RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists));
-            continue;
-        }
-
-
-        let sub_id = state::NEXT_SUBSCRIPTION_ID.with(|id| {
-            let mut id = id.borrow_mut();
-            let current_id = id.clone();
-            *id += Nat::from(1u32);
-            current_id
-        });
-
-        let subscription_info = SubscriptionInfo {
-            subscription_id: sub_id.clone(),
-            subscriber_principal: caller,
-            namespace: reg.namespace.clone(),
-            filters: filters.clone(),
-            skip: None,
-            stats: vec![],
-        };
-
-        TOPICS_MANAGER.with(|manager| {
-            let mut manager = manager.borrow_mut();
-            for filter in &filters {
-                manager.add_filter(filter);
-            }
-        });
-
-        SUBSCRIPTIONS.with(|subs| {
-            subs.borrow_mut().insert(sub_id.clone(), subscription_info);
-        });
-
-        SUBSCRIBERS.with(|subs| {
-            subs.borrow_mut()
-                .entry(caller)
-                .or_default()
-                .push(sub_id.clone());
-        });
-
+    if is_subscription_exist.is_some() {
         ic_cdk::println!(
-            "Subscription registered: ID={}, Namespace={}",
-            sub_id,
-            reg.namespace,
+            "Subscription already exists for caller {} with the same filter",
+            caller
         );
-
-        results.push(RegisterSubscriptionResult::Ok(sub_id));
+        return RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists);
     }
 
-    results
-}
+    let sub_id = state::NEXT_SUBSCRIPTION_ID.with(|id| {
+        let mut id = id.borrow_mut();
+        let current_id = id.clone();
+        *id += Nat::from(1u32);
+        current_id
+    });
 
+    let subscription_info = SubscriptionInfo {
+        subscription_id: sub_id.clone(),
+        subscriber_principal: caller,
+        namespace: registration.namespace.clone(),
+        filter: filter.clone(),
+        skip: None,
+        stats: vec![],
+    };
+
+    TOPICS_MANAGER.with(|manager| {
+        let mut manager = manager.borrow_mut();
+        manager.add_filter(&filter);
+    });
+
+    SUBSCRIPTIONS.with(|subs| {
+        subs.borrow_mut().insert(sub_id.clone(), subscription_info);
+    });
+
+    SUBSCRIBERS.with(|subs| {
+        subs.borrow_mut()
+            .entry(caller)
+            .or_default()
+            .push(sub_id.clone());
+    });
+
+    ic_cdk::println!(
+        "Subscription registered: ID={}, Namespace={}",
+        sub_id,
+        registration.namespace,
+    );
+
+    RegisterSubscriptionResult::Ok(sub_id)
+}
 
 pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult {
     let subscription_removed = SUBSCRIPTIONS.with(|subs| {
@@ -103,13 +92,11 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
     });
 
     if let Some(subscription_info) = subscription_removed {
-        let filters = subscription_info.filters;
+        let filter = subscription_info.filter;
 
         TOPICS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
-            for filter in &filters {
-                manager.remove_filter(filter);
-            }
+            manager.remove_filter(&filter);
         });
 
         SUBSCRIBERS.with(|subs| {
@@ -127,4 +114,3 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
         UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))
     }
 }
-
