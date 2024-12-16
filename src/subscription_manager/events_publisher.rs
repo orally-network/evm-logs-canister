@@ -1,10 +1,13 @@
+use std::str::FromStr;
+
 use super::state::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::utils::{current_timestamp, event_matches_filter};
-use candid::Nat;
+use candid::{Nat, Principal};
 use evm_logs_types::{Event, EventNotification, PublishError};
 use ic_cdk;
 use ic_cdk::api::call::call;
 
+// TODO rework return type
 pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     let mut results = Vec::new();
 
@@ -71,11 +74,11 @@ async fn distribute_event(event: Event) {
                 filter: None,
             };
 
-            // Send the notification to the subscriber
+            // Send the notification to the subscriber via proxy canister
             let result: Result<(), String> = call(
-                sub.subscriber_principal,
-                "handle_notification",
-                (notification.clone(),),
+                Principal::from_str("be2us-64aaa-aaaaa-qaabq-cai").unwrap(), // TODO
+                "send_notification",
+                (sub.subscriber_principal, notification.clone(),)
             )
             .await
             .map_err(|e| format!("Failed to send notification: {:?}", e));
