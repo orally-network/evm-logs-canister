@@ -27,7 +27,7 @@ thread_local! {
 async fn init() {
     subscription_manager::init();
 
-    let monitoring_interval = Duration::from_secs(40);
+    let monitoring_interval = Duration::from_secs(20);
 
     let chain_configs = vec![
         ChainConfig {
