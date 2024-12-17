@@ -90,10 +90,9 @@ impl FilterManager {
 
     /// Removes a filter (subscription) from the manager for a specific chain.
     pub fn remove_filter(&mut self, chain: ChainName, filter: &Filter) {
-        let chain_data = match self.get_chain_data_mut(&chain) {
-            data => data,
-        };
-
+        let data = self.get_chain_data_mut(&chain);
+        let chain_data = data;
+        
         if chain_data.total_subscriptions > 0u32 {
             chain_data.total_subscriptions -= Nat::from(1u32);
         }
