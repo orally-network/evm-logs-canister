@@ -1,6 +1,7 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 use std::str::FromStr;
+
 // A note on specifying topic filters:
 
 // A transaction with a log with topics [A, B] will be matched by the following topic filters:
@@ -10,7 +11,6 @@ use std::str::FromStr;
 // [null, B] “anything in first position AND B in second position (and anything after)”
 // [A, B] “A in first position AND B in second position (and anything after)”
 // [[A, B], [A, B]] “(A OR B) in first position AND (A OR B) in second position (and anything after)”
-
 type TopicsPosition = Vec<String>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -27,9 +27,9 @@ pub struct Event {
     pub namespace: String,
     pub address: String,
     pub topics: Option<Vec<String>>, // TODO remove optional(?)
-    pub data: ICRC16Value,
+    pub data: Value,
     pub tx_hash: String,
-    pub headers: Option<Vec<ICRC16Map>>,
+    pub headers: Option<Vec<Map>>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -39,10 +39,10 @@ pub struct EventNotification {
     pub event_prev_id: Option<Nat>,
     pub timestamp: u64,
     pub namespace: String,
-    pub data: ICRC16Value,
+    pub data: Value,
     pub topics: Vec<String>,
     pub tx_hash: String,
-    pub headers: Option<Vec<ICRC16Map>>,
+    pub headers: Option<Vec<Map>>,
     pub source: Principal,
     pub filter: Option<String>,
 }
@@ -66,8 +66,8 @@ pub struct EventRelay {
     pub timestamp: u64,
     pub namespace: String,
     pub source: Principal,
-    pub data: ICRC16Value,
-    pub headers: Option<Vec<ICRC16Map>>,
+    pub data: Value,
+    pub headers: Option<Vec<Map>>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -84,7 +84,7 @@ pub struct SubscriptionInfo {
     pub namespace: String,
     pub filter: Filter,
     pub skip: Option<Skip>,
-    pub stats: Vec<ICRC16Map>,
+    pub stats: Vec<Map>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -102,34 +102,34 @@ pub struct Skip {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub enum ICRC16Value {
+pub enum Value {
     Bool(bool),
     Bytes(Vec<u8>),
     Float(f64),
-    Map(Vec<ICRC16Map>),
+    Map(Vec<Map>),
     Nat(u128),
     Principal(Principal),
     Text(String),
 }
 
-impl TryFrom<ICRC16Value> for Vec<u8> {
+impl TryFrom<Value> for Vec<u8> {
     type Error = &'static str;
 
-    fn try_from(value: ICRC16Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            ICRC16Value::Text(text) => Ok(text.into_bytes()),
+            Value::Text(text) => Ok(text.into_bytes()),
             _ => Err("Cannot convert non-text value to Vec<u8>"),
         }
     }
 }
 
 // experimental
-impl TryFrom<ICRC16Value> for String {
+impl TryFrom<Value> for String {
     type Error = &'static str;
 
-    fn try_from(value: ICRC16Value) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            ICRC16Value::Text(text) => {
+            Value::Text(text) => {
                 if text.len() >= 2 {
                     Ok(text[2..].to_string())
                 } else {
@@ -142,22 +142,22 @@ impl TryFrom<ICRC16Value> for String {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct ICRC16Property {
+pub struct Property {
     pub name: String,
-    pub value: ICRC16Value,
+    pub value: Value,
     pub immutable: bool,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct ICRC16Map {
-    pub key: ICRC16Value,
-    pub value: ICRC16Value,
+pub struct Map {
+    pub key: Value,
+    pub value: Value,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
-pub struct ICRC16ValueMap {
-    pub key: ICRC16Value,
-    pub value: ICRC16Value,
+pub struct ValueMap {
+    pub key: Value,
+    pub value: Value,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
