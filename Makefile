@@ -2,6 +2,7 @@
 POCKET_IC_BIN := ./pocket-ic
 EVM_LOGS_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/evm_logs_canister.wasm
 TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister1.wasm
+PROXY_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/proxy_canister.wasm
 .DEFAULT_GOAL: help
 
 .PHONY: help
@@ -26,8 +27,10 @@ test: build ## Run tests
 	fi
 	@EVM_LOGS_CANISTER_PATH=$(EVM_LOGS_CANISTER_WASM) \
 	   TEST_CANISTER_WASM_PATH=$(TEST_CANISTER_WASM) \
+	   PROXY_CANISTER_WASM_PATH=$(PROXY_CANISTER_WASM) \
 	   POCKET_IC_BIN=$(POCKET_IC_BIN) \
-	   cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture
+	   RUST_BACKTRACE=1 cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture
+
 
 .PHONY: fetch-pocket-ic
 fetch-pocket-ic: ## Fetch the pocket-ic binary for tests if not already present

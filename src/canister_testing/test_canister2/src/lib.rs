@@ -22,7 +22,7 @@ async fn register_subscription(
 ) {
     ic_cdk::println!("Calling register_subscription for namespaces:");
     for reg in &registrations {
-        ic_cdk::println!(" - {:?}", reg.namespace);
+        ic_cdk::println!(" - {:?}", reg.chain);
     }
 
     let result: Result<(Vec<RegisterSubscriptionResult>,), _> =

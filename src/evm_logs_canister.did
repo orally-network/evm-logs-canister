@@ -121,6 +121,16 @@ type PublishError = variant {
   GenericError : GenericError;
 };
 
+type SendNotificationError = variant {
+    FailedToSend;
+    InvalidSubscriber
+};
+
+type SendNotificationResult = variant {
+    Ok;
+    Err : SendNotificationError
+};
+
 service : {
   subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
   unsubscribe : (nat) -> (UnsubscribeResult);

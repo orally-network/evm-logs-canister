@@ -17,7 +17,17 @@ type EventNotification = record {
   filter : opt Filter;
 };
 
+type SendNotificationError = variant { 
+    FailedToSend; 
+    InvalidSubscriber 
+};
+
+type SendNotificationResult = variant { 
+    Ok; 
+    Err : SendNotificationError 
+};
+
 service : {
-  send_notification : (principal, EventNotification) -> (variant { Ok; Err : text });
+  send_notification : (principal, EventNotification) -> (SendNotificationResult);
   __get_candid_interface_tmp_hack : () -> (text) query;
 }

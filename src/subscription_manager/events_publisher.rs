@@ -3,7 +3,7 @@ use std::str::FromStr;
 use super::state::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::utils::{current_timestamp, event_matches_filter};
 use candid::{Nat, Principal};
-use evm_logs_types::{Event, EventNotification, PublishError};
+use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationResult, SendNotificationError};
 use ic_cdk;
 use ic_cdk::api::call::call;
 
@@ -75,28 +75,34 @@ async fn distribute_event(event: Event) {
             };
 
             // Send the notification to the subscriber via proxy canister
-            let result: Result<(), String> = call(
-                Principal::from_str("be2us-64aaa-aaaaa-qaabq-cai").unwrap(), // TODO
+            let call_result: Result<(SendNotificationResult,), _>= call(
+                Principal::from_str("be2us-64aaa-aaaaa-qaabq-cai").unwrap(), // TODO: Replace with actual canister ID
                 "send_notification",
-                (sub.subscriber_principal, notification.clone(),)
+                (sub.subscriber_principal, notification.clone()),
             )
             .await
             .map_err(|e| format!("Failed to send notification: {:?}", e));
 
-            match result {
-                Ok(_) => {
-                    ic_cdk::println!(
-                        "Notification sent to subscriber {}: Notification ID={}",
-                        sub.subscriber_principal,
-                        notification_id
-                    );
-                }
-                Err(err) => {
-                    ic_cdk::println!(
-                        "Error sending notification to subscriber {}: {}",
-                        sub.subscriber_principal,
-                        err
-                    );
+            match call_result {
+                Ok((send_result,)) => match send_result {
+                    SendNotificationResult::Ok => {
+                        ic_cdk::println!("Notification sent successfully. ID: {}", notification_id);
+                    }
+                    SendNotificationResult::Err(error) => {
+                        // Handle application-level error
+                        match error {
+                            SendNotificationError::FailedToSend => {
+                                ic_cdk::println!("Failed to send notification.");
+                            }
+                            SendNotificationError::InvalidSubscriber => {
+                                ic_cdk::println!("Invalid subscriber principal provided.");
+                            }
+                        }
+                    }
+                },
+                Err(transport_error) => {
+                    // Handle transport or call-level error
+                    ic_cdk::println!("Error calling send_notification: {}", transport_error);
                 }
             }
         }

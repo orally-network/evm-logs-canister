@@ -1,6 +1,6 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
-
+use std::str::FromStr;
 // A note on specifying topic filters:
 
 // A transaction with a log with topics [A, B] will be matched by the following topic filters:
@@ -48,6 +48,18 @@ pub struct EventNotification {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum SendNotificationResult {
+    Ok,
+    Err(SendNotificationError),
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum SendNotificationError {
+    FailedToSend,       // General failure to send notification
+    InvalidSubscriber,  // Invalid subscriber principal
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct EventRelay {
     pub id: Nat,
     pub prev_id: Option<Nat>,
@@ -60,7 +72,7 @@ pub struct EventRelay {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SubscriptionRegistration {
-    pub namespace: String,
+    pub chain: String,
     pub filter: Filter,
     pub memo: Option<Vec<u8>>, // Blob
 }
@@ -75,7 +87,7 @@ pub struct SubscriptionInfo {
     pub stats: Vec<ICRC16Map>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ChainName {
     Ethereum,
     Base,
@@ -173,6 +185,7 @@ pub enum RegisterSubscriptionError {
     ImproperConfig(String),
     GenericError(GenericError),
     SameFilterExists,
+    InvalidChainName,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -187,4 +200,18 @@ pub enum PublishError {
 pub enum ConfirmationResult {
     AllAccepted,
     SomeRejected(Vec<Nat>), // rejected id's
+}
+
+impl FromStr for ChainName {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ethereum" => Ok(ChainName::Ethereum),
+            "base" => Ok(ChainName::Base),
+            "optimism" => Ok(ChainName::Optimism),
+            "polygon" => Ok(ChainName::Polygon),
+            _ => Err(format!("Invalid chain name: {}", s)),
+        }
+    }
 }

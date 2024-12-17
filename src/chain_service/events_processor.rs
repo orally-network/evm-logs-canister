@@ -13,7 +13,7 @@ pub async fn process_events(service: &ChainService, logs: Vec<LogEntry>) -> Resu
             id: Nat::from(index as u64 + 1),
             prev_id: None,
             timestamp: time() / 1_000_000,
-            namespace: format!("com.events.{:?}", service.config.chain_name),
+            namespace: format!("{:?}", service.config.chain_name),
             data: ICRC16Value::Text(log.data.clone()),
             address: log.address.clone(),
             topics: Some(log.topics.clone()),
