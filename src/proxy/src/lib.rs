@@ -1,7 +1,7 @@
 use candid::{candid_method, Principal};
 use ic_cdk::api::call::call;
 use std::vec::Vec;
-use evm_logs_types::EventNotification;
+use evm_logs_types::{EventNotification, SendNotificationResult, SendNotificationError};
 use ic_cdk_macros::{query, update, init};
 
 #[init]
@@ -14,20 +14,27 @@ async fn init() {
 async fn send_notification(
     subscriber: Principal,
     notification: EventNotification,
-) -> Result<(), String> {
+) -> SendNotificationResult {
     ic_cdk::println!("Calling handle_notification");
+    
     // Send the notification to the subscriber
-    // TODO propagate error to evm-logs-canister? handle error correctly
-    let result: Result<(), String> = call(
+    let call_result: Result<(), String> = call(
         subscriber,
         "handle_notification",
         (notification.clone(),),
     )
     .await
-    .map_err(|e| format!("Failed to send notification: {:?}", e));
+    .map_err(|e| format!("Transport or call error: {:?}", e));
 
-
-    Ok(())
+    match call_result {
+        Ok(_) => {
+            SendNotificationResult::Ok
+        }
+        Err(err_msg) => {
+            ic_cdk::println!("Error sending notification: {}", err_msg);
+            SendNotificationResult::Err(SendNotificationError::FailedToSend)
+        }
+    }
 }
 
 #[query]

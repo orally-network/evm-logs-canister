@@ -48,6 +48,18 @@ pub struct EventNotification {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum SendNotificationResult {
+    Ok,
+    Err(SendNotificationError),
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum SendNotificationError {
+    FailedToSend,       // General failure to send notification
+    InvalidSubscriber,  // Invalid subscriber principal
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct EventRelay {
     pub id: Nat,
     pub prev_id: Option<Nat>,
