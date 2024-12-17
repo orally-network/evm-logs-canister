@@ -24,8 +24,8 @@ thread_local! {
 }
 
 #[init]
-async fn init() {
-    subscription_manager::init();
+async fn init(proxy_canister_id: Principal) {
+    subscription_manager::init(proxy_canister_id);
 
     let monitoring_interval = Duration::from_secs(20);
 
@@ -33,17 +33,17 @@ async fn init() {
         ChainConfig {
             chain_name: ChainName::Ethereum,
             rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::PublicNode])),
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: Principal::from_text("bw4dl-smaaa-aaaaa-qaacq-cai").unwrap(),
         },
         ChainConfig {
             chain_name: ChainName::Base,
             rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: Principal::from_text("bw4dl-smaaa-aaaaa-qaacq-cai").unwrap(),
         },
         ChainConfig {
             chain_name: ChainName::Optimism,
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: Principal::from_text("bw4dl-smaaa-aaaaa-qaacq-cai").unwrap(),
         },
         ChainConfig {
             chain_name: ChainName::Polygon,

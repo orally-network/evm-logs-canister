@@ -9,10 +9,11 @@ pub mod events_publisher;
 pub mod queries;
 pub mod state;
 
-use state::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
+use state::{SUBSCRIBERS, SUBSCRIPTIONS, FILTERS_MANAGER, PROXY_CANISTER_ID};
 
-pub fn init() {
-    ic_cdk::println!("SubscriptionManager initialized");
+pub fn init(proxy_canister: Principal) {
+    PROXY_CANISTER_ID.replace(proxy_canister);
+    ic_cdk::println!("SubscriptionManager initialized. Proxy canister ID: {:?}", proxy_canister.to_text());
 }
 
 pub async fn register_subscription(
@@ -77,7 +78,7 @@ pub async fn register_subscription(
             .push(sub_id.clone());
     });
 
-    TOPICS_MANAGER.with(|manager| {
+    FILTERS_MANAGER.with(|manager| {
         let mut manager = manager.borrow_mut();
         manager.add_filter(chain, &filter);
     });
@@ -108,7 +109,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
             }
         };
 
-        TOPICS_MANAGER.with(|manager| {
+        FILTERS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
             manager.remove_filter(chain, &filter);
         });

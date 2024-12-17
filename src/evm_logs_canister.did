@@ -131,7 +131,7 @@ type SendNotificationResult = variant {
     Err : SendNotificationError
 };
 
-service : {
+service : (principal) -> {
   subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
   unsubscribe : (nat) -> (UnsubscribeResult);
   get_subscriptions : (namespace : opt text, from_id : opt nat, stats_filter : opt vec Filter) -> (vec SubscriptionInfo) query;

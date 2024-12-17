@@ -2,6 +2,9 @@
 
 EVM_LOGS_CANISTER=evm_logs_canister
 TEST_CANISTER=test_canister1
+PROXY_CANISTER=proxy_canister
+EVM_RPC_CANISTER=evm_rpc
+
 CANISTER_WASM=target/wasm32-unknown-unknown/release/$(echo $EVM_LOGS_CANISTER | tr '-' '_').wasm
 
 check_error() {
@@ -21,20 +24,33 @@ build_canisters() {
 
 # Deploy the canisters
 deploy_canisters() {
-    echo "Deploying canisters..."
-    dfx deploy
-    check_error "Deployment failed"
+    echo "Deploying test canister..."
+    dfx deploy $TEST_CANISTER
+    check_error "Test canister deployment failed"
 
-    # Get the canister ids
+    echo "Deploying proxy canister..."
+    dfx deploy $PROXY_CANISTER
+    check_error "proxy canister deployment failed"
+
+    # Get the Proxy canister ID
+    PROXY_CANISTER_ID=$(dfx canister id $PROXY_CANISTER)
+    check_error "Failed to retrieve Proxy canister id"
+    echo "Proxy canister id: $PROXY_CANISTER_ID"
+
+    # Deploy EVM Logs Canister
+    echo "Deploying EVM logs canister with Proxy canister ID as argument..."
+    dfx deploy $EVM_LOGS_CANISTER --argument "(principal \"${PROXY_CANISTER_ID}\")"
+    check_error "EVM Logs canister deployment failed"
+
+    # Get the EVM Logs canister ID
     EVM_LOGS_CANISTER_ID=$(dfx canister id $EVM_LOGS_CANISTER)
-    check_error "Failed to retrieve Evm Logs canister id"
-
-    TEST_CANISTER_ID=$(dfx canister id $TEST_CANISTER)
-    check_error "Failed to retrieve Test canister id"
-
-    # Output canister ids
+    check_error "Failed to retrieve EVM Logs canister id"
     echo "Evm Logs canister id: $EVM_LOGS_CANISTER_ID"
-    echo "Test canister id: $TEST_CANISTER_ID"
+
+    # Deploy EVM RPC CANISTER
+    echo "Deploying EVM RPC Canister"
+    dfx deploy $EVM_RPC_CANISTER
+    check_error "EVM RPC Canister deployment failed"
 }
 
 # Main script execution

@@ -9,10 +9,11 @@ thread_local! {
     pub static SUBSCRIPTIONS: RefCell<HashMap<Nat, SubscriptionInfo>> = RefCell::new(HashMap::new());
     pub static SUBSCRIBERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
     pub static EVENTS: RefCell<HashMap<Nat, Event>> = RefCell::new(HashMap::new());
+    pub static PROXY_CANISTER_ID: RefCell<Principal> = RefCell::new(Principal::anonymous());
 
     pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_EVENT_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
-    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::new());
+    pub static FILTERS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::new());
 }

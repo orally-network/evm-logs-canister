@@ -1,4 +1,4 @@
-use super::state::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
+use super::state::{SUBSCRIBERS, SUBSCRIPTIONS, FILTERS_MANAGER};
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{Filter, SubscriptionInfo, ChainName};
@@ -46,7 +46,7 @@ pub fn get_active_filters() -> Vec<Filter> {
 
 // Get unique addresses and topics to pass to eth_getLogs.
 pub fn get_active_addresses_and_topics(chain: ChainName) -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    TOPICS_MANAGER.with(|manager| {
+    FILTERS_MANAGER.with(|manager| {
         let manager = manager.borrow();
         manager.get_active_addresses_and_topics(chain)
     })
