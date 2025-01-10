@@ -75,8 +75,9 @@ pub struct SubscriptionRegistration {
     pub memo: Option<Vec<u8>>, // Blob
 }
 ```
+In the filter parameter you should set contract address and event topics you want to subscribe on
 
-Example:
+Example of [subscription struct creation](https://github.com/orally-network/evm-logs-canister/blob/7c042a5b776eb8037891c084f936aaa730694545/src/canister_testing/test_canister1/src/utils.rs#L93):
 
 ```
 pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
@@ -94,8 +95,13 @@ pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
     }
 }
 ```
-After *SubscriptionRegistration* is initialized you are free to subscribe to evm-logs-canister with this filter
-
+This subscription config will be listening [chain fusion ckUSDT minter deposit events](https://etherscan.io/tx/0xb358914900ae855dc283bdba8c2de1f2a02f1b9610c35f0ec49f71c60465f104#eventlog#165).
+After *SubscriptionRegistration* is initialized you are free to subscribe to evm-logs-canister with specified filter:
+```
+let result: Result<(RegisterSubscriptionResult,), _> =
+        call(canister_id, "subscribe", (subscription_params,)).await;
+```
+Where canister_id - evm_logs_canister ID
 
 ####  EVM Topics Passing
 When sending a filter to the EVM node, you can specify which log topics should match specific positions in the event. Here’s how the topic filters work:
@@ -108,11 +114,24 @@ When sending a filter to the EVM node, you can specify which log topics should m
 
 This strategy provides flexibility in filtering specific transactions based on topic order and values.
 
-### Events decoding
-After subscribing, you will receive EVM events at certain intervals. You can implement your own decoder 
+More info: [eth_getLogs RPC method](https://docs.alchemy.com/docs/deep-dive-into-eth_getlogs) 
+### Events handling and decoding
+After subscribing, you will receive EVM events at certain intervals via the **handle_notification** callback:
+```
+#[update]
+async fn handle_notification(notification: EventNotification) {
+    ic_cdk::println!("Received notification: {:?}", notification);
+
+    // decode each notification in corresponding way and save decoded data
+    ...
+}
+```
+You can implement your own decoder 
 to decode event data. A common use case would be to map a specific decoder to each subscription filter
 creation, since each evm event has its own data format, a special decoding approach must be applied.
-Common use cases and its implementations can be checked in test_canister source code of this repo. 
+Common use cases and its implementations can be checked in [Test Canister source code](https://github.com/orally-network/evm-logs-canister/tree/7c042a5b776eb8037891c084f936aaa730694545/src/canister_testing/test_canister1) of this repo. 
+
+Impementation of your own events decoder: [ethereum_sync_decoder](https://github.com/orally-network/evm-logs-canister/blob/7c042a5b776eb8037891c084f936aaa730694545/src/canister_testing/test_canister1/src/decoders.rs#L33)
 
 ### Get your active subscriptions with IDs
 
