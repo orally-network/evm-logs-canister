@@ -1,7 +1,7 @@
 use super::service::ChainService;
 use crate::subscription_manager::events_publisher::publish_events;
 use candid::Nat;
-use evm_logs_types::{Event, ICRC16Value};
+use evm_logs_types::{Event, Value};
 use evm_rpc_canister_types::LogEntry;
 use ic_cdk::api::time;
 
@@ -14,7 +14,7 @@ pub async fn process_events(service: &ChainService, logs: Vec<LogEntry>) -> Resu
             prev_id: None,
             timestamp: time() / 1_000_000,
             namespace: format!("{:?}", service.config.chain_name),
-            data: ICRC16Value::Text(log.data.clone()),
+            data: Value::Text(log.data.clone()),
             address: log.address.clone(),
             topics: Some(log.topics.clone()),
             tx_hash: log.transactionHash.clone().unwrap(),

@@ -5,6 +5,35 @@ TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister1.was
 PROXY_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/proxy_canister.wasm
 .DEFAULT_GOAL: help
 
+local_deploy_evm_rpc:
+	dfx deploy evm_rpc --argument '(record { nodesInSubnet = 28 })'
+
+local_deploy_proxy:
+	dfx deploy proxy_canister
+
+local_deploy_test_canister:
+	dfx deploy test_canister1
+
+local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
+	$(eval MAINNET_RPC_URL?=https://eth.llamarpc.com)
+	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
+	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister))
+	$(eval TEST_CANISTER := $(shell dfx canister id test_canister1))
+
+	dfx canister create evm_logs_canister && dfx build evm_logs_canister 
+	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
+	dfx canister install --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz --argument \
+		"(record { \
+			evm_rpc_canister=principal\"${EVM_RPC_CANISTER}\"; \
+			proxy_canister=principal\"${PROXY_CANISTER}\"; \
+			rpc_wrapper=\"https://rpc.orally.network/?rpc=\";  \
+		})" evm_logs_canister \
+
+local_upgrade:
+	dfx build evm_logs_canister 
+	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
+	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz evm_logs_canister
+
 .PHONY: help
 help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'
