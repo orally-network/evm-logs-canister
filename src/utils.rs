@@ -103,14 +103,14 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use evm_logs_types::ICRC16Value;
+    use evm_logs_types::Value;
     fn create_event(address: &str, topics: Option<Vec<&str>>) -> Event {
         Event {
             id: Nat::from(1u8),
             prev_id: None,
             timestamp: 0,
             namespace: "namespace".to_string(),
-            data: ICRC16Value::Text("test".to_string()),
+            data: Value::Text("test".to_string()),
             headers: None,
             address: address.to_string(),
             topics: topics.map(|t| t.into_iter().map(|s| s.to_string()).collect()),

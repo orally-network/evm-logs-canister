@@ -2,7 +2,7 @@ use candid;
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{
-    Event, EventNotification, Filter, ICRC16Value, RegisterSubscriptionResult,
+    Event, EventNotification, Filter, Value, RegisterSubscriptionResult,
     SubscriptionRegistration,
 };
 use pocket_ic::nonblocking::PocketIc;
@@ -138,7 +138,7 @@ async fn test_event_publishing_and_notification_delivery() {
         prev_id: None,
         timestamp: 0,
         namespace: "Ethereum".to_string(),
-        data: ICRC16Value::Text("Test event data".to_string()),
+        data: Value::Text("Test event data".to_string()),
         headers: None,
         address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(), // Example address
         topics: None,                                                      // Example topic
@@ -205,7 +205,7 @@ async fn test_event_publishing_and_notification_delivery() {
                 "Incorrect namespace"
             );
             assert_eq!(notification.event_id, Nat::from(1u64), "Incorrect event_id");
-            if let ICRC16Value::Text(ref text) = notification.data {
+            if let Value::Text(ref text) = notification.data {
                 assert_eq!(text, "Test event data", "Incorrect event data");
             } else {
                 panic!("Unexpected data type in notification");

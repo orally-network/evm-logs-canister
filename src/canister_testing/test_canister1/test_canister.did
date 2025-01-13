@@ -8,8 +8,8 @@ type Event = record {
   prev_id : opt nat;
   timestamp : nat64;
   namespace : text;
-  data : ICRC16Value;
-  headers : opt vec ICRC16Map;
+  data : Value;
+  headers : opt vec Map;
 };
 
 type EventNotification = record {
@@ -18,10 +18,10 @@ type EventNotification = record {
   event_prev_id : opt nat;
   timestamp : nat64;
   namespace : text;
-  data : ICRC16Value;
+  data : Value;
   topics: opt vec text;
   tx_hash: text;
-  headers : opt vec ICRC16Map;
+  headers : opt vec Map;
   source : principal;
   filter : opt text;
 };
@@ -31,23 +31,23 @@ type GenericError = record {
   message : text;
 };
 
-type ICRC16Map = record {
-  key : ICRC16Value;
-  value : ICRC16Value;
+type Map = record {
+  key : Value;
+  value : Value;
 };
 
-type ICRC16Property = record {
+type Property = record {
   name : text;
-  value : ICRC16Value;
+  value : Value;
   immutable : bool;
 };
 
-type ICRC16Value = variant {
-  Array : vec ICRC16Value;
+type Value = variant {
+  Array : vec Value;
   Blob : vec nat8;
   Bool : bool;
   Bytes : vec nat8;
-  Class : vec ICRC16Property;
+  Class : vec Property;
   Float : float64;
   Floats : vec float64;
   Int : int;
@@ -55,23 +55,23 @@ type ICRC16Value = variant {
   Int32 : int32;
   Int64 : int64;
   Int8 : int8;
-  Map : vec ICRC16Map;
-  ValueMap : vec ICRC16ValueMap;
+  Map : vec Map;
+  ValueMap : vec ValueMap;
   Nat : nat;
   Nat16 : nat16;
   Nat32 : nat32;
   Nat64 : nat64;
   Nat8 : nat8;
   Nats : vec nat;
-  Option : ICRC16Value;
+  Option : Value;
   Principal : principal;
-  Set : vec ICRC16Value;
+  Set : vec Value;
   Text : text;
 };
 
-type ICRC16ValueMap = record {
-  key : ICRC16Value;
-  value : ICRC16Value;
+type ValueMap = record {
+  key : Value;
+  value : Value;
 };
 
 type RegisterSubscriptionError = variant {
@@ -92,7 +92,7 @@ type SubscriptionInfo = record {
   subscriber_principal : principal;
   namespace : text;
   filter : Filter;
-  stats : vec ICRC16Map;
+  stats : vec Map;
 };
 
 type SubscriptionRegistration = record {
