@@ -10,7 +10,7 @@ use pocket_ic::WasmResult;
 use std::time::Duration;
 use tokio::time::sleep;
 
-use candid::{CandidType, Encode, Decode};
+use candid::CandidType;
 use serde::Deserialize;
 
 #[derive(CandidType, Deserialize)]

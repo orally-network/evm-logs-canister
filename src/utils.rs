@@ -3,7 +3,7 @@ use ic_cdk::api::time;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
 
-use evm_logs_types::{Event, Filter, ICRC16Value};
+use evm_logs_types::{Event, Filter};
 use evm_rpc_canister_types::{
     BlockTag, EvmRpcCanister, GetBlockByNumberResult, MultiGetBlockByNumberResult, RpcServices,
 };

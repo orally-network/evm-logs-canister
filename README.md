@@ -49,13 +49,9 @@ Notes:
    dfx start --clean
    ```
    
-2. **Build:**:
+2. **Build and install code into the canister:**:
    ```
-   make build
-   ```
-3. **Deploy canisters:**
-   ```
-   make deploy
+   make local_deploy
    ```
    
 #### After these steps you can use evm-logs-canister functionality by calling implemented candid methods.

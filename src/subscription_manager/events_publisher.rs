@@ -1,12 +1,10 @@
-use std::str::FromStr;
 
 use super::state::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::utils::{current_timestamp, event_matches_filter};
-use candid::{Nat, Principal};
+use candid::Nat;
 use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationResult, SendNotificationError};
 use ic_cdk;
 use ic_cdk::api::call::call;
-use crate::STATE;
 use crate::get_state_value;
 
 // TODO rework return type

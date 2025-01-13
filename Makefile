@@ -29,6 +29,10 @@ local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
 			rpc_wrapper=\"https://rpc.orally.network/?rpc=\";  \
 		})" evm_logs_canister \
 
+local_upgrade:
+	dfx build evm_logs_canister 
+	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
+	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz evm_logs_canister
 
 .PHONY: help
 help: ## Show this help
