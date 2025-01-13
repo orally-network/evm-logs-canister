@@ -18,6 +18,6 @@ pub fn convert_log_to_string(chain_name: &ChainName, log: &LogEntry) -> String {
 
 pub fn print_logs(logs: &Vec<String>) {
     for log in logs {
-        ic_cdk::println!("Log: {:?}", log);
+        crate::log!("Log: {:?}", log);
     }
 }

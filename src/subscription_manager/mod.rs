@@ -4,6 +4,7 @@ use evm_logs_types::{
     RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
     SubscriptionRegistration, UnsubscribeResult, ChainName,
 };
+use crate::log;
 
 pub mod events_publisher;
 pub mod queries;
@@ -12,7 +13,7 @@ pub mod state;
 use state::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
 
 pub fn init() {
-    ic_cdk::println!("SubscriptionManager initialized");
+    log!("SubscriptionManager initialized");
 }
 
 pub async fn register_subscription(
@@ -35,7 +36,7 @@ pub async fn register_subscription(
     });
 
     if is_subscription_exist.is_some() {
-        ic_cdk::println!(
+        log!(
             "Subscription already exists for caller {} with the same filter",
             caller
         );
@@ -45,7 +46,7 @@ pub async fn register_subscription(
     let chain = match registration.chain.to_string().parse::<ChainName>() {
         Ok(parsed_chain) => parsed_chain,
         Err(e) => {
-            ic_cdk::println!("Failed to parse chain name: {}", e);
+            log!("Failed to parse chain name: {}", e);
             return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InvalidChainName);
         }
     };
@@ -82,7 +83,7 @@ pub async fn register_subscription(
         manager.add_filter(chain, &filter);
     });
 
-    ic_cdk::println!(
+    log!(
         "Subscription registered: ID={}, Namespace={}",
         sub_id,
         registration.chain,
@@ -103,7 +104,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
         let chain = match subscription_info.namespace.parse::<ChainName>() {
             Ok(parsed_chain) => parsed_chain,
             Err(_) => {
-                ic_cdk::println!("Failed to parse chain name from namespace");
+                log!("Failed to parse chain name from namespace");
                 return UnsubscribeResult::Err("Invalid namespace in subscription".to_string());
             }
         };

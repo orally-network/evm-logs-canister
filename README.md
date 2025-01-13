@@ -116,7 +116,7 @@ After subscribing, you will receive EVM events at certain intervals via the **ha
 ```
 #[update]
 async fn handle_notification(notification: EventNotification) {
-    ic_cdk::println!("Received notification: {:?}", notification);
+    log!("Received notification: {:?}", notification);
 
     // decode each notification in corresponding way and save decoded data
     ...

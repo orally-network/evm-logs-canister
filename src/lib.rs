@@ -71,7 +71,7 @@ async fn init(config: types::config::Config) {
         services_cell.extend(services);
     });
 
-    ic_cdk::println!("EVM logs monitoring is started");
+    log!("EVM logs monitoring is started");
 }
 
 fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc<ChainService> {

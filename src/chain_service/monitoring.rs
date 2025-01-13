@@ -1,5 +1,8 @@
-use crate::subscription_manager::queries;
-use crate::utils::get_latest_block_number;
+use crate::{
+    subscription_manager::queries,
+    utils::get_latest_block_number,
+    log,
+};
 use ic_cdk;
 use ic_cdk_timers::set_timer_interval;
 use std::sync::Arc;
@@ -29,7 +32,7 @@ impl ChainService {
         let (addresses, topics) = queries::get_active_addresses_and_topics(self.config.chain_name.clone());
 
         if addresses.is_empty() && topics.is_none() {
-            ic_cdk::println!(
+            log!(
                 "{:?} : No active filters to monitor. No fetching",
                 self.config.chain_name
             );
@@ -43,7 +46,7 @@ impl ChainService {
             match get_latest_block_number(&self.evm_rpc, self.config.rpc_providers.clone()).await {
                 Ok(latest_block_number) => {
                     *self.last_processed_block.borrow_mut() = latest_block_number;
-                    ic_cdk::println!(
+                    log!(
                         "Initialized last_processed_block to {} for {:?}",
                         latest_block_number,
                         self.config.chain_name
@@ -51,7 +54,7 @@ impl ChainService {
                     return;
                 }
                 Err(err) => {
-                    ic_cdk::println!(
+                    log!(
                         "Failed to initialize last_processed_block for {:?}: {}",
                         self.config.chain_name,
                         err,
@@ -63,7 +66,7 @@ impl ChainService {
 
         let from_block = last_processed_block + 1;
 
-        ic_cdk::println!(
+        log!(
             "{:?}: Fetching logs from block {} to latest",
             self.config.chain_name,
             from_block
@@ -88,7 +91,7 @@ impl ChainService {
                         .unwrap_or(last_processed_block);
 
                     *self.last_processed_block.borrow_mut() = max_block_number;
-                    ic_cdk::println!(
+                    log!(
                         "Last processed block new value: {}",
                         *self.last_processed_block.borrow()
                     );
@@ -100,11 +103,11 @@ impl ChainService {
                     print_logs(&log_strings);
 
                     if let Err(e) = process_events(self, logs).await {
-                        ic_cdk::println!("Error processing events: {}", e);
+                        log!("Error processing events: {}", e);
                     }
                 } else {
                     *self.last_processed_block.borrow_mut() = from_block;
-                    ic_cdk::println!(
+                    log!(
                         "{:?}: No new logs found. Advancing to block {}",
                         self.config.chain_name,
                         from_block
@@ -112,7 +115,7 @@ impl ChainService {
                 }
             }
             Err(e) => {
-                ic_cdk::println!(
+                log!(
                     "Error during logs extraction for {:?}: {}",
                     self.config.chain_name,
                     e

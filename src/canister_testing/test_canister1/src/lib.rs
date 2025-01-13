@@ -2,6 +2,7 @@ pub mod decoders;
 pub mod read_contract;
 pub mod state;
 pub mod utils;
+pub mod macros;
 
 use crate::read_contract::SolidityToken;
 
@@ -32,13 +33,13 @@ struct DecodedNotification {
 
 #[init]
 async fn init() {
-    ic_cdk::println!("Test_canister1 initialized");
+    log!("Test_canister1 initialized");
 }
 
 // Candid update methods
 #[update]
 async fn subscribe(canister_id: Principal) {
-    ic_cdk::println!("Starting subscription registration");
+    log!("Starting subscription registration");
 
     let base_swaps_filter = create_base_swaps_config();
     let eth_sync_filter = create_ethereum_sync_config();
@@ -53,7 +54,7 @@ async fn subscribe(canister_id: Principal) {
 
 #[update]
 async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
-    ic_cdk::println!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
+    log!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
 
     let result: Result<(evm_logs_types::UnsubscribeResult,), _> =
         call(canister_id, "unsubscribe", (subscription_id.clone(),)).await;
@@ -61,23 +62,23 @@ async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
     match result {
         Ok((response,)) => match response {
             UnsubscribeResult::Ok() => {
-                ic_cdk::println!("Successfully unsubscribed from {:?}", subscription_id)
+                log!("Successfully unsubscribed from {:?}", subscription_id)
             }
-            UnsubscribeResult::Err(err) => ic_cdk::println!("Error unsubscribing: {:?}", err),
+            UnsubscribeResult::Err(err) => log!("Error unsubscribing: {:?}", err),
         },
         Err(e) => {
-            ic_cdk::println!("Error calling canister: {:?}", e);
+            log!("Error calling canister: {:?}", e);
         }
     }
 }
 
 #[update]
 async fn handle_notification(notification: EventNotification) {
-    ic_cdk::println!(
+    log!(
         "Received notification for event ID: {:?}",
         notification.event_id
     );
-    ic_cdk::println!("Notification details: {:?}", notification);
+    log!("Notification details: {:?}", notification);
 
     NOTIFICATIONS.with(|notifs| {
         notifs.borrow_mut().push(notification.clone());
@@ -95,11 +96,11 @@ async fn handle_notification(notification: EventNotification) {
                     });
                 }
                 Err(e) => {
-                    ic_cdk::println!("Error decoding event data: {:?}", e);
+                    log!("Error decoding event data: {:?}", e);
                 }
             }
         } else {
-            ic_cdk::println!(
+            log!(
                 "No decoder found for subscription_id: {:?}",
                 notification.sub_id
             );
@@ -128,18 +129,18 @@ fn get_notifications() -> Vec<EventNotification> {
 
 #[update]
 async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::SubscriptionInfo> {
-    ic_cdk::println!("Calling get_subscriptions");
+    log!("Calling get_subscriptions");
 
     let result: Result<(Vec<evm_logs_types::SubscriptionInfo>,), _> =
         call(canister_id, "get_user_subscriptions", ()).await;
 
     match result {
         Ok((subscriptions,)) => {
-            ic_cdk::println!("Successfully fetched subscriptions: {:?}", subscriptions);
+            log!("Successfully fetched subscriptions: {:?}", subscriptions);
             subscriptions
         }
         Err(e) => {
-            ic_cdk::println!("Error fetching subscriptions: {:?}", e);
+            log!("Error fetching subscriptions: {:?}", e);
             vec![]
         }
     }

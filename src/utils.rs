@@ -15,6 +15,13 @@ macro_rules! get_state_value {
     }};
 }
 
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        ic_cdk::println!($($arg)*);
+    }};
+}
+
 thread_local! {
     static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));
 }
