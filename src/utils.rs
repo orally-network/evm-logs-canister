@@ -3,10 +3,17 @@ use ic_cdk::api::time;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
 
-use evm_logs_types::{Event, Filter};
+use evm_logs_types::{Event, Filter, ICRC16Value};
 use evm_rpc_canister_types::{
     BlockTag, EvmRpcCanister, GetBlockByNumberResult, MultiGetBlockByNumberResult, RpcServices,
 };
+
+#[macro_export]
+macro_rules! get_state_value {
+    ($field:ident) => {{
+        $crate::STATE.with(|state| state.borrow().$field.clone())
+    }};
+}
 
 thread_local! {
     static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));

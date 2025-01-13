@@ -1,0 +1,10 @@
+use candid::Principal;
+use candid::CandidType;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, CandidType, Serialize, Deserialize)]
+pub struct Config {
+    pub evm_rpc_canister: Principal,
+    pub proxy_canister: Principal,
+    pub rpc_wrapper: String,
+}

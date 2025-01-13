@@ -6,6 +6,8 @@ use candid::{Nat, Principal};
 use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationResult, SendNotificationError};
 use ic_cdk;
 use ic_cdk::api::call::call;
+use crate::STATE;
+use crate::get_state_value;
 
 // TODO rework return type
 pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
@@ -76,7 +78,7 @@ async fn distribute_event(event: Event) {
 
             // Send the notification to the subscriber via proxy canister
             let call_result: Result<(SendNotificationResult,), _>= call(
-                Principal::from_str("be2us-64aaa-aaaaa-qaabq-cai").unwrap(), // TODO: Replace with actual canister ID
+                get_state_value!(proxy_canister),
                 "send_notification",
                 (sub.subscriber_principal, notification.clone()),
             )

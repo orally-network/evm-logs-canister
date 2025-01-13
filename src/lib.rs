@@ -4,46 +4,49 @@ mod chain_service;
 mod log_filters;
 mod subscription_manager;
 mod utils;
+mod types;
 
 use candid::candid_method;
 use ic_cdk_macros::*;
 
-use candid::{Nat, Principal};
+use candid::Nat;
 use chain_service::{service::ChainService, ChainConfig};
 use ic_cdk_macros::query;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;
-
+use crate::types::state::State;
 use evm_logs_types::*;
 
 use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcServices};
 
 thread_local! {
     static CHAIN_SERVICES: RefCell<Vec<Arc<ChainService>>> = const { RefCell::new(Vec::new()) };
+    pub static STATE: RefCell<State> = RefCell::default();
 }
 
 #[init]
-async fn init() {
+async fn init(config: types::config::Config) {
     subscription_manager::init();
+    crate::types::state::init(config);
 
-    let monitoring_interval = Duration::from_secs(20);
+    let monitoring_interval = Duration::from_secs(20); // TODO mode to state/config
 
     let chain_configs = vec![
         ChainConfig {
             chain_name: ChainName::Ethereum,
             rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::PublicNode])),
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
             chain_name: ChainName::Base,
             rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
             chain_name: ChainName::Optimism,
             rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
             chain_name: ChainName::Polygon,
@@ -54,7 +57,7 @@ async fn init() {
                     headers: None,
                 }],
             },
-            evm_rpc_canister: Principal::from_text("bd3sg-teaaa-aaaaa-qaaba-cai").unwrap(),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
     ];
 
