@@ -10,7 +10,7 @@ pub mod events_publisher;
 pub mod queries;
 pub mod state;
 
-use state::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
+use crate::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER, NEXT_SUBSCRIPTION_ID};
 
 pub fn init() {
     log!("SubscriptionManager initialized");
@@ -25,7 +25,7 @@ pub async fn register_subscription(
     let is_subscription_exist = SUBSCRIBERS.with(|subs| {
         subs.borrow().get(&caller).and_then(|sub_ids| {
             sub_ids.iter().find_map(|sub_id| {
-                state::SUBSCRIPTIONS.with(|subs| {
+                SUBSCRIPTIONS.with(|subs| {
                     subs.borrow()
                         .get(sub_id)
                         .filter(|sub_info| sub_info.filter == filter)
@@ -51,7 +51,7 @@ pub async fn register_subscription(
         }
     };
 
-    let sub_id = state::NEXT_SUBSCRIPTION_ID.with(|id| {
+    let sub_id = NEXT_SUBSCRIPTION_ID.with(|id| {
         let mut id = id.borrow_mut();
         let current_id = id.clone();
         *id += Nat::from(1u32);

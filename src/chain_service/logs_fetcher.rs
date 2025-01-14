@@ -16,7 +16,7 @@ pub async fn fetch_logs(
         addresses: addresses.unwrap_or_default(),
         topics,
     };
-
+    // TODO figure out how many requests we need to fit the max response size(divide addresses array in smaller chunks) 
     let cycles = 10_000_000_000;
     let (result,) = evm_rpc
         .eth_get_logs(rpc_providers.clone(), None, get_logs_args, cycles)

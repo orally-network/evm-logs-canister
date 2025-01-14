@@ -1,5 +1,5 @@
 
-use super::state::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
+use crate::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::{
     utils::{current_timestamp, event_matches_filter},
     log, get_state_value

@@ -1,4 +1,4 @@
-use super::state::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
+use crate::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{Filter, SubscriptionInfo, ChainName};
