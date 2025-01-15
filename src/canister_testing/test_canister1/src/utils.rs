@@ -57,22 +57,6 @@ pub fn create_base_swaps_config() -> SubscriptionRegistration {
     }
 }
 
-pub fn create_base_swaps_config1() -> SubscriptionRegistration {
-    // address and topics to monitor
-    let address = "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC58".to_string();
-    let topics = Some(vec![vec![
-        "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string(),
-    ]]);
-
-    let filter = Filter { address, topics };
-
-    SubscriptionRegistration {
-        chain: "Base".to_string(),
-        filter,
-        memo: None,
-    }
-}
-
 pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
     // address and topics to monitor
     let address = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string();

@@ -32,15 +32,11 @@ pub async fn fetch_logs(
     let events_per_interval = get_state_value!(events_per_interval);  
     let chunk_size = calculate_request_chunk_size(events_per_interval.events_num, addresses.len() as u32); 
 
-    log!("CHUNK_SIZE: {:?}", chunk_size);
-    log!("ADDRESSES: {:?}", addresses);
-    
     let chunks_iter = addresses.chunks(chunk_size);
 
     let mut futures = vec![];
-    
+
     for (i, chunk) in chunks_iter.enumerate() {
-        log!("Chunk number {}", i);
         let chunk_vec = chunk.to_vec();
         let evm_rpc_clone = evm_rpc.clone();
         let rpc_providers_clone = rpc_providers.clone();
