@@ -1,5 +1,8 @@
 use super::service::ChainService;
-use crate::subscription_manager::events_publisher::publish_events;
+use crate::{
+    log,
+    subscription_manager::events_publisher::publish_events,
+};
 use candid::Nat;
 use evm_logs_types::{Event, Value};
 use evm_rpc_canister_types::LogEntry;
@@ -27,16 +30,16 @@ pub async fn process_events(service: &ChainService, logs: Vec<LogEntry>) -> Resu
     for opt_result in publish_result {
         match opt_result {
             Some(Ok(event_ids)) => {
-                ic_cdk::println!(
+                log!(
                     "Event published and sent to subscribers with Event IDs: {:?}",
                     event_ids
                 );
             }
             Some(Err(error)) => {
-                ic_cdk::println!("Failed to publish or send event: {:?}", error);
+                log!("Failed to publish or send event: {:?}", error);
             }
             None => {
-                ic_cdk::println!("Event was not published (no result available).");
+                log!("Event was not published (no result available).");
             }
         }
     }

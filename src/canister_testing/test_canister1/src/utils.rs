@@ -4,6 +4,7 @@ use candid::Principal;
 use evm_logs_types::Filter;
 use evm_logs_types::{EventNotification, RegisterSubscriptionResult, SubscriptionRegistration};
 use ic_cdk::api::call::call;
+use crate::log;
 
 // Helper to register a subscription and store the decoder
 pub async fn register_subscription_and_map_decoder(
@@ -11,7 +12,7 @@ pub async fn register_subscription_and_map_decoder(
     subscription: SubscriptionRegistration,
     decoder: fn(&EventNotification) -> Result<Vec<SolidityToken>, String>,
 ) {
-    ic_cdk::println!(
+    log!(
         "Registering subscription with filter: {:?}",
         subscription.filter
     );
@@ -22,7 +23,7 @@ pub async fn register_subscription_and_map_decoder(
     match result {
         Ok((response,)) => match response {
             RegisterSubscriptionResult::Ok(sub_id) => {
-                ic_cdk::println!(
+                log!(
                     "Subscription registered successfully with sub_id: {:?}",
                     sub_id
                 );
@@ -33,10 +34,10 @@ pub async fn register_subscription_and_map_decoder(
                 });
             }
             RegisterSubscriptionResult::Err(err) => {
-                ic_cdk::println!("Error registering subscription: {:?}", err);
+                log!("Error registering subscription: {:?}", err);
             }
         },
-        Err(e) => ic_cdk::println!("Error calling canister: {:?}", e),
+        Err(e) => log!("Error calling canister: {:?}", e),
     }
 }
 

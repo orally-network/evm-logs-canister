@@ -1,13 +1,16 @@
 
-use super::state::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
-use crate::utils::{current_timestamp, event_matches_filter};
+use crate::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
+use crate::{
+    utils::{current_timestamp, event_matches_filter},
+    log, get_state_value
+};
+
 use candid::Nat;
 use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationResult, SendNotificationError};
 use ic_cdk;
 use ic_cdk::api::call::call;
-use crate::get_state_value;
 
-// TODO rework return type
+// TODO rework return type ?
 pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     let mut results = Vec::new();
 
@@ -86,23 +89,23 @@ async fn distribute_event(event: Event) {
             match call_result {
                 Ok((send_result,)) => match send_result {
                     SendNotificationResult::Ok => {
-                        ic_cdk::println!("Notification sent successfully. ID: {}", notification_id);
+                        log!("Notification sent successfully. ID: {}", notification_id);
                     }
                     SendNotificationResult::Err(error) => {
                         // Handle application-level error
                         match error {
                             SendNotificationError::FailedToSend => {
-                                ic_cdk::println!("Failed to send notification.");
+                                log!("Failed to send notification.");
                             }
                             SendNotificationError::InvalidSubscriber => {
-                                ic_cdk::println!("Invalid subscriber principal provided.");
+                                log!("Invalid subscriber principal provided.");
                             }
                         }
                     }
                 },
                 Err(transport_error) => {
                     // Handle transport or call-level error
-                    ic_cdk::println!("Error calling send_notification: {}", transport_error);
+                    log!("Error calling send_notification: {}", transport_error);
                 }
             }
         }

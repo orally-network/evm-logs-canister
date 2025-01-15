@@ -4,9 +4,11 @@ use std::vec::Vec;
 use evm_logs_types::{EventNotification, SendNotificationResult, SendNotificationError};
 use ic_cdk_macros::{query, update, init};
 
+pub mod utils;
+ 
 #[init]
 async fn init() {
-    ic_cdk::println!("Proxy canister initialized");
+    log!("Proxy canister initialized");
 }
 
 #[update(name = "send_notification")]
@@ -15,7 +17,7 @@ async fn send_notification(
     subscriber: Principal,
     notification: EventNotification,
 ) -> SendNotificationResult {
-    ic_cdk::println!("Calling handle_notification");
+    log!("Calling handle_notification");
     
     // Send the notification to the subscriber
     let call_result: Result<(), String> = call(
@@ -31,7 +33,7 @@ async fn send_notification(
             SendNotificationResult::Ok
         }
         Err(err_msg) => {
-            ic_cdk::println!("Error sending notification: {}", err_msg);
+            log!("Error sending notification: {}", err_msg);
             SendNotificationResult::Err(SendNotificationError::FailedToSend)
         }
     }

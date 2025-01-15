@@ -20,9 +20,28 @@ use evm_logs_types::*;
 
 use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcServices};
 
+use crate::log_filters::filter_manager::FilterManager;
+use candid::Principal;
+use std::collections::HashMap;
+
+use evm_logs_types::{Event, SubscriptionInfo};
+
+
 thread_local! {
-    static CHAIN_SERVICES: RefCell<Vec<Arc<ChainService>>> = const { RefCell::new(Vec::new()) };
     pub static STATE: RefCell<State> = RefCell::default();
+
+    pub static CHAIN_SERVICES: RefCell<Vec<Arc<ChainService>>> = const { RefCell::new(Vec::new()) };
+    
+    pub static SUBSCRIPTIONS: RefCell<HashMap<Nat, SubscriptionInfo>> = RefCell::new(HashMap::new());
+    pub static SUBSCRIBERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
+    pub static EVENTS: RefCell<HashMap<Nat, Event>> = RefCell::new(HashMap::new());
+
+    pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
+    pub static NEXT_EVENT_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
+    pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
+
+    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::new());
+
 }
 
 #[init]
@@ -30,7 +49,7 @@ async fn init(config: types::config::Config) {
     subscription_manager::init();
     crate::types::state::init(config);
 
-    let monitoring_interval = Duration::from_secs(20); // TODO mode to state/config
+    let monitoring_interval = Duration::from_secs(get_state_value!(events_per_interval).interval as u64);
 
     let chain_configs = vec![
         ChainConfig {
@@ -71,7 +90,7 @@ async fn init(config: types::config::Config) {
         services_cell.extend(services);
     });
 
-    ic_cdk::println!("EVM logs monitoring is started");
+    log!("EVM logs monitoring is started");
 }
 
 fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc<ChainService> {
