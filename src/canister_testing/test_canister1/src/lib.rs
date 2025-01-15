@@ -20,10 +20,7 @@ use ic_cdk_macros::{init, query, update};
 
 use state::{DECODED_NOTIFICATIONS, DECODERS, NOTIFICATIONS};
 
-use utils::{
-    create_base_swaps_config, create_chainfusion_deposit_config, create_ethereum_sync_config,
-    create_primex_deposit_config, register_subscription_and_map_decoder,
-};
+use utils::*;
 
 #[derive(CandidType, Deserialize, Clone)]
 struct DecodedNotification {
@@ -42,11 +39,13 @@ async fn subscribe(canister_id: Principal) {
     log!("Starting subscription registration");
 
     let base_swaps_filter = create_base_swaps_config();
+    let base_swaps_filter1 = create_base_swaps_config1();
     let eth_sync_filter = create_ethereum_sync_config();
     let primex_deposit_filter = create_primex_deposit_config();
     let chainfusion_deposit_filter = create_chainfusion_deposit_config();
 
     register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
+    register_subscription_and_map_decoder(canister_id, base_swaps_filter1, swap_event_data_decoder).await;
     register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;
     register_subscription_and_map_decoder(canister_id, primex_deposit_filter, primex_deposit_decoder).await;
     register_subscription_and_map_decoder(canister_id, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;

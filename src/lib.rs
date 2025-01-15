@@ -49,7 +49,7 @@ async fn init(config: types::config::Config) {
     subscription_manager::init();
     crate::types::state::init(config);
 
-    let monitoring_interval = Duration::from_secs(20); // TODO mode to state/config
+    let monitoring_interval = Duration::from_secs(get_state_value!(events_per_interval).interval as u64);
 
     let chain_configs = vec![
         ChainConfig {

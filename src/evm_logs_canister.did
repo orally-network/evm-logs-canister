@@ -131,6 +131,11 @@ type SendNotificationResult = variant {
     Err : SendNotificationError
 };
 
+type EventsPerInterval =  record {
+    interval: nat32;
+    events_num: nat32;
+};
+
 service : {
   subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
   unsubscribe : (nat) -> (UnsubscribeResult);

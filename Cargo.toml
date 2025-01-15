@@ -27,6 +27,7 @@ evm-rpc-canister-types = { git = "https://github.com/malteish/ReTransICP.git", b
 evm_logs_types = {path = "evm_logs_types"}
 tokio = "1.40.0"
 num-traits = "0.2"
+futures = "0.3.31"
 
 [dev-dependencies]
 pocket-ic = "4.0.0"
