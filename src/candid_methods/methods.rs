@@ -6,7 +6,7 @@ use evm_logs_types::*;
 use crate::subscription_manager;
 use ic_cdk::caller;
 use crate::{STATE, log};
-
+use crate::types::balances::{self, Balances};
 use super::internal::*;
 
 // register subscription by specified filter (addresses and topics)
@@ -18,7 +18,7 @@ pub async fn subscribe(
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
     let caller = caller();
 
-    if let Err(err) = _top_up_balance(caller, Nat::from(received_cycles)) {
+    if let Err(err) = Balances::top_up(caller, Nat::from(received_cycles)) {
         log!("Failed to top up balance: {}", err);
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
     }

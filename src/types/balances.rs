@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::STATE;
+
 use candid::{CandidType, Nat, Principal};
 
 #[derive(Error, Debug)]
@@ -48,5 +50,70 @@ pub struct BalanceEntry {
 
 #[derive(CandidType, Deserialize, Serialize, Default, Clone, Debug)]
 pub struct Balances {
-    pub balances: HashMap<Principal, Nat>,
+    pub balances: HashMap<Principal, BalanceEntry>,
+}
+
+impl Balances {
+    pub fn top_up(caller: Principal, amount: Nat) -> Result<(), String> {
+        STATE.with(|state| {
+            let mut state = state.borrow_mut();
+            let balances = &mut state.user_balances.balances;
+            let entry = balances.entry(caller).or_insert_with(|| BalanceEntry {
+                amount: Nat::from(0u32),
+                nonces: vec![],
+            });
+
+            entry.amount += amount.clone();
+            Ok(())
+        })
+    }
+
+    pub fn contains(address: &Principal) -> bool {
+        STATE.with(|state| state.borrow().user_balances.balances.contains_key(address))
+    }
+
+    pub fn is_sufficient(address: &Principal, amount: &Nat) -> Result<bool, BalanceError> {
+        STATE.with(|state| {
+            let state = state.borrow();
+            let balance_entry = state
+                .user_balances
+                .balances
+                .get(address)
+                .ok_or(BalanceError::BalanceDoesNotExist)?;
+
+            Ok(balance_entry.amount >= *amount)
+        })
+    }
+
+    pub fn reduce(address: &Principal, amount: &Nat) -> Result<(), BalanceError> {
+        STATE.with(|state| {
+            let mut state = state.borrow_mut();
+            let balance_entry = state
+                .user_balances
+                .balances
+                .get_mut(address)
+                .ok_or(BalanceError::BalanceDoesNotExist)?;
+
+            if balance_entry.amount < *amount {
+                return Err(BalanceError::InsufficientBalance);
+            }
+
+            balance_entry.amount -= amount.clone();
+
+            Ok(())
+        })
+    }
+
+    pub fn get_balance(address: &Principal) -> Result<Nat, BalanceError> {
+        STATE.with(|state| {
+            let state = state.borrow();
+            let balance_entry = state
+                .user_balances
+                .balances
+                .get(address)
+                .ok_or(BalanceError::BalanceDoesNotExist)?;
+    
+            Ok(balance_entry.amount.clone())
+        })
+    }        
 }

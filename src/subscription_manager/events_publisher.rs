@@ -10,7 +10,7 @@ use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationRes
 use ic_cdk;
 use ic_cdk::api::call::call;
 
-// TODO rework return type ?
+// TODO rework return type
 pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     let mut results = Vec::new();
 
@@ -54,6 +54,8 @@ async fn distribute_event(event: Event) {
         let filter = &sub.filter;
         // Check if the event matches the subscriber's filter
         if event_matches_filter(&event, filter) {
+            // TODO check subscriber balance, charge cycles, and then send notification
+            
             // Generate a unique notification ID
             let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
                 let mut id = id.borrow_mut();

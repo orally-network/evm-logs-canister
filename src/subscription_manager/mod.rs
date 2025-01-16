@@ -8,7 +8,6 @@ use crate::log;
 
 pub mod events_publisher;
 pub mod queries;
-pub mod state;
 
 use crate::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER, NEXT_SUBSCRIPTION_ID};
 
