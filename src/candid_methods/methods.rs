@@ -3,11 +3,12 @@ use candid::candid_method;
 use ic_cdk_macros::*;
 use candid::Nat;
 use evm_logs_types::*;
+use metrics::cycles_count;
+
 use crate::subscription_manager;
 use ic_cdk::caller;
-use crate::{STATE, log};
-use crate::types::balances::{self, Balances};
-use super::internal::*;
+use crate::log;
+use crate::types::balances::Balances;
 
 // register subscription by specified filter (addresses and topics)
 #[update(name = "subscribe")]
@@ -51,6 +52,7 @@ pub fn get_active_filters() -> Vec<evm_logs_types::Filter> {
 // get all evm-logs-canister subscriptions info
 #[query(name = "get_subscriptions")]
 #[candid_method(query)]
+#[cycles_count]
 pub fn get_subscriptions(
     namespace: Option<String>,
     from_id: Option<Nat>,
@@ -63,24 +65,16 @@ pub fn get_subscriptions(
 #[candid_method(update)]
 pub fn top_up_balance(amount: Nat) -> Result<(), String> {
     let caller = caller();
-    _top_up_balance(caller, amount)
+    Balances::top_up(caller, amount)
 }
 
 #[query(name = "get_balance")]
 #[candid_method(query)]
+#[cycles_count]
 pub fn get_balance() -> Nat {
     let caller = caller();
 
-    STATE.with(|state| {
-        let state = state.borrow();
-
-        state
-            .user_balances
-            .balances
-            .get(&caller)
-            .cloned()
-            .unwrap_or_else(|| Nat::from(0u32))
-    })
+    Balances::get_balance(&caller).unwrap() // TODO
 }
 
 // only testing purpose

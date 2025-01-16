@@ -1,4 +1,5 @@
 
+use crate::types::balances::Balances;
 use crate::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::{
     utils::{current_timestamp, event_matches_filter},
@@ -48,14 +49,20 @@ async fn distribute_event(event: Event) {
             .cloned()
             .collect::<Vec<_>>()
     });
+    let cycles_for_event_send = Nat::from(10_000u32); // TODO
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
         let filter = &sub.filter;
         // Check if the event matches the subscriber's filter
         if event_matches_filter(&event, filter) {
-            // TODO check subscriber balance, charge cycles, and then send notification
             
+            let subscriber_principal = sub.subscriber_principal;
+            
+            if Balances::is_sufficient(&subscriber_principal, &cycles_for_event_send).unwrap() {
+                Balances::reduce(&subscriber_principal, &cycles_for_event_send).unwrap();
+            }
+
             // Generate a unique notification ID
             let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
                 let mut id = id.borrow_mut();

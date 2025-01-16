@@ -104,13 +104,13 @@ impl Balances {
         })
     }
 
-    pub fn get_balance(address: &Principal) -> Result<Nat, BalanceError> {
+    pub fn get_balance(principal: &Principal) -> Result<Nat, BalanceError> {
         STATE.with(|state| {
             let state = state.borrow();
             let balance_entry = state
                 .user_balances
                 .balances
-                .get(address)
+                .get(principal)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
     
             Ok(balance_entry.amount.clone())

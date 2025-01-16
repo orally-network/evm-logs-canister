@@ -1,5 +1,6 @@
 use candid::Nat;
 use ic_cdk::api::time;
+use metrics::cycles_count;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
 
@@ -29,7 +30,7 @@ thread_local! {
 pub fn current_timestamp() -> u64 {
     time()
 }
-
+#[cycles_count]
 pub async fn get_latest_block_number(
     evm_rpc: &EvmRpcCanister,
     rpc_providers: RpcServices,

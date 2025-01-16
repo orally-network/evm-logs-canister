@@ -26,7 +26,6 @@ use std::collections::HashMap;
 
 use evm_logs_types::{Event, SubscriptionInfo};
 
-
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
 
