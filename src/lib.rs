@@ -5,7 +5,7 @@ mod log_filters;
 mod subscription_manager;
 mod utils;
 mod types;
-mod methods;
+mod candid_methods;
 
 use ic_cdk_macros::*;
 

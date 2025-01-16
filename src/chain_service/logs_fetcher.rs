@@ -4,7 +4,7 @@ use evm_rpc_canister_types::{
 };
 use futures::future::join_all;
 
-use crate::{get_state_value, log};
+use crate::get_state_value;
 
 use super::utils::*;
 
@@ -36,7 +36,7 @@ pub async fn fetch_logs(
 
     let mut futures = vec![];
 
-    for (i, chunk) in chunks_iter.enumerate() {
+    for (_i, chunk) in chunks_iter.enumerate() {
         let chunk_vec = chunk.to_vec();
         let evm_rpc_clone = evm_rpc.clone();
         let rpc_providers_clone = rpc_providers.clone();

@@ -186,6 +186,7 @@ pub enum RegisterSubscriptionError {
     GenericError(GenericError),
     SameFilterExists,
     InvalidChainName,
+    InsufficientFunds,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

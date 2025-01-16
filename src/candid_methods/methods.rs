@@ -5,7 +5,9 @@ use candid::Nat;
 use evm_logs_types::*;
 use crate::subscription_manager;
 use ic_cdk::caller;
-use crate::STATE;
+use crate::{STATE, log};
+
+use super::internal::*;
 
 // register subscription by specified filter (addresses and topics)
 #[update(name = "subscribe")]
@@ -14,6 +16,12 @@ pub async fn subscribe(
     registration: SubscriptionRegistration,
 ) -> RegisterSubscriptionResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
+    let caller = caller();
+
+    if let Err(err) = _top_up_balance(caller, Nat::from(received_cycles)) {
+        log!("Failed to top up balance: {}", err);
+        return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
+    }
     subscription_manager::register_subscription(registration).await
 }
 
@@ -55,16 +63,7 @@ pub fn get_subscriptions(
 #[candid_method(update)]
 pub fn top_up_balance(amount: Nat) -> Result<(), String> {
     let caller = caller();
-
-    STATE.with(|state| {
-        let mut state = state.borrow_mut();
-        
-        let balances = &mut state.user_balances.balances;
-        let entry = balances.entry(caller).or_insert_with(|| Nat::from(0u32));
-        *entry += amount.clone();
-
-        Ok(())
-    })
+    _top_up_balance(caller, amount)
 }
 
 #[query(name = "get_balance")]
