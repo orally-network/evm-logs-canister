@@ -17,13 +17,7 @@ use serde::Deserialize;
 struct EvmLogsInitArgs {
     evm_rpc_canister: Principal,
     proxy_canister: Principal,
-    rpc_wrapper: String,
-    pub events_per_interval: EventsPerInterval,
-}
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct EventsPerInterval {
-    pub interval: u32, // interval of events monitoring process 
-    pub events_num: u32, // number of the events per this interval for one address
+    pub estimate_events_num: u32,
 }
 
 #[tokio::test]
@@ -81,11 +75,7 @@ async fn test_event_publishing_and_notification_delivery() {
         let init_args_value = EvmLogsInitArgs {
             evm_rpc_canister: Principal::from_text("aaaaa-aa").expect("EVM_RPC_CANISTER incorrect principal"),
             proxy_canister: proxy_canister_id,
-            rpc_wrapper: "test".to_string(),
-            events_per_interval: EventsPerInterval {
-                interval: 1, // test
-                events_num: 1, // test
-            },
+            estimate_events_num: 5, // test
         };
         
         let init_args = candid::encode_args((init_args_value,))

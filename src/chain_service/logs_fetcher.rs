@@ -48,8 +48,8 @@ pub async fn fetch_logs(
         .await;
     }
 
-    let events_per_interval = get_state_value!(events_per_interval);  
-    let chunk_size = calculate_request_chunk_size(events_per_interval.events_num, addresses.len() as u32); 
+    let events_per_interval = get_state_value!(estimate_events_num);  
+    let chunk_size = calculate_request_chunk_size(events_per_interval, addresses.len() as u32); 
 
     let chunks_iter = addresses.chunks(chunk_size);
 
@@ -97,7 +97,6 @@ pub async fn fetch_logs(
 
     charge_subscribers(addresses.len(), cycles_used);
     
-
     Ok(merged_logs)
 
 }

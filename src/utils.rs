@@ -3,6 +3,8 @@ use ic_cdk::api::time;
 use metrics::cycles_count;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
+use crate::ChainName;
+use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi};
 
 use evm_logs_types::{Event, Filter};
 use evm_rpc_canister_types::{
@@ -62,6 +64,64 @@ pub async fn get_latest_block_number(
     }
 }
 
+pub fn get_rpc_providers_for(chain: ChainName) -> RpcServices {
+    let rpc_providers;
+    match chain {
+        ChainName::Ethereum => {
+            rpc_providers = RpcServices::EthMainnet(Some(
+                vec![
+                    EthMainnetService::PublicNode,
+                    EthMainnetService::Alchemy,
+                    EthMainnetService::BlockPi,
+                    EthMainnetService::Ankr,
+                    EthMainnetService::Cloudflare
+                ]
+            ));
+        }
+        ChainName::Base => {
+            rpc_providers = RpcServices::BaseMainnet(Some(
+                vec![
+                    L2MainnetService::Alchemy,
+                    L2MainnetService::BlockPi,
+                    L2MainnetService::PublicNode,
+                    L2MainnetService::Ankr,
+                ]
+            ));
+        }
+        ChainName::Optimism => {
+            rpc_providers = RpcServices::OptimismMainnet(Some(
+                vec![
+                    L2MainnetService::Alchemy,
+                    L2MainnetService::BlockPi,
+                    L2MainnetService::PublicNode,
+                    L2MainnetService::Ankr,
+                ]
+            ));
+        }
+        ChainName::Polygon => {
+            rpc_providers = RpcServices::Custom {
+                chainId: 137,
+                services: vec![
+                    RpcApi {
+                        url: "https://polygon-rpc.com".to_string(),
+                        headers: None,
+                    },
+                    // RpcApi {
+                    //     url: "https://rpc.ankr.com/polygon".to_string(),
+                    //     headers: None,
+                    // },
+                    // RpcApi {
+                    //     url: "https://polygon.drpc.org".to_string(),
+                    //     headers: None,
+                    // },
+                ],
+            };
+        }
+    }
+    rpc_providers
+}
+
+// TODO move to another module
 // Function to check if the event matches the subscriber's filter
 pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool {
     let event_address = event.address.trim().to_lowercase();

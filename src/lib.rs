@@ -12,13 +12,12 @@ use ic_cdk_macros::*;
 use candid::Nat;
 use chain_service::{service::ChainService, ChainConfig};
 use ic_cdk_macros::query;
+use utils::get_rpc_providers_for;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;
 use crate::types::state::State;
 use evm_logs_types::*;
-
-use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcServices};
 
 use crate::log_filters::filter_manager::FilterManager;
 use candid::Principal;
@@ -48,33 +47,27 @@ async fn init(config: types::config::Config) {
     subscription_manager::init();
     crate::types::state::init(config);
 
-    let monitoring_interval = Duration::from_secs(get_state_value!(events_per_interval).interval as u64);
+    let monitoring_interval = Duration::from_secs(15);
 
     let chain_configs = vec![
         ChainConfig {
             chain_name: ChainName::Ethereum,
-            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::PublicNode])),
+            rpc_providers: get_rpc_providers_for(ChainName::Ethereum),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
             chain_name: ChainName::Base,
-            rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
+            rpc_providers: get_rpc_providers_for(ChainName::Base),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
             chain_name: ChainName::Optimism,
-            rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
+            rpc_providers: get_rpc_providers_for(ChainName::Optimism),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
             chain_name: ChainName::Polygon,
-            rpc_providers: RpcServices::Custom {
-                chainId: 137,
-                services: vec![RpcApi {
-                    url: "https://polygon-rpc.com".to_string(),
-                    headers: None,
-                }],
-            },
+            rpc_providers: get_rpc_providers_for(ChainName::Polygon),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
     ];

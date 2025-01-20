@@ -26,11 +26,7 @@ local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
 		"(record { \
 			evm_rpc_canister=principal\"${EVM_RPC_CANISTER}\"; \
 			proxy_canister=principal\"${PROXY_CANISTER}\"; \
-			rpc_wrapper=\"https://rpc.orally.network/?rpc=\";  \
-			events_per_interval = record { \
-				interval = 20:nat32; \
-				events_num = 5:nat32; \
-			}; \
+			estimate_events_num = 5:nat32; \
 		})" evm_logs_canister \
 
 local_upgrade:
