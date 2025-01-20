@@ -72,20 +72,20 @@ impl Balances {
         STATE.with(|state| state.borrow().user_balances.balances.contains_key(address))
     }
 
-    pub fn is_sufficient(address: &Principal, amount: &Nat) -> Result<bool, BalanceError> {
+    pub fn is_sufficient(address: Principal, amount: Nat) -> Result<bool, BalanceError> {
         STATE.with(|state| {
             let state = state.borrow();
             let balance_entry = state
                 .user_balances
                 .balances
-                .get(address)
+                .get(&address)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
 
-            Ok(balance_entry.amount >= *amount)
+            Ok(balance_entry.amount >= amount)
         })
     }
 
-    pub fn reduce(address: &Principal, amount: &Nat) -> Result<(), BalanceError> {
+    pub fn reduce(address: &Principal, amount: Nat) -> Result<(), BalanceError> {
         STATE.with(|state| {
             let mut state = state.borrow_mut();
             let balance_entry = state
@@ -94,7 +94,7 @@ impl Balances {
                 .get_mut(address)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
 
-            if balance_entry.amount < *amount {
+            if balance_entry.amount < amount {
                 return Err(BalanceError::InsufficientBalance);
             }
 

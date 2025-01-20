@@ -1,13 +1,13 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
-use candid::CandidType;
-use candid::Principal;
+use candid::{Principal, CandidType, Nat};
 use serde::{Deserialize, Serialize};
 use super::{
     config::{Config, EventsPerInterval},
     balances::Balances,
 };
-
+use evm_logs_types::SubscriptionInfo;
 use crate::STATE;
 
 #[derive(Clone, CandidType, Serialize, Deserialize, Debug)]
@@ -16,6 +16,7 @@ pub struct State {
     pub proxy_canister: Principal,
     pub rpc_wrapper: String,
     pub events_per_interval: EventsPerInterval,
+    pub subscriptions: HashMap<Nat, SubscriptionInfo>,
     pub user_balances: Balances,
     pub test: u32,
 }
@@ -39,6 +40,7 @@ impl Default for State {
             proxy_canister: Principal::from_str("aaaaa-aa").expect("Invalid principal"),
             rpc_wrapper: "".to_string(),
             events_per_interval: EventsPerInterval{interval: 20, events_num: 5},
+            subscriptions: HashMap::new(),
             user_balances: Balances::default(),
             test: 0,
         }

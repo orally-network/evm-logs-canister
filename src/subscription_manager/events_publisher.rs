@@ -59,8 +59,8 @@ async fn distribute_event(event: Event) {
             
             let subscriber_principal = sub.subscriber_principal;
             
-            if Balances::is_sufficient(&subscriber_principal, &cycles_for_event_send).unwrap() {
-                Balances::reduce(&subscriber_principal, &cycles_for_event_send).unwrap();
+            if Balances::is_sufficient(subscriber_principal, cycles_for_event_send.clone()).unwrap() {
+                Balances::reduce(&subscriber_principal, cycles_for_event_send.clone()).unwrap();
             }
 
             // Generate a unique notification ID
