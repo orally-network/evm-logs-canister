@@ -165,6 +165,18 @@ impl FilterManager {
             }
         }
 
+
+        // if active topics list has empty vectors at the end(most likely),
+        // then remove these vectors to accept any topics at those positions
+        // AND any number of them
+        while let Some(last) = combined_topics.last() {
+            if last.is_empty() {
+                combined_topics.pop();
+            } else {
+                break;
+            }
+        }
+
         // If all positions are empty, return None
         let all_empty = combined_topics.iter().all(|topics| topics.is_empty());
         if all_empty {
@@ -525,8 +537,6 @@ mod tests {
         // Third position: ["topicC"]
         assert_eq!(topics[2], vec!["topicC".to_string()]);
 
-        // Fourth position: accept any was allowed by filter1
-        assert_eq!(topics[3], Vec::<String>::new());
     }
 
     #[test]
