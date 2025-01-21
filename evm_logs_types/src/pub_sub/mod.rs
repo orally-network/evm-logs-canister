@@ -181,6 +181,17 @@ pub enum RegisterSubscriptionError {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum TopUpBalanceResult {
+    Ok,
+    Err(TopUpBalanceError),
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum TopUpBalanceError {
+    GenericError
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum PublishError {
     Unauthorized,
     ImproperId(String),

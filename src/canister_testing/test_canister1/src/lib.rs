@@ -6,7 +6,7 @@ pub mod macros;
 
 use crate::read_contract::SolidityToken;
 
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize, Nat, Principal};
 
 use decoders::{
     chainfusion_deposit_decoder, ethereum_sync_decoder, primex_deposit_decoder,
@@ -144,6 +144,20 @@ async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::Subscr
         }
     }
 }
+// get balance for a given principal
+#[query]
+pub async fn get_balance(canister_id: Principal) -> Nat {
+    let caller_principal = ic_cdk::caller();
+    log!("Getting balance for the {:?}", caller_principal);
+    match call(canister_id, "get_balance", (caller_principal,)).await {
+        Ok((balance,)) => balance,
+        Err(err) => {
+            log!("Failed to get balance: {:?}", err);
+            Nat::from(0)
+        }
+    }
+}
+
 
 #[query]
 fn get_candid_pointer() -> String {
