@@ -54,7 +54,7 @@ pub fn get_active_filters() -> Vec<evm_logs_types::Filter> {
 #[candid_method(query)]
 #[cycles_count]
 pub fn get_subscriptions(
-    namespace: Option<String>,
+    namespace: Option<u32>,
     from_id: Option<Nat>,
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {

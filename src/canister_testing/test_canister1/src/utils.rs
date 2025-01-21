@@ -51,7 +51,7 @@ pub fn create_base_swaps_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        chain: "Base".to_string(),
+        chain_id: 8453,
         filter,
         memo: None,
     }
@@ -68,7 +68,7 @@ pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        chain: "Ethereum".to_string(),
+        chain_id: 1,
         filter,
         memo: None,
     }
@@ -85,7 +85,7 @@ pub fn create_primex_deposit_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        chain: "Polygon".to_string(),
+        chain_id: 137,
         filter,
         memo: None,
     }
@@ -100,7 +100,7 @@ pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
     let filter = Filter { address, topics };
 
     SubscriptionRegistration {
-        chain: "Ethereum".to_string(),
+        chain_id: 1,
         filter,
         memo: None,
     }

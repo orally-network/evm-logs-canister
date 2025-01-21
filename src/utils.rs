@@ -3,8 +3,7 @@ use ic_cdk::api::time;
 use metrics::cycles_count;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
-use crate::ChainName;
-use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcService, RpcConfig, ConsensusStrategy};
+use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcConfig, ConsensusStrategy};
 
 use evm_logs_types::{Event, Filter};
 use evm_rpc_canister_types::{
@@ -72,31 +71,31 @@ pub async fn get_latest_block_number(
     }
 }
 
-pub fn get_rpc_providers_for(chain: ChainName) -> RpcServices {
+pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
     let rpc_providers;
     match chain {
-        ChainName::Ethereum => {
+        1 => {
             rpc_providers = RpcServices::EthMainnet(Some(
                 vec![
                     EthMainnetService::PublicNode,
                 ]
             ));
         }
-        ChainName::Base => {
+        8453 => {
             rpc_providers = RpcServices::BaseMainnet(Some(
                 vec![
                     L2MainnetService::PublicNode,
                 ]
             ));
         }
-        ChainName::Optimism => {
+        10 => {
             rpc_providers = RpcServices::OptimismMainnet(Some(
                 vec![
                     L2MainnetService::PublicNode,
                 ]
             ));
         }
-        ChainName::Polygon => {
+        137 => {
             rpc_providers = RpcServices::Custom {
                 chainId: 137,
                 services: vec![
@@ -107,6 +106,7 @@ pub fn get_rpc_providers_for(chain: ChainName) -> RpcServices {
                 ],
             };
         }
+        _ => unreachable!(),
     }
     rpc_providers
 }
@@ -167,7 +167,7 @@ mod tests {
             id: Nat::from(1u8),
             prev_id: None,
             timestamp: 0,
-            namespace: "namespace".to_string(),
+            chain_id: 1,
             data: Value::Text("test".to_string()),
             headers: None,
             address: address.to_string(),

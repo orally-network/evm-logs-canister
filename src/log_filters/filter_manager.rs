@@ -1,7 +1,6 @@
 use candid::Nat;
 use evm_logs_types::Filter;
 use std::collections::HashMap;
-use evm_logs_types::ChainName;
 
 const MAX_TOPICS: usize = 4;
 
@@ -27,8 +26,8 @@ impl PerChainData {
 }
 
 pub struct FilterManager {
-    // For each chain, we hold a separate set of data.
-    chain_data: HashMap<ChainName, PerChainData>,
+    // For each chain id, we hold a separate set of data.
+    chain_data: HashMap<u32, PerChainData>,
 }
 
 impl FilterManager {
@@ -38,7 +37,7 @@ impl FilterManager {
         }
     }
 
-    fn get_chain_data_mut(&mut self, chain: &ChainName) -> &mut PerChainData {
+    fn get_chain_data_mut(&mut self, chain: &u32) -> &mut PerChainData {
         // If data for this chain does not exist, initialize it.
         if !self.chain_data.contains_key(chain) {
             self.chain_data.insert(chain.clone(), PerChainData::new());
@@ -46,13 +45,13 @@ impl FilterManager {
         self.chain_data.get_mut(chain).unwrap()
     }
 
-    fn get_chain_data(&self, chain: &ChainName) -> Option<&PerChainData> {
+    fn get_chain_data(&self, chain: &u32) -> Option<&PerChainData> {
         self.chain_data.get(chain)
     }
 
     /// Adds a new filter (subscription) to the manager for a specific chain.
-    pub fn add_filter(&mut self, chain: ChainName, filter: &Filter) {
-        let chain_data = self.get_chain_data_mut(&chain);
+    pub fn add_filter(&mut self, chain_id: u32, filter: &Filter) {
+        let chain_data = self.get_chain_data_mut(&chain_id);
 
         chain_data.total_subscriptions += Nat::from(1u32);
 
@@ -89,7 +88,7 @@ impl FilterManager {
     }
 
     /// Removes a filter (subscription) from the manager for a specific chain.
-    pub fn remove_filter(&mut self, chain: ChainName, filter: &Filter) {
+    pub fn remove_filter(&mut self, chain: u32, filter: &Filter) {
         let data = self.get_chain_data_mut(&chain);
         let chain_data = data;
         
@@ -143,7 +142,7 @@ impl FilterManager {
     }
 
     /// Computes a combined list of topics for a given chain.
-    pub fn get_combined_topics(&self, chain: ChainName) -> Option<Vec<TopicsPosition>> {
+    pub fn get_combined_topics(&self, chain: u32) -> Option<Vec<TopicsPosition>> {
         let chain_data = self.get_chain_data(&chain)?;
         let mut combined_topics = Vec::with_capacity(MAX_TOPICS);
 
@@ -189,7 +188,7 @@ impl FilterManager {
     /// Returns a tuple of all active addresses and the combined topics for a given chain, if any.
     pub fn get_active_addresses_and_topics(
         &self,
-        chain: ChainName,
+        chain: u32,
     ) -> (Vec<String>, Option<Vec<TopicsPosition>>) {
         let chain_data = self.get_chain_data(&chain);
 
@@ -209,7 +208,7 @@ impl FilterManager {
 mod tests {
     use super::*;
     use evm_logs_types::Filter;
-
+    const ETHEREUM_CHAIN_ID: u32 = 1;
     /// Helper function to create a Filter with a single address.
     fn make_filter(address: &str, topics: Option<Vec<Vec<&str>>>) -> Filter {
         Filter {
@@ -232,10 +231,10 @@ mod tests {
         );
 
         // Add filter to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter);
 
         // Retrieve the data for Ethereum chain
-        let chain_data = manager.chain_data.get(&ChainName::Ethereum).unwrap();
+        let chain_data = manager.chain_data.get(&ETHEREUM_CHAIN_ID).unwrap();
 
         // Check total subscription count.
         assert_eq!(chain_data.total_subscriptions, Nat::from(1u32));
@@ -275,14 +274,14 @@ mod tests {
         );
 
         // Add the filter to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter);
-        assert_eq!(manager.chain_data.get(&ChainName::Ethereum).unwrap().total_subscriptions, Nat::from(1u32));
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter);
+        assert_eq!(manager.chain_data.get(&ETHEREUM_CHAIN_ID).unwrap().total_subscriptions, Nat::from(1u32));
 
         // Remove the same filter
-        manager.remove_filter(ChainName::Ethereum, &filter);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter);
 
         // After removal, verify that chain_data for Ethereum exists but is empty
-        let chain_data_after_removal = manager.chain_data.get(&ChainName::Ethereum).unwrap();
+        let chain_data_after_removal = manager.chain_data.get(&ETHEREUM_CHAIN_ID).unwrap();
         
         assert_eq!(chain_data_after_removal.total_subscriptions, Nat::from(0u32));
         
@@ -320,14 +319,14 @@ mod tests {
         let filter3 = make_filter("address3", None); // No topics => all accept any
 
         // Add filters to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter1);
-        manager.add_filter(ChainName::Ethereum, &filter2);
-        manager.add_filter(ChainName::Ethereum, &filter3);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter1);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter2);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter3);
 
-        assert_eq!(manager.chain_data.get(&ChainName::Ethereum).unwrap().total_subscriptions, Nat::from(3u32));
+        assert_eq!(manager.chain_data.get(&ETHEREUM_CHAIN_ID).unwrap().total_subscriptions, Nat::from(3u32));
 
         // Check addresses
-        let chain_data = manager.chain_data.get(&ChainName::Ethereum).unwrap();
+        let chain_data = manager.chain_data.get(&ETHEREUM_CHAIN_ID).unwrap();
         assert_eq!(chain_data.addresses.get("address1"), Some(&Nat::from(1u32)));
         assert_eq!(chain_data.addresses.get("address2"), Some(&Nat::from(1u32)));
         assert_eq!(chain_data.addresses.get("address3"), Some(&Nat::from(1u32)));
@@ -391,16 +390,16 @@ mod tests {
         let filter3 = make_filter("address3", None); // No topics => all accept any
 
         // Add filters to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter1);
-        manager.add_filter(ChainName::Ethereum, &filter2);
-        manager.add_filter(ChainName::Ethereum, &filter3);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter1);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter2);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter3);
 
         // Now remove filter2 and filter3
-        manager.remove_filter(ChainName::Ethereum, &filter2);
-        manager.remove_filter(ChainName::Ethereum, &filter3);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter2);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter3);
 
         // Only filter1 should remain
-        let chain_data = manager.chain_data.get(&ChainName::Ethereum).unwrap();
+        let chain_data = manager.chain_data.get(&ETHEREUM_CHAIN_ID).unwrap();
         assert_eq!(chain_data.total_subscriptions, Nat::from(1u32));
 
         // Addresses: address1 remains, address2 and address3 should be removed
@@ -452,10 +451,10 @@ mod tests {
         let mut manager = FilterManager::new();
 
         let filter_no_topics = make_filter("address1", None);
-        manager.add_filter(ChainName::Ethereum, &filter_no_topics);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter_no_topics);
 
         // get_combined_topics should return None because all positions are accept any
-        assert!(manager.get_combined_topics(ChainName::Ethereum).is_none());
+        assert!(manager.get_combined_topics(ETHEREUM_CHAIN_ID).is_none());
 
         let filter_with_topics = make_filter(
             "address2",
@@ -466,21 +465,21 @@ mod tests {
                 vec!["topic4"],
             ]),
         );
-        manager.add_filter(ChainName::Ethereum, &filter_with_topics);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter_with_topics);
 
         // Now part of it accepts any and part has specific topics.
         // According to logic, if any position accept any, we cannot produce a deterministic set for that position.
         // We should get None.
-        let combined = manager.get_combined_topics(ChainName::Ethereum);
+        let combined = manager.get_combined_topics(ETHEREUM_CHAIN_ID);
         // First filter sets everything to accept any, second tries to set specific topics, but we still have accept any from the first.
         assert!(combined.is_none());
 
         // Remove the no-topic filter to remove accept any
-        manager.remove_filter(ChainName::Ethereum, &filter_no_topics);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter_no_topics);
 
         // Now only the filter with specific topics remains.
         // All positions have specific topics and no accept any.
-        let combined = manager.get_combined_topics(ChainName::Ethereum).unwrap();
+        let combined = manager.get_combined_topics(ETHEREUM_CHAIN_ID).unwrap();
         assert_eq!(combined.len(), MAX_TOPICS);
         assert_eq!(combined[0], vec!["topic1".to_string()]);
         assert_eq!(combined[1], vec!["topic2".to_string()]);
@@ -498,10 +497,10 @@ mod tests {
         let filter2 = make_filter("address2", None); // Accept any for all
 
         // Add filters to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter1);
-        manager.add_filter(ChainName::Ethereum, &filter2);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter1);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter2);
 
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
 
         // Check addresses
         assert!(addresses.contains(&"address1".to_string()));
@@ -511,8 +510,8 @@ mod tests {
         assert!(topics.is_none());
 
         // Remove the second filter so that only specific topics remain
-        manager.remove_filter(ChainName::Ethereum, &filter2);
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter2);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
 
         assert_eq!(addresses, vec!["address1".to_string()]);
         let topics = topics.unwrap();
@@ -570,12 +569,12 @@ mod tests {
         let filter_none = make_filter("address3", None);
 
         // Add all filters to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter_full_topics);
-        manager.add_filter(ChainName::Ethereum, &filter_partial);
-        manager.add_filter(ChainName::Ethereum, &filter_none);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter_full_topics);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter_partial);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter_none);
 
         // Check active addresses
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
         assert!(addresses.contains(&"address1".to_string()));
         assert!(addresses.contains(&"address2".to_string()));
         assert!(addresses.contains(&"address3".to_string()));
@@ -585,10 +584,10 @@ mod tests {
         assert!(topics.is_none());
 
         // Remove the no-topics filter to remove the universal accept any
-        manager.remove_filter(ChainName::Ethereum, &filter_none);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter_none);
 
         // Now we have filters with partial and full topics only
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
         assert!(addresses.contains(&"address1".to_string()));
         assert!(addresses.contains(&"address2".to_string()));
         assert!(!addresses.contains(&"address3".to_string()));
@@ -596,9 +595,9 @@ mod tests {
         assert!(topics.is_some());
 
         // Remove the partial filter as well, leaving only the full topic filter
-        manager.remove_filter(ChainName::Ethereum, &filter_partial);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter_partial);
 
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
         assert_eq!(addresses, vec!["address1".to_string()]);
         let topics = topics.unwrap();
         assert_eq!(topics.len(), MAX_TOPICS);
@@ -662,14 +661,14 @@ mod tests {
         );
 
         // Add all filters to the Ethereum chain
-        manager.add_filter(ChainName::Ethereum, &filter1);
-        manager.add_filter(ChainName::Ethereum, &filter2);
-        manager.add_filter(ChainName::Ethereum, &filter3);
-        manager.add_filter(ChainName::Ethereum, &filter4);
-        manager.add_filter(ChainName::Ethereum, &filter5);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter1);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter2);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter3);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter4);
+        manager.add_filter(ETHEREUM_CHAIN_ID, &filter5);
 
         // Check that all addresses are present
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
         for addr in &[
             "address1", "address2", "address3", "address4", "address5",
         ] {
@@ -681,22 +680,22 @@ mod tests {
         assert!(topics.is_none());
 
         // Remove the no-topics filter (address3) to reduce accept any sources
-        manager.remove_filter(ChainName::Ethereum, &filter3);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter3);
 
         // Get active addresses and topics again
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
         // Check that address3 is removed
         assert!(!addresses.contains(&"address3".to_string()));
 
         assert!(topics.is_some());
 
         // Try removing all filters with accept any, leaving only the full topic filter (filter2)
-        manager.remove_filter(ChainName::Ethereum, &filter1);
-        manager.remove_filter(ChainName::Ethereum, &filter4);
-        manager.remove_filter(ChainName::Ethereum, &filter5);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter1);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter4);
+        manager.remove_filter(ETHEREUM_CHAIN_ID, &filter5);
 
         // Only filter2 remains, which has a full set of topics and no accept any
-        let (addresses, topics) = manager.get_active_addresses_and_topics(ChainName::Ethereum);
+        let (addresses, topics) = manager.get_active_addresses_and_topics(ETHEREUM_CHAIN_ID);
         // Only address2 should remain
         assert_eq!(addresses, vec!["address2".to_string()]);
 

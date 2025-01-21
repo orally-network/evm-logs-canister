@@ -6,13 +6,14 @@ mod subscription_manager;
 mod utils;
 mod types;
 mod candid_methods;
+mod constants;
 
 use ic_cdk_macros::*;
 
 use candid::Nat;
 use chain_service::{service::ChainService, ChainConfig};
 use ic_cdk_macros::query;
-use utils::get_rpc_providers_for;
+use utils::get_rpc_providers_for_chain;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;
@@ -24,6 +25,7 @@ use candid::Principal;
 use std::collections::HashMap;
 
 use evm_logs_types::{Event, SubscriptionInfo};
+use constants::*;
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -51,23 +53,23 @@ async fn init(config: types::config::Config) {
 
     let chain_configs = vec![
         ChainConfig {
-            chain_name: ChainName::Ethereum,
-            rpc_providers: get_rpc_providers_for(ChainName::Ethereum),
+            chain_id: ETHEREUM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(ETHEREUM_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
-            chain_name: ChainName::Base,
-            rpc_providers: get_rpc_providers_for(ChainName::Base),
+            chain_id: BASE_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(BASE_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
-            chain_name: ChainName::Optimism,
-            rpc_providers: get_rpc_providers_for(ChainName::Optimism),
+            chain_id: OPTIMISM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(OPTIMISM_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
-            chain_name: ChainName::Polygon,
-            rpc_providers: get_rpc_providers_for(ChainName::Polygon),
+            chain_id: POLYGON_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
     ];
