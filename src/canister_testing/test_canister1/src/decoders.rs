@@ -84,3 +84,25 @@ pub fn chainfusion_deposit_decoder(
         .collect();
     Ok(result)
 }
+
+pub fn curve_token_exchange_decoder(
+    notification: &EventNotification,
+) -> Result<Vec<SolidityToken>, String> {
+    let data = extract_data_bytes(notification)?;
+
+    let param_types = vec![
+        ParamType::Int(256), // sold_id
+        ParamType::Int(256), // tokens_sold
+        ParamType::Int(256), // bought_id
+        ParamType::Int(256), // tokens_bought
+    ];
+
+    let decoded_tokens =
+        decode(&param_types, &data).map_err(|e| format!("Decoding error: {:?}", e))?;
+
+    let result = decoded_tokens
+        .into_iter()
+        .map(SolidityToken::from)
+        .collect();
+    Ok(result)
+}

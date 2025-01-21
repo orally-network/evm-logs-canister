@@ -106,6 +106,21 @@ pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
     }
 }
 
+pub fn create_curve_token_exchange_config() -> SubscriptionRegistration {
+    // address and topics to monitor
+    let address = "0x92215849c439E1f8612b6646060B4E3E5ef822cC".to_string();
+    let topics = Some(vec![vec![
+        "0xb2e76ae99761dc136e598d4a629bb347eccb9532a5f8bbd72e18467c3c34cc98".to_string(),
+    ]]);
+
+    let filter = Filter { address, topics };
+
+    SubscriptionRegistration {
+        chain_id: 137,
+        filter,
+        memo: None,
+    }
+}
 /// Extracts and decodes the event data bytes from the notification.
 /// This function converts the event's data from a hex string to raw bytes.
 /// Returns an error if any step of the conversion fails.

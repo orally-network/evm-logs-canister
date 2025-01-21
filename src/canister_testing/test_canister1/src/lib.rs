@@ -42,11 +42,13 @@ async fn subscribe(canister_id: Principal) {
     let eth_sync_filter = create_ethereum_sync_config();
     let primex_deposit_filter = create_primex_deposit_config();
     let chainfusion_deposit_filter = create_chainfusion_deposit_config();
+    let curve_token_exchange_config = create_curve_token_exchange_config();
 
     register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
     register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;
     register_subscription_and_map_decoder(canister_id, primex_deposit_filter, primex_deposit_decoder).await;
     register_subscription_and_map_decoder(canister_id, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
+    register_subscription_and_map_decoder(canister_id, curve_token_exchange_config, chainfusion_deposit_decoder).await;
 }
 
 #[update]
