@@ -4,7 +4,7 @@ use metrics::cycles_count;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
 use crate::ChainName;
-use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi};
+use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcService, RpcConfig, ConsensusStrategy};
 
 use evm_logs_types::{Event, Filter};
 use evm_rpc_canister_types::{
@@ -41,8 +41,16 @@ pub async fn get_latest_block_number(
 
     let block_tag = BlockTag::Latest;
 
+    let rpc_config = RpcConfig {
+        responseSizeEstimate: None,
+        response_consensus: Some(ConsensusStrategy::Threshold { 
+            total: None,
+            min: 1, 
+        })
+    };
+
     let (result,) = evm_rpc
-        .eth_get_block_by_number(rpc_providers.clone(), None, block_tag, cycles)
+        .eth_get_block_by_number(rpc_providers.clone(), Some(rpc_config), block_tag, cycles)
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
 
@@ -71,30 +79,20 @@ pub fn get_rpc_providers_for(chain: ChainName) -> RpcServices {
             rpc_providers = RpcServices::EthMainnet(Some(
                 vec![
                     EthMainnetService::PublicNode,
-                    EthMainnetService::Alchemy,
-                    EthMainnetService::BlockPi,
-                    EthMainnetService::Ankr,
-                    EthMainnetService::Cloudflare
                 ]
             ));
         }
         ChainName::Base => {
             rpc_providers = RpcServices::BaseMainnet(Some(
                 vec![
-                    L2MainnetService::Alchemy,
-                    L2MainnetService::BlockPi,
                     L2MainnetService::PublicNode,
-                    L2MainnetService::Ankr,
                 ]
             ));
         }
         ChainName::Optimism => {
             rpc_providers = RpcServices::OptimismMainnet(Some(
                 vec![
-                    L2MainnetService::Alchemy,
-                    L2MainnetService::BlockPi,
                     L2MainnetService::PublicNode,
-                    L2MainnetService::Ankr,
                 ]
             ));
         }
@@ -106,14 +104,6 @@ pub fn get_rpc_providers_for(chain: ChainName) -> RpcServices {
                         url: "https://polygon-rpc.com".to_string(),
                         headers: None,
                     },
-                    // RpcApi {
-                    //     url: "https://rpc.ankr.com/polygon".to_string(),
-                    //     headers: None,
-                    // },
-                    // RpcApi {
-                    //     url: "https://polygon.drpc.org".to_string(),
-                    //     headers: None,
-                    // },
                 ],
             };
         }
