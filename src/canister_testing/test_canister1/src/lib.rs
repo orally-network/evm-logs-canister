@@ -35,7 +35,7 @@ async fn init() {
 
 // Candid update methods
 #[update]
-async fn subscribe(canister_id: Principal) {
+async fn subscribe(evm_logs_canister: Principal) {
     log!("Starting subscription registration");
 
     let base_swaps_filter = create_base_swaps_config();
@@ -44,11 +44,11 @@ async fn subscribe(canister_id: Principal) {
     let chainfusion_deposit_filter = create_chainfusion_deposit_config();
     let curve_token_exchange_config = create_curve_token_exchange_config();
 
-    register_subscription_and_map_decoder(canister_id, base_swaps_filter, swap_event_data_decoder).await;
-    register_subscription_and_map_decoder(canister_id, eth_sync_filter, ethereum_sync_decoder).await;
-    register_subscription_and_map_decoder(canister_id, primex_deposit_filter, primex_deposit_decoder).await;
-    register_subscription_and_map_decoder(canister_id, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
-    register_subscription_and_map_decoder(canister_id, curve_token_exchange_config, chainfusion_deposit_decoder).await;
+    register_subscription_and_map_decoder(evm_logs_canister, base_swaps_filter, swap_event_data_decoder).await;
+    register_subscription_and_map_decoder(evm_logs_canister, eth_sync_filter, ethereum_sync_decoder).await;
+    register_subscription_and_map_decoder(evm_logs_canister, primex_deposit_filter, primex_deposit_decoder).await;
+    register_subscription_and_map_decoder(evm_logs_canister, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
+    register_subscription_and_map_decoder(evm_logs_canister, curve_token_exchange_config, chainfusion_deposit_decoder).await;
 }
 
 #[update]
@@ -141,19 +141,6 @@ async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::Subscr
         Err(e) => {
             log!("Error fetching subscriptions: {:?}", e);
             vec![]
-        }
-    }
-}
-// get balance for a given principal
-#[update]
-pub async fn get_balance(canister_id: Principal) -> Nat {
-    let this_canister_id = ic_cdk::id();
-    log!("Getting balance for the {:?}", this_canister_id.to_text());
-    match call(canister_id, "get_balance", (this_canister_id,)).await {
-        Ok((balance,)) => balance,
-        Err(err) => {
-            log!("Failed to get balance: {:?}", err);
-            Nat::from(0u32)
         }
     }
 }

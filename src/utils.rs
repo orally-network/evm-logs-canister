@@ -42,10 +42,11 @@ pub async fn get_latest_block_number(
 
     let rpc_config = RpcConfig {
         responseSizeEstimate: None,
-        response_consensus: Some(ConsensusStrategy::Threshold { 
-            total: None,
-            min: 1, 
-        })
+        // response_consensus: Some(ConsensusStrategy::Threshold { 
+        //     total: None,
+        //     min: 1, 
+        // })
+        response_consensus: None,
     };
 
     let (result,) = evm_rpc

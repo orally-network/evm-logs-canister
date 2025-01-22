@@ -116,10 +116,11 @@ async fn single_eth_get_logs_call(
 
     let rpc_config = RpcConfig {
         responseSizeEstimate: None,
-        response_consensus: Some(ConsensusStrategy::Threshold { 
-            total: None, // None means all manually specified providers 
-            min: 1 
-        })
+        // response_consensus: Some(ConsensusStrategy::Threshold { 
+        //     total: None, // None means all manually specified providers 
+        //     min: 1 
+        // })
+        response_consensus: None,
     };
 
     let cycles = 10_000_000_000;

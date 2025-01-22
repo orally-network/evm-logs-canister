@@ -3,7 +3,7 @@ use crate::read_contract::SolidityToken;
 use candid::Principal;
 use evm_logs_types::Filter;
 use evm_logs_types::{EventNotification, RegisterSubscriptionResult, SubscriptionRegistration};
-use ic_cdk::api::call::call;
+use ic_cdk::api::call::{call, call_with_payment};
 use crate::log;
 
 // Helper to register a subscription and store the decoder
@@ -16,9 +16,10 @@ pub async fn register_subscription_and_map_decoder(
         "Registering subscription with filter: {:?}",
         subscription.filter
     );
+    let this_canister_id = ic_cdk::id();
 
     let result: Result<(RegisterSubscriptionResult,), _> =
-        call(canister_id, "subscribe", (subscription,)).await;
+        call_with_payment(canister_id, "subscribe", (subscription, this_canister_id,), 10000000000).await;
 
     match result {
         Ok((response,)) => match response {

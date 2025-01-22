@@ -14,14 +14,13 @@ use crate::types::balances::Balances;
 #[candid_method(update)]
 pub async fn subscribe(
     registration: SubscriptionRegistration,
-    principal: Option<Principal>,
+    canister_to_top_up: Principal,
 ) -> RegisterSubscriptionResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
-    let principal_to_top_up = principal.unwrap_or_else(caller);
 
-    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, principal_to_top_up.to_text());
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, canister_to_top_up.to_text());
 
-    if let Err(err) = Balances::top_up(principal_to_top_up, Nat::from(received_cycles)) {
+    if let Err(err) = Balances::top_up(canister_to_top_up, Nat::from(received_cycles)) {
         log!("Failed to top up balance: {}", err);
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
     }
@@ -66,13 +65,12 @@ pub fn get_subscriptions(
 
 #[update(name = "top_up_balance")]
 #[candid_method(update)]
-pub fn top_up_balance(principal: Option<Principal>) -> TopUpBalanceResult {
+pub fn top_up_balance(canister_to_top_up: Principal) -> TopUpBalanceResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
-    let principal_to_top_up = principal.unwrap_or_else(caller);
     
-    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, principal_to_top_up.to_text());
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, canister_to_top_up.to_text());
 
-    match Balances::top_up(principal_to_top_up, Nat::from(received_cycles)) {
+    match Balances::top_up(canister_to_top_up, Nat::from(received_cycles)) {
         Ok(_) => TopUpBalanceResult::Ok,
         Err(err) => {
             log!("Failed to top up balance: {}", err);
@@ -84,10 +82,9 @@ pub fn top_up_balance(principal: Option<Principal>) -> TopUpBalanceResult {
 #[query(name = "get_balance")]
 #[candid_method(query)]
 #[cycles_count]
-pub fn get_balance() -> Nat {
-    let caller = caller();
-    log!("get balance, caller: {:?}", caller.to_text());
-    Balances::get_balance(&caller).unwrap()
+pub fn get_balance(canister_id: Principal) -> Nat {
+    log!("get balance for canister: {:?}", canister_id.to_text());
+    Balances::get_balance(&canister_id).unwrap()
 }
 
 // only testing purpose
