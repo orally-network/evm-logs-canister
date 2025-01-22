@@ -650,8 +650,8 @@ dependencies = [
 
 [[package]]
 name = "evm-rpc-canister-types"
-version = "3.0.0"
-source = "git+https://github.com/malteish/ReTransICP.git?branch=fix/blockType#e9e46f5329a8cbdf2c7c098738d6d4345f87d20d"
+version = "1.0.0"
+source = "git+https://github.com/AlexEmets/ReTransICP.git?branch=types-fix#96f2cdf6b8be73ccbe6e50ae8f59e13954215a29"
 dependencies = [
  "candid 0.10.10",
  "candid_parser",

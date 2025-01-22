@@ -4,7 +4,7 @@ use std::str::FromStr;
 use candid::{Principal, CandidType, Nat};
 use serde::{Deserialize, Serialize};
 use super::{
-    config::{Config, EventsPerInterval},
+    config::Config,
     balances::Balances,
 };
 use evm_logs_types::SubscriptionInfo;
@@ -14,8 +14,7 @@ use crate::STATE;
 pub struct State {
     pub evm_rpc_canister: Principal,
     pub proxy_canister: Principal,
-    pub rpc_wrapper: String,
-    pub events_per_interval: EventsPerInterval,
+    pub estimate_events_num: u32,
     pub subscriptions: HashMap<Nat, SubscriptionInfo>,
     pub user_balances: Balances,
     pub test: u32,
@@ -27,8 +26,7 @@ pub fn init(config: Config) {
         let mut state = state.borrow_mut();
         state.evm_rpc_canister = config.evm_rpc_canister;
         state.proxy_canister = config.proxy_canister;
-        state.rpc_wrapper = config.rpc_wrapper.clone();
-        state.events_per_interval = config.events_per_interval.clone();
+        state.estimate_events_num = config.estimate_events_num.clone();
     });
 }
 
@@ -38,8 +36,7 @@ impl Default for State {
         Self {
             evm_rpc_canister: Principal::from_str("aaaaa-aa").expect("Invalid principal"),
             proxy_canister: Principal::from_str("aaaaa-aa").expect("Invalid principal"),
-            rpc_wrapper: "".to_string(),
-            events_per_interval: EventsPerInterval{interval: 20, events_num: 5},
+            estimate_events_num: 5,
             subscriptions: HashMap::new(),
             user_balances: Balances::default(),
             test: 0,

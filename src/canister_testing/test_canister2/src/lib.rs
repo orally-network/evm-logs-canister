@@ -23,7 +23,7 @@ async fn register_subscription(
 ) {
     log!("Calling register_subscription for namespaces:");
     for reg in &registrations {
-        log!(" - {:?}", reg.chain);
+        log!(" - {:?}", reg.chain_id);
     }
 
     let result: Result<(Vec<RegisterSubscriptionResult>,), _> =

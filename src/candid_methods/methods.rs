@@ -1,5 +1,4 @@
-// methods.rs
-use candid::candid_method;
+use candid::{candid_method, Principal};
 use ic_cdk_macros::*;
 use candid::Nat;
 use evm_logs_types::*;
@@ -15,14 +14,18 @@ use crate::types::balances::Balances;
 #[candid_method(update)]
 pub async fn subscribe(
     registration: SubscriptionRegistration,
+    principal: Option<Principal>,
 ) -> RegisterSubscriptionResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
-    let caller = caller();
+    let principal_to_top_up = principal.unwrap_or_else(caller);
 
-    if let Err(err) = Balances::top_up(caller, Nat::from(received_cycles)) {
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, principal_to_top_up.to_text());
+
+    if let Err(err) = Balances::top_up(principal_to_top_up, Nat::from(received_cycles)) {
         log!("Failed to top up balance: {}", err);
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
     }
+
     subscription_manager::register_subscription(registration).await
 }
 
@@ -54,7 +57,7 @@ pub fn get_active_filters() -> Vec<evm_logs_types::Filter> {
 #[candid_method(query)]
 #[cycles_count]
 pub fn get_subscriptions(
-    namespace: Option<String>,
+    namespace: Option<u32>,
     from_id: Option<Nat>,
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
@@ -63,9 +66,19 @@ pub fn get_subscriptions(
 
 #[update(name = "top_up_balance")]
 #[candid_method(update)]
-pub fn top_up_balance(amount: Nat) -> Result<(), String> {
-    let caller = caller();
-    Balances::top_up(caller, amount)
+pub fn top_up_balance(principal: Option<Principal>) -> TopUpBalanceResult {
+    let received_cycles = ic_cdk::api::call::msg_cycles_available();
+    let principal_to_top_up = principal.unwrap_or_else(caller);
+    
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, principal_to_top_up.to_text());
+
+    match Balances::top_up(principal_to_top_up, Nat::from(received_cycles)) {
+        Ok(_) => TopUpBalanceResult::Ok,
+        Err(err) => {
+            log!("Failed to top up balance: {}", err);
+            TopUpBalanceResult::Err(TopUpBalanceError::GenericError)
+        }
+    }
 }
 
 #[query(name = "get_balance")]
@@ -73,8 +86,8 @@ pub fn top_up_balance(amount: Nat) -> Result<(), String> {
 #[cycles_count]
 pub fn get_balance() -> Nat {
     let caller = caller();
-
-    Balances::get_balance(&caller).unwrap() // TODO
+    log!("get balance, caller: {:?}", caller.to_text());
+    Balances::get_balance(&caller).unwrap()
 }
 
 // only testing purpose

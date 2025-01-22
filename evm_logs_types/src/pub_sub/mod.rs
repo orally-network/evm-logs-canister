@@ -1,6 +1,5 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
-use std::str::FromStr;
 
 // A note on specifying topic filters:
 
@@ -24,7 +23,7 @@ pub struct Event {
     pub id: Nat,
     pub prev_id: Option<Nat>,
     pub timestamp: u64, // UTC Nanoseconds
-    pub namespace: String,
+    pub chain_id: u32,
     pub address: String,
     pub topics: Option<Vec<String>>, // TODO remove optional(?)
     pub data: Value,
@@ -38,7 +37,7 @@ pub struct EventNotification {
     pub event_id: Nat,
     pub event_prev_id: Option<Nat>,
     pub timestamp: u64,
-    pub namespace: String,
+    pub chain_id: u32,
     pub data: Value,
     pub topics: Vec<String>,
     pub tx_hash: String,
@@ -72,7 +71,7 @@ pub struct EventRelay {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct SubscriptionRegistration {
-    pub chain: String,
+    pub chain_id: u32,
     pub filter: Filter,
     pub memo: Option<Vec<u8>>, // Blob
 }
@@ -81,18 +80,10 @@ pub struct SubscriptionRegistration {
 pub struct SubscriptionInfo {
     pub subscription_id: Nat,
     pub subscriber_principal: Principal,
-    pub namespace: String,
+    pub chain_id: u32,
     pub filter: Filter,
     pub skip: Option<Skip>,
     pub stats: Vec<Map>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ChainName {
-    Ethereum,
-    Base,
-    Optimism,
-    Polygon,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -190,6 +181,17 @@ pub enum RegisterSubscriptionError {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum TopUpBalanceResult {
+    Ok,
+    Err(TopUpBalanceError),
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum TopUpBalanceError {
+    GenericError
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum PublishError {
     Unauthorized,
     ImproperId(String),
@@ -201,18 +203,4 @@ pub enum PublishError {
 pub enum ConfirmationResult {
     AllAccepted,
     SomeRejected(Vec<Nat>), // rejected id's
-}
-
-impl FromStr for ChainName {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "ethereum" => Ok(ChainName::Ethereum),
-            "base" => Ok(ChainName::Base),
-            "optimism" => Ok(ChainName::Optimism),
-            "polygon" => Ok(ChainName::Polygon),
-            _ => Err(format!("Invalid chain name: {}", s)),
-        }
-    }
 }

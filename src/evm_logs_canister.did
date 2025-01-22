@@ -17,7 +17,7 @@ type EventNotification = record {
   event_id : nat;
   event_prev_id : opt nat;
   timestamp : nat64;
-  namespace : text;
+  chain_id : nat64;
   data : Value;
   tx_hash: text;
   headers : opt vec Map;
@@ -93,7 +93,7 @@ type Skip = record {
 type SubscriptionInfo = record {
   subscription_id : nat;
   subscriber_principal : principal;
-  namespace : text;
+  chain_id : nat64;
   filter : Filter;
   stats : vec Map;
 };
@@ -129,11 +129,6 @@ type SendNotificationError = variant {
 type SendNotificationResult = variant {
     Ok;
     Err : SendNotificationError
-};
-
-type EventsPerInterval =  record {
-    interval: nat32;
-    events_num: nat32;
 };
 
 service : {

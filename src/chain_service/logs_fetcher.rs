@@ -1,11 +1,10 @@
 use candid::Nat;
 use evm_rpc_canister_types::{
-    BlockTag, EvmRpcCanister, GetLogsArgs, GetLogsResult, LogEntry, MultiGetLogsResult, RpcServices,
+    BlockTag, ConsensusStrategy, EvmRpcCanister, GetLogsArgs, GetLogsResult, LogEntry, MultiGetLogsResult, RpcConfig, RpcServices
 };
 use futures::future::join_all;
 use crate::types::balances::Balances;
 use crate::{get_state_value, log};
-
 use super::utils::*;
 
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
@@ -48,8 +47,8 @@ pub async fn fetch_logs(
         .await;
     }
 
-    let events_per_interval = get_state_value!(events_per_interval);  
-    let chunk_size = calculate_request_chunk_size(events_per_interval.events_num, addresses.len() as u32); 
+    let events_per_interval = get_state_value!(estimate_events_num);  
+    let chunk_size = calculate_request_chunk_size(events_per_interval, addresses.len() as u32); 
 
     let chunks_iter = addresses.chunks(chunk_size);
 
@@ -97,7 +96,6 @@ pub async fn fetch_logs(
 
     charge_subscribers(addresses.len(), cycles_used);
     
-
     Ok(merged_logs)
 
 }
@@ -116,9 +114,17 @@ async fn single_eth_get_logs_call(
         topics,
     };
 
+    let rpc_config = RpcConfig {
+        responseSizeEstimate: None,
+        response_consensus: Some(ConsensusStrategy::Threshold { 
+            total: None, // None means all manually specified providers 
+            min: 1 
+        })
+    };
+
     let cycles = 10_000_000_000;
     let (result,) = evm_rpc
-        .eth_get_logs(rpc_providers.clone(), None, get_logs_args, cycles)
+        .eth_get_logs(rpc_providers.clone(), Some(rpc_config), get_logs_args, cycles)
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
 

@@ -17,13 +17,7 @@ use serde::Deserialize;
 struct EvmLogsInitArgs {
     evm_rpc_canister: Principal,
     proxy_canister: Principal,
-    rpc_wrapper: String,
-    pub events_per_interval: EventsPerInterval,
-}
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct EventsPerInterval {
-    pub interval: u32, // interval of events monitoring process 
-    pub events_num: u32, // number of the events per this interval for one address
+    pub estimate_events_num: u32,
 }
 
 #[tokio::test]
@@ -81,11 +75,7 @@ async fn test_event_publishing_and_notification_delivery() {
         let init_args_value = EvmLogsInitArgs {
             evm_rpc_canister: Principal::from_text("aaaaa-aa").expect("EVM_RPC_CANISTER incorrect principal"),
             proxy_canister: proxy_canister_id,
-            rpc_wrapper: "test".to_string(),
-            events_per_interval: EventsPerInterval {
-                interval: 1, // test
-                events_num: 1, // test
-            },
+            estimate_events_num: 5, // test
         };
         
         let init_args = candid::encode_args((init_args_value,))
@@ -101,7 +91,7 @@ async fn test_event_publishing_and_notification_delivery() {
     
     // Register a subscription from the subscriber canister
     let subscription_registration = SubscriptionRegistration {
-        chain: "Ethereum".to_string(),
+        chain_id: 1,
         filter: Filter {
             address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
             topics: None,
@@ -147,7 +137,7 @@ async fn test_event_publishing_and_notification_delivery() {
         id: Nat::from(0u64), // ID will be assigned by the canister
         prev_id: None,
         timestamp: 0,
-        namespace: "Ethereum".to_string(),
+        chain_id: 1,
         data: Value::Text("Test event data".to_string()),
         headers: None,
         address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(), // Example address
@@ -211,8 +201,8 @@ async fn test_event_publishing_and_notification_delivery() {
             assert_eq!(notifications.len(), 1, "Expected one notification");
             let notification = &notifications[0];
             assert_eq!(
-                notification.namespace, "Ethereum",
-                "Incorrect namespace"
+                notification.chain_id, 1,
+                "Incorrect chain_id in notification"
             );
             assert_eq!(notification.event_id, Nat::from(1u64), "Incorrect event_id");
             if let Value::Text(ref text) = notification.data {

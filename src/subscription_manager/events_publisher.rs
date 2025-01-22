@@ -45,7 +45,7 @@ async fn distribute_event(event: Event) {
     let subscriptions = SUBSCRIPTIONS.with(|subs| {
         subs.borrow()
             .values()
-            .filter(|sub| sub.namespace == event.namespace)
+            .filter(|sub| sub.chain_id == event.chain_id)
             .cloned()
             .collect::<Vec<_>>()
     });
@@ -77,7 +77,7 @@ async fn distribute_event(event: Event) {
                 event_id: event.id.clone(),
                 event_prev_id: event.prev_id.clone(),
                 timestamp: current_timestamp(),
-                namespace: event.namespace.clone(),
+                chain_id: event.chain_id.clone(),
                 data: event.data.clone(),
                 tx_hash: event.tx_hash.clone(),
                 headers: event.headers.clone(),

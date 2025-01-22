@@ -110,10 +110,9 @@ impl Balances {
             let balance_entry = state
                 .user_balances
                 .balances
-                .get(principal)
-                .ok_or(BalanceError::BalanceDoesNotExist)?;
+                .get(principal);
     
-            Ok(balance_entry.amount.clone())
+            Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.amount.clone()))
         })
-    }        
+    }     
 }
