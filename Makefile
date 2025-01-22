@@ -34,6 +34,10 @@ local_upgrade:
 	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
 	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz evm_logs_canister
 
+	dfx build test_canister1 
+	gzip -f -1 ./.dfx/local/canisters/test_canister1/test_canister1.wasm
+	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/test_canister1/test_canister1.wasm.gz test_canister1
+
 .PHONY: help
 help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'

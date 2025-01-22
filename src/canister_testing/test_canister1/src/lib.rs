@@ -145,19 +145,18 @@ async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::Subscr
     }
 }
 // get balance for a given principal
-#[query]
+#[update]
 pub async fn get_balance(canister_id: Principal) -> Nat {
-    let caller_principal = ic_cdk::caller();
-    log!("Getting balance for the {:?}", caller_principal);
-    match call(canister_id, "get_balance", (caller_principal,)).await {
+    let this_canister_id = ic_cdk::id();
+    log!("Getting balance for the {:?}", this_canister_id.to_text());
+    match call(canister_id, "get_balance", (this_canister_id,)).await {
         Ok((balance,)) => balance,
         Err(err) => {
             log!("Failed to get balance: {:?}", err);
-            Nat::from(0)
+            Nat::from(0u32)
         }
     }
 }
-
 
 #[query]
 fn get_candid_pointer() -> String {

@@ -22,7 +22,7 @@ pub async fn subscribe(
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
     let principal_to_top_up = principal.unwrap_or_else(caller);
 
-    log!("RECEIVED cycles: {:?}, principal: {:?}", received_cycles, principal_to_top_up.to_text());
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, principal_to_top_up.to_text());
 
     if let Err(err) = Balances::top_up(principal_to_top_up, Nat::from(received_cycles)) {
         log!("Failed to top up balance: {}", err);
@@ -73,7 +73,7 @@ pub fn top_up_balance(principal: Option<Principal>) -> TopUpBalanceResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
     let principal_to_top_up = principal.unwrap_or_else(caller);
     
-    log!("RECEIVED cycles: {:?}, caller: {:?}", received_cycles, principal_to_top_up.to_text());
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, principal_to_top_up.to_text());
 
     match Balances::top_up(principal_to_top_up, Nat::from(received_cycles)) {
         Ok(_) => TopUpBalanceResult::Ok,
@@ -90,7 +90,7 @@ pub fn top_up_balance(principal: Option<Principal>) -> TopUpBalanceResult {
 pub fn get_balance() -> Nat {
     let caller = caller();
     log!("get balance, caller: {:?}", caller.to_text());
-    Balances::get_balance(&caller).unwrap() // TODO
+    Balances::get_balance(&caller).unwrap()
 }
 
 // only testing purpose
