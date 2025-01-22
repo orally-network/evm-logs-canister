@@ -1,11 +1,13 @@
-use candid::Nat;
-use evm_rpc_canister_types::{
-    BlockTag, ConsensusStrategy, EvmRpcCanister, GetLogsArgs, GetLogsResult, LogEntry, MultiGetLogsResult, RpcConfig, RpcServices
+use candid::{Nat, Principal};
+use evm_rpc_types::{
+    BlockTag, ConsensusStrategy, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, RpcConfig, RpcServices, RpcResult, Nat256
 };
 use futures::future::join_all;
 use crate::types::balances::Balances;
 use crate::{get_state_value, log};
 use super::utils::*;
+use ic_cdk::api::call::call_with_payment128;
+use std::str::FromStr;
 
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
     let subscribers = get_state_value!(subscriptions);
@@ -27,9 +29,9 @@ fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
 }
 
 pub async fn fetch_logs(
-    evm_rpc: &EvmRpcCanister,
+    evm_rpc: Principal,
     rpc_providers: &RpcServices,
-    from_block: u64,
+    from_block: Nat,
     addresses: Option<Vec<String>>,
     topics: Option<Vec<Vec<String>>>,
 ) -> Result<Vec<LogEntry>, String> {
@@ -40,7 +42,7 @@ pub async fn fetch_logs(
         return single_eth_get_logs_call(
             evm_rpc,
             rpc_providers,
-            from_block,
+            from_block.clone(),
             None,
             topics.clone(),
         )
@@ -59,12 +61,13 @@ pub async fn fetch_logs(
         let evm_rpc_clone = evm_rpc.clone();
         let rpc_providers_clone = rpc_providers.clone();
         let topics_clone = topics.clone();
+        let from_block = from_block.clone();
 
         let fut = async move {
             single_eth_get_logs_call(
-                &evm_rpc_clone,
+                evm_rpc_clone,
                 &rpc_providers_clone,
-                from_block,
+                from_block.clone(),
                 Some(chunk_vec),
                 topics_clone,
             )
@@ -101,41 +104,74 @@ pub async fn fetch_logs(
 }
 
 async fn single_eth_get_logs_call(
-    evm_rpc: &EvmRpcCanister,
+    evm_rpc: Principal,
     rpc_providers: &RpcServices,
-    from_block: u64,
+    from_block: Nat,
     addresses: Option<Vec<String>>,
     topics: Option<Vec<Vec<String>>>,
 ) -> Result<Vec<LogEntry>, String> {
+    // convert addresses and topics to Hex. TODO implement evm_logs_canister structs with these types 
+    let addresses: Vec<Hex20> = addresses
+        .unwrap_or_default() // Default to an empty vector if None
+        .into_iter()
+        .map(|addr| {
+            Hex20::from_str(&addr).map_err(|e| format!("Invalid address {}: {}", addr, e))
+        })
+        .collect::<Result<_, _>>()?;
+
+    let topics: Option<Vec<Vec<Hex32>>> = topics
+    .map(|outer| {
+        outer
+            .into_iter()
+            .map(|inner| {
+                inner
+                    .into_iter()
+                    .map(|topic| {
+                        Hex32::from_str(&topic)
+                            .map_err(|e| format!("Invalid topic {}: {}", topic, e))
+                    })
+                    .collect::<Result<Vec<_>, _>>() // Collect inner Vec<Hex32>
+            })
+            .collect::<Result<Vec<_>, _>>() // Collect outer Vec<Vec<Hex32>>
+    })
+    .transpose()?;
+
     let get_logs_args = GetLogsArgs {
-        fromBlock: Some(BlockTag::Number(Nat::from(from_block))),
-        toBlock: Some(BlockTag::Latest),
-        addresses: addresses.unwrap_or_default(),
+        from_block: Some(BlockTag::Number(Nat256::try_from(from_block.clone()).unwrap())),
+        to_block: Some(BlockTag::Latest),
+        addresses,
         topics,
     };
 
     let rpc_config = RpcConfig {
-        responseSizeEstimate: None,
-        // response_consensus: Some(ConsensusStrategy::Threshold { 
-        //     total: None, // None means all manually specified providers 
-        //     min: 1 
-        // })
-        response_consensus: None,
+        response_size_estimate: None,
+        response_consensus: Some(ConsensusStrategy::Threshold { 
+            total: Some(3), 
+            min: 1
+        }),
     };
 
     let cycles = 10_000_000_000;
-    let (result,) = evm_rpc
-        .eth_get_logs(rpc_providers.clone(), Some(rpc_config), get_logs_args, cycles)
-        .await
-        .map_err(|e| format!("Call failed: {:?}", e))?;
 
-    match result {
-        MultiGetLogsResult::Consistent(r) => match r {
-            GetLogsResult::Ok(logs) => Ok(logs),
-            GetLogsResult::Err(err) => Err(format!("GetLogsResult error: {:?}", err)),
-        },
-        MultiGetLogsResult::Inconsistent(_) => {
-            Err("RPC providers gave inconsistent results".to_string())
+    let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> =
+        call_with_payment128(
+            evm_rpc,
+            "eth_getLogs",
+            (rpc_providers.clone(), Some(rpc_config), get_logs_args),
+            cycles,
+        )
+        .await;
+
+        match result {
+            Ok((result,)) => match result {
+                MultiRpcResult::Consistent(r) => match r {
+                    RpcResult::Ok(logs) => Ok(logs),
+                    RpcResult::Err(err) => Err(format!("GetLogsResult error: {:?}", err)),
+                },
+                MultiRpcResult::Inconsistent(_) => {
+                    Err("RPC providers gave inconsistent results".to_string())
+                }
+            },
+            Err(e) => Err(format!("Call failed: {:?}", e)), // Handle potential errors from the RPC call
         }
-    }
 }

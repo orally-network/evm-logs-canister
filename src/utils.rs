@@ -1,14 +1,11 @@
 use candid::Nat;
+use ic_cdk::api::call::call_with_payment128;
 use ic_cdk::api::time;
 use metrics::cycles_count;
-use num_traits::ToPrimitive;
 use std::cell::RefCell;
-use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcConfig, ConsensusStrategy};
+use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, L2MainnetService, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
 
 use evm_logs_types::{Event, Filter};
-use evm_rpc_canister_types::{
-    BlockTag, EvmRpcCanister, GetBlockByNumberResult, MultiGetBlockByNumberResult, RpcServices,
-};
 
 #[macro_export]
 macro_rules! get_state_value {
@@ -31,42 +28,45 @@ thread_local! {
 pub fn current_timestamp() -> u64 {
     time()
 }
+
 #[cycles_count]
 pub async fn get_latest_block_number(
-    evm_rpc: &EvmRpcCanister,
     rpc_providers: RpcServices,
-) -> Result<u64, String> {
+) -> Result<Nat, String> {
     let cycles = 10_000_000_000;
 
     let block_tag = BlockTag::Latest;
 
     let rpc_config = RpcConfig {
-        responseSizeEstimate: None,
-        // response_consensus: Some(ConsensusStrategy::Threshold { 
-        //     total: None,
-        //     min: 1, 
-        // })
-        response_consensus: None,
+        response_size_estimate: None,
+        response_consensus: Some(ConsensusStrategy::Threshold { 
+            total: Some(3), 
+            min: 1
+        }),
     };
+    let evm_rpc_canister = get_state_value!(evm_rpc_canister);
 
-    let (result,) = evm_rpc
-        .eth_get_block_by_number(rpc_providers.clone(), Some(rpc_config), block_tag, cycles)
+    let (result,): (MultiRpcResult<Block>,) = 
+        call_with_payment128(
+            evm_rpc_canister, 
+            "eth_getBlockByNumber", 
+            (rpc_providers, rpc_config, block_tag), 
+            cycles,
+        )
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
 
     match result {
-        MultiGetBlockByNumberResult::Consistent(res) => match res {
-            GetBlockByNumberResult::Ok(block) => {
+        MultiRpcResult::Consistent(res) => match res {
+            RpcResult::Ok(block) => {
                 let block_number = block
-                    .number
-                    .0
-                    .to_u64()
-                    .ok_or("Failed to convert block number to u64")?;
+                    .number;
+                let block_number: Nat = block_number.into();
                 Ok(block_number)
             }
-            GetBlockByNumberResult::Err(err) => Err(format!("RPC error: {:?}", err)),
+            RpcResult::Err(err) => Err(format!("RPC error: {:?}", err)),
         },
-        MultiGetBlockByNumberResult::Inconsistent(_) => {
+        MultiRpcResult::Inconsistent(_) => {
             Err("RPC providers gave inconsistent results".to_string())
         }
     }
@@ -76,32 +76,28 @@ pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
     let rpc_providers;
     match chain {
         1 => {
-            rpc_providers = RpcServices::EthMainnet(Some(
-                vec![
-                    EthMainnetService::PublicNode,
-                ]
-            ));
+            rpc_providers = RpcServices::EthMainnet(None);
         }
         8453 => {
-            rpc_providers = RpcServices::BaseMainnet(Some(
-                vec![
-                    L2MainnetService::PublicNode,
-                ]
-            ));
+            rpc_providers = RpcServices::BaseMainnet(None);
         }
         10 => {
-            rpc_providers = RpcServices::OptimismMainnet(Some(
-                vec![
-                    L2MainnetService::PublicNode,
-                ]
-            ));
+            rpc_providers = RpcServices::OptimismMainnet(None)
         }
         137 => {
             rpc_providers = RpcServices::Custom {
-                chainId: 137,
+                chain_id: 137,
                 services: vec![
                     RpcApi {
                         url: "https://polygon-rpc.com".to_string(),
+                        headers: None,
+                    },
+                    RpcApi {
+                        url: "https://polygon.llamarpc.com".to_string(),
+                        headers: None,
+                    },
+                    RpcApi {
+                        url: "https://rpc.ankr.com/polygon".to_string(),
                         headers: None,
                     },
                 ],

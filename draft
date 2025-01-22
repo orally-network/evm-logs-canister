@@ -1,0 +1,328 @@
+git diff -- ":(exclude)Cargo.lock"
+
+dfx canister call test_canister1 get_notifications | grep -oP '(?<=tx_hash = \")0x[0-9a-fA-F]+' > txhashes1.txt
+dfx canister call test_canister2 get_notifications | grep -oP '(?<=tx_hash = \")0x[0-9a-fA-F]+' > txhashes2.txt
+
+
+dfx canister call evm_logs_canister get_chain_events --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+dfx canister call evm_logs_canister get_subscriptions '(
+  opt "com.example.myapp.events.Ethereum",
+  null,
+  null
+)'
+
+Base Swaps
+dfx canister call test_canister1 subscribe '(
+  principal "bw4dl-smaaa-aaaaa-qaacq-cai"
+)'
+
+dfx canister call test_canister1 unsubscribe '(
+    principal "br5f7-7uaaa-aaaaa-qaaca-cai",
+    2:nat
+)'
+
+dfx canister call test_canister1 get_subscriptions '(
+    principal "br5f7-7uaaa-aaaaa-qaaca-cai"
+)' 
+
+dfx canister call test_canister1 get_swap_events_data
+
+Ethereum TransferShares
+dfx canister call test_canister2 register_subscription '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    vec {
+        record {
+            namespace = "com.events.Ethereum";
+            filters = vec {
+                record {
+                  addresses = vec { "1" };
+                  topics = opt vec {
+                      vec { 
+                        "2";  
+                      };
+                  };
+                };
+            };
+            memo = null;
+        };
+    }
+)'
+
+Ethereum Sync
+dfx canister call test_canister2 register_subscription '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    vec {
+        record {
+            namespace = "com.events.Ethereum";
+            filters = vec {
+                record {
+                  addresses = vec { "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
+                  topics = opt vec {
+                      vec { 
+                        "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1";  
+                      };
+                  };
+                };
+            };
+            memo = null;
+        };
+    }
+)'
+
+dfx canister call test_canister2 register_subscription '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    vec {
+        record {
+            namespace = "com.events.Ethereum";
+            filters = vec {
+                record {
+                  addresses = vec { "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
+                  topics = opt vec {
+                      vec {
+
+                      };
+                      vec { 
+                        "0x9d9c909296d9c674451c0c24f02cb64981eb3b727f99865939192f880a755dcb";  
+                      };
+                  };
+                };
+            };
+            memo = null;
+        };
+    }
+)'
+
+dfx canister call test_canister1 unsubscribe '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    1:nat
+)'
+dfx canister call evm_logs_canister get_chain_events
+
+
+Example test EVM-RPC-CANISTER
+dfx canister call evm_rpc request '(variant {Custom=record {url="https://cloudflare-eth.com"}},"{\"jsonrpc\":\"2.0\",\"method\":\"eth_gasPrice\",\"params\":[],\"id\":1}",1000)' --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+CORRECT:
+dfx canister call evm_rpc eth_getLogs '(
+  variant { EthMainnet = opt vec { variant { Alchemy } } },
+  null,
+  record {
+    fromBlock = opt variant { Number = 21378395 : nat };
+    toBlock = opt variant { Latest };
+    addresses = vec { "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
+    topics = opt vec { 
+      vec { 
+      "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1"; 
+      } 
+    };
+  }
+)' --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+CORRECT:
+dfx canister call evm_rpc eth_getLogs '(
+  variant { EthMainnet = opt vec { variant { PublicNode } } },
+  null,
+  record {
+    fromBlock = opt variant { Number = 21013338 : nat };
+    toBlock = opt variant { Number = 21013338 : nat  };
+    addresses = vec { "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852" };
+    topics = opt vec { 
+      vec { "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822" };
+      vec { "0x0000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad" }; 
+      vec {};
+      vec {};
+    }
+  }
+)' --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+dfx canister call evm_logs_canister get_chain_events --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+
+dfx canister call evm_rpc eth_getLogs '(
+  variant { EthMainnet = opt vec { variant { Cloudflare } } },
+  null,
+  record {
+    fromBlock = opt variant { Number = 20810718 : nat };
+    toBlock = opt variant { Latest };
+    addresses = vec {"0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe"};
+    topics = null;
+  }
+)' --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+dfx canister call evm_rpc eth_getBlockByNumber '(
+  variant { EthMainnet = null }, 
+  null, 
+  variant {Latest}, 
+  10000000000:nat
+)' --wallet $(dfx identity get-wallet) --with-cycles 10000000000
+
+# Base SWAPS
+dfx canister call test_canister1 register_subscription '(
+  principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+  vec {
+      record {
+          namespace = "com.events.Base";
+          filters = vec {
+              record {
+                  addresses = vec { "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59" };
+                  topics = opt vec {
+                    vec { "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67" };
+                  };
+              };
+          };
+          
+          memo = null;
+      };
+  }
+)'
+
+dfx canister call test_canister2 register_subscription '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    vec {
+        record {
+            namespace = "com.events.Ethereum";
+            filters = vec {
+                record {
+                  addresses = vec { "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" };
+                  topics = opt vec {
+                      vec { 
+                        "0x9d9c909296d9c674451c0c24f02cb64981eb3b727f99865939192f880a755dcb";  
+                      };
+                  };
+                };
+            };
+            memo = null;
+        };
+    }
+)'
+
+
+
+dfx canister call test_canister1 get_subscriptions '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+)' 
+
+dfx canister call test_canister2 get_subscriptions '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+)' 
+
+dfx canister call test_canister1 unsubscribe '(
+    principal "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+    1:nat
+)'
+
+dfx canister call evm_logs_canister get_active_addresses_and_topics
+
+Bugs & Enhancemets:
+2. Хендлити відємні числа в тестовій каністрі правильно 
+3. http запроси батчами 
+4. вираховування cycles для підписників, формула
+5. підписка на ефір а логи з інших чейнів все одно намагаються екстрактитись
+6. оптимізувати фічу corresponding filters sending (?)
+7. distribute_event правильно отримувати ID проксі каністри
+8. Event published and sent to subscribers with Event IDs: - 
+повідомлення надсилається навіть коли івенти не надсилаються, треба ерор хендлінг пофіксити 
+
+curl -X POST https://ethereum-rpc.publicnode.com \
+  -H "Content-Type: application/json" \
+  --data '{
+    "jsonrpc": "2.0",
+    "method": "eth_getLogs",
+    "params": [{
+      "fromBlock": "21013338",                
+      "toBlock": "21013339",                  
+      "address": "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852",
+      "topics": [
+        [
+          "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822",
+          "0x0000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad"
+        ],
+        [
+          "0x0000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad"
+        ]
+      ]
+    }],
+    "id": 1
+  }'
+
+  curl -X POST https://ethereum-rpc.publicnode.com \
+  -H "Content-Type: application/json" \
+  --data '{
+    "jsonrpc": "2.0",
+    "method": "eth_getLogs",
+    "params": [{
+      "fromBlock": "21013338",                
+      "toBlock": "21013339",                  
+      "address": "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852",
+      "topics": [
+        [
+          "0x0000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad"
+        ],
+        [
+          "0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822"
+        ]
+      ]
+    }],
+    "id": 1
+  }'
+
+
+message
+: 
+"app.orally.network wants you to sign in with your Ethereum account:\n0x43Ac53c54EaE7E31b6c717FE17a8cE31ba2cB06B\n\nSign in with Ethereum to the pythia.\n\nURI: https://app.orally.network\nVersion: 1\nChain ID: 137\nNonce: ux4Sua84iGMawktnL\nIssued At: 2024-12-18T11:16:04.791Z"
+signature
+: 
+"0xce415ccb322f6c806962cde27095f63ddbfb643d6d7c0b442a0e2415a739215733fdc7c22217ac25d9839123f0cc87f08349281cea3c8ce5fc3a2f8cbec2ae071c"
+
+eth_address 
+0xD620ebacA98aeD43775cEf786aBf0af241EF2494
+
+dfx canister call evm_rpc eth_getLogs '(
+  variant { Custom = record {
+    chainId = 137 : nat64;
+    services = vec { 
+      record {
+        url = "https://polygon-rpc.com";
+        headers = null;
+      }
+    };
+  }},
+  null,
+  record {
+    fromBlock = opt variant { Number = 66935584 : nat };
+    toBlock = opt variant { Number = 66935584 : nat };
+    addresses = vec { "0x12c125181Eb7c944EaEfcB2AE881475870f0Aff3" };
+    topics = opt vec { 
+      vec { 
+        "0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62"; 
+      } 
+    };
+  }
+)' --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+dfx canister call evm_rpc eth_getBlockByNumber '(
+  variant { EthMainnet = null }, 
+  opt record {
+    responseSizeEstimate = null : opt nat;
+    response_consensus = opt variant {
+      Threshold = record {
+        total = opt 3;
+        min = 1 : nat;
+      }
+    }
+  },
+  variant { Latest },
+  10000000000 : nat
+)' --wallet $(dfx identity get-wallet) --with-cycles 10000000000
+
+dfx canister call evm_logs_canister top_up_balance '(principal "br5f7-7uaaa-aaaaa-qaaca-cai")' --wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+dfx canister call evm_logs_canister get_balance '(
+  principal "br5f7-7uaaa-aaaaa-qaaca-cai"
+)'
+
+dfx canister call test_canister1 subscribe '( 
+  principal "bw4dl-smaaa-aaaaa-qaacq-cai"
+)'
+
