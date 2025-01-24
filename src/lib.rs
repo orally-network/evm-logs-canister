@@ -5,27 +5,27 @@ mod log_filters;
 mod subscription_manager;
 mod utils;
 mod types;
+mod candid_methods;
+mod constants;
 
-use candid::candid_method;
 use ic_cdk_macros::*;
 
 use candid::Nat;
 use chain_service::{service::ChainService, ChainConfig};
 use ic_cdk_macros::query;
+use utils::get_rpc_providers_for_chain;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;
 use crate::types::state::State;
 use evm_logs_types::*;
 
-use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcServices};
-
 use crate::log_filters::filter_manager::FilterManager;
 use candid::Principal;
 use std::collections::HashMap;
 
 use evm_logs_types::{Event, SubscriptionInfo};
-
+use constants::*;
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -49,33 +49,27 @@ async fn init(config: types::config::Config) {
     subscription_manager::init();
     crate::types::state::init(config);
 
-    let monitoring_interval = Duration::from_secs(get_state_value!(events_per_interval).interval as u64);
+    let monitoring_interval = Duration::from_secs(15);
 
     let chain_configs = vec![
         ChainConfig {
-            chain_name: ChainName::Ethereum,
-            rpc_providers: RpcServices::EthMainnet(Some(vec![EthMainnetService::PublicNode])),
+            chain_id: ETHEREUM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(ETHEREUM_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
-            chain_name: ChainName::Base,
-            rpc_providers: RpcServices::BaseMainnet(Some(vec![L2MainnetService::PublicNode])),
+            chain_id: BASE_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(BASE_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
-            chain_name: ChainName::Optimism,
-            rpc_providers: RpcServices::OptimismMainnet(Some(vec![L2MainnetService::PublicNode])),
+            chain_id: OPTIMISM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(OPTIMISM_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
         ChainConfig {
-            chain_name: ChainName::Polygon,
-            rpc_providers: RpcServices::Custom {
-                chainId: 137,
-                services: vec![RpcApi {
-                    url: "https://polygon-rpc.com".to_string(),
-                    headers: None,
-                }],
-            },
+            chain_id: POLYGON_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
     ];
@@ -99,64 +93,6 @@ fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) -> Arc
     service
 }
 
-// Candid methods
-
-// register subscription by specified filter(adresses and topics)
-#[update(name = "subscribe")]
-#[candid_method(update)]
-async fn subscribe(
-    registration: SubscriptionRegistration,
-) -> RegisterSubscriptionResult {
-    subscription_manager::register_subscription(registration).await
-}
-
-// unsubscribe from subcription with specified ID
-#[update(name = "unsubscribe")]
-#[candid_method(update)]
-async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
-    subscription_manager::unsubscribe(ic_cdk::caller(), subscription_id)
-}
-
-// get all subscriptions assigned to the user
-#[query(name = "get_user_subscriptions")]
-#[candid_method(query)]
-fn get_user_subscriptions() -> Vec<SubscriptionInfo> {
-    subscription_manager::queries::get_user_subscriptions(ic_cdk::caller())
-}
-
-// generally for testing purpose
-
-// get all evm-logs-canister filters info.
-#[query(name = "get_active_filters")]
-#[candid_method(query)]
-fn get_active_filters() -> Vec<evm_logs_types::Filter> {
-    subscription_manager::queries::get_active_filters()
-}
-
-// get all evm-logs-canister addresses and topics which are being monitored. Must be unique
-// #[query(name = "get_active_addresses_and_topics")]
-// #[candid_method(query)]
-// fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
-//     subscription_manager::queries::get_active_addresses_and_topics()
-// }
-
-// get all evm-logs-canister subscriptions info
-#[query(name = "get_subscriptions")]
-#[candid_method(query)]
-fn get_subscriptions(
-    namespace: Option<String>,
-    from_id: Option<Nat>,
-    filters: Option<Vec<Filter>>,
-) -> Vec<SubscriptionInfo> {
-    subscription_manager::queries::get_subscriptions_info(namespace, from_id, filters)
-}
-
-// only testing purpose
-#[update(name = "publish_events")]
-#[candid_method(update)]
-async fn icrc72_publish(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
-    subscription_manager::events_publisher::publish_events(events).await
-}
 
 #[query]
 fn get_candid_pointer() -> String {

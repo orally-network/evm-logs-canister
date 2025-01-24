@@ -1,18 +1,18 @@
 use crate::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER};
 use candid::Nat;
 use candid::Principal;
-use evm_logs_types::{Filter, SubscriptionInfo, ChainName};
+use evm_logs_types::{Filter, SubscriptionInfo};
 
 pub fn get_subscriptions_info(
-    namespace: Option<String>,
+    chain_id: Option<u32>,
     from_id: Option<Nat>,
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
     let mut subs_vec =
         SUBSCRIPTIONS.with(|subs| subs.borrow().values().cloned().collect::<Vec<_>>());
 
-    if let Some(ns) = namespace {
-        subs_vec.retain(|sub| sub.namespace == ns);
+    if let Some(ns) = chain_id {
+        subs_vec.retain(|sub| sub.chain_id == ns);
     }
 
     if let Some(prev_id) = from_id {
@@ -45,10 +45,10 @@ pub fn get_active_filters() -> Vec<Filter> {
 }
 
 // Get unique addresses and topics to pass to eth_getLogs.
-pub fn get_active_addresses_and_topics(chain: ChainName) -> (Vec<String>, Option<Vec<Vec<String>>>) {
+pub fn get_active_addresses_and_topics(chain_id: u32) -> (Vec<String>, Option<Vec<Vec<String>>>) {
     TOPICS_MANAGER.with(|manager| {
         let manager = manager.borrow();
-        manager.get_active_addresses_and_topics(chain)
+        manager.get_active_addresses_and_topics(chain_id)
     })
 }
 

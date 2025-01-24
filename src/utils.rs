@@ -1,7 +1,9 @@
 use candid::Nat;
 use ic_cdk::api::time;
+use metrics::cycles_count;
 use num_traits::ToPrimitive;
 use std::cell::RefCell;
+use evm_rpc_canister_types::{EthMainnetService, L2MainnetService, RpcApi, RpcConfig, ConsensusStrategy};
 
 use evm_logs_types::{Event, Filter};
 use evm_rpc_canister_types::{
@@ -29,7 +31,7 @@ thread_local! {
 pub fn current_timestamp() -> u64 {
     time()
 }
-
+#[cycles_count]
 pub async fn get_latest_block_number(
     evm_rpc: &EvmRpcCanister,
     rpc_providers: RpcServices,
@@ -38,8 +40,17 @@ pub async fn get_latest_block_number(
 
     let block_tag = BlockTag::Latest;
 
+    let rpc_config = RpcConfig {
+        responseSizeEstimate: None,
+        // response_consensus: Some(ConsensusStrategy::Threshold { 
+        //     total: None,
+        //     min: 1, 
+        // })
+        response_consensus: None,
+    };
+
     let (result,) = evm_rpc
-        .eth_get_block_by_number(rpc_providers.clone(), None, block_tag, cycles)
+        .eth_get_block_by_number(rpc_providers.clone(), Some(rpc_config), block_tag, cycles)
         .await
         .map_err(|e| format!("Call failed: {:?}", e))?;
 
@@ -61,6 +72,47 @@ pub async fn get_latest_block_number(
     }
 }
 
+pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
+    let rpc_providers;
+    match chain {
+        1 => {
+            rpc_providers = RpcServices::EthMainnet(Some(
+                vec![
+                    EthMainnetService::PublicNode,
+                ]
+            ));
+        }
+        8453 => {
+            rpc_providers = RpcServices::BaseMainnet(Some(
+                vec![
+                    L2MainnetService::PublicNode,
+                ]
+            ));
+        }
+        10 => {
+            rpc_providers = RpcServices::OptimismMainnet(Some(
+                vec![
+                    L2MainnetService::PublicNode,
+                ]
+            ));
+        }
+        137 => {
+            rpc_providers = RpcServices::Custom {
+                chainId: 137,
+                services: vec![
+                    RpcApi {
+                        url: "https://polygon-rpc.com".to_string(),
+                        headers: None,
+                    },
+                ],
+            };
+        }
+        _ => unreachable!(),
+    }
+    rpc_providers
+}
+
+// TODO move to another module
 // Function to check if the event matches the subscriber's filter
 pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool {
     let event_address = event.address.trim().to_lowercase();
@@ -116,7 +168,7 @@ mod tests {
             id: Nat::from(1u8),
             prev_id: None,
             timestamp: 0,
-            namespace: "namespace".to_string(),
+            chain_id: 1,
             data: Value::Text("test".to_string()),
             headers: None,
             address: address.to_string(),

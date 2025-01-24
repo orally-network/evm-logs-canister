@@ -1,4 +1,5 @@
 
+use crate::types::balances::Balances;
 use crate::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::{
     utils::{current_timestamp, event_matches_filter},
@@ -10,7 +11,7 @@ use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationRes
 use ic_cdk;
 use ic_cdk::api::call::call;
 
-// TODO rework return type ?
+// TODO rework return type
 pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
     let mut results = Vec::new();
 
@@ -44,16 +45,24 @@ async fn distribute_event(event: Event) {
     let subscriptions = SUBSCRIPTIONS.with(|subs| {
         subs.borrow()
             .values()
-            .filter(|sub| sub.namespace == event.namespace)
+            .filter(|sub| sub.chain_id == event.chain_id)
             .cloned()
             .collect::<Vec<_>>()
     });
+    let cycles_for_event_send = Nat::from(10_000u32); // TODO
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
         let filter = &sub.filter;
         // Check if the event matches the subscriber's filter
         if event_matches_filter(&event, filter) {
+            
+            let subscriber_principal = sub.subscriber_principal;
+            
+            if Balances::is_sufficient(subscriber_principal, cycles_for_event_send.clone()).unwrap() {
+                Balances::reduce(&subscriber_principal, cycles_for_event_send.clone()).unwrap();
+            }
+
             // Generate a unique notification ID
             let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
                 let mut id = id.borrow_mut();
@@ -68,7 +77,7 @@ async fn distribute_event(event: Event) {
                 event_id: event.id.clone(),
                 event_prev_id: event.prev_id.clone(),
                 timestamp: current_timestamp(),
-                namespace: event.namespace.clone(),
+                chain_id: event.chain_id.clone(),
                 data: event.data.clone(),
                 tx_hash: event.tx_hash.clone(),
                 headers: event.headers.clone(),

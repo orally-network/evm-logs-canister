@@ -29,12 +29,12 @@ pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration)
 
 impl ChainService {
     pub async fn logs_fetching_and_processing_task(&self) {
-        let (addresses, topics) = queries::get_active_addresses_and_topics(self.config.chain_name.clone());
+        let (addresses, topics) = queries::get_active_addresses_and_topics(self.config.chain_id.clone());
 
         if addresses.is_empty() && topics.is_none() {
             log!(
-                "{:?} : No active filters to monitor. No fetching",
-                self.config.chain_name
+                "Chain {:?} : No active filters to monitor. No fetching",
+                self.config.chain_id
             );
             return;
         }
@@ -49,14 +49,14 @@ impl ChainService {
                     log!(
                         "Initialized last_processed_block to {} for {:?}",
                         latest_block_number,
-                        self.config.chain_name
+                        self.config.chain_id
                     );
                     return;
                 }
                 Err(err) => {
                     log!(
                         "Failed to initialize last_processed_block for {:?}: {}",
-                        self.config.chain_name,
+                        self.config.chain_id,
                         err,
                     );
                     return;
@@ -68,7 +68,7 @@ impl ChainService {
 
         log!(
             "{:?}: Fetching logs from block {} to latest",
-            self.config.chain_name,
+            self.config.chain_id,
             from_block
         );
 
@@ -98,7 +98,7 @@ impl ChainService {
 
                     let log_strings: Vec<String> = logs
                         .iter()
-                        .map(|log| convert_log_to_string(&self.config.chain_name, log))
+                        .map(|log| convert_log_to_string(&self.config.chain_id, log))
                         .collect();
                     print_logs(&log_strings);
 
@@ -109,7 +109,7 @@ impl ChainService {
                     *self.last_processed_block.borrow_mut() = from_block;
                     log!(
                         "{:?}: No new logs found. Advancing to block {}",
-                        self.config.chain_name,
+                        self.config.chain_id,
                         from_block
                     );
                 }
@@ -117,7 +117,7 @@ impl ChainService {
             Err(e) => {
                 log!(
                     "Error during logs extraction for {:?}: {}",
-                    self.config.chain_name,
+                    self.config.chain_id,
                     e
                 );
             }

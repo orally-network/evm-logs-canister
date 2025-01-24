@@ -1,7 +1,7 @@
 [workspace]
 members = [
     ".",
-    "evm_logs_types",
+    "evm_logs_types", "metrics",
     "src/canister_testing/test_canister1",
     "src/canister_testing/test_canister2",
     "src/proxy",
@@ -23,11 +23,15 @@ ic-cdk-timers = "0.3"
 ic-cdk-macros = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-evm-rpc-canister-types = { git = "https://github.com/malteish/ReTransICP.git", branch = "fix/blockType" }
+evm-rpc-canister-types = { git = "https://github.com/AlexEmets/ReTransICP.git", branch = "types-fix" }
 evm_logs_types = {path = "evm_logs_types"}
+metrics = { path = "metrics" }
 tokio = "1.40.0"
 num-traits = "0.2"
 futures = "0.3.31"
+thiserror = "2.0.11"
+quote = "1.0.38"
+syn = "2.0.96"
 
 [dev-dependencies]
 pocket-ic = "4.0.0"

@@ -7,7 +7,7 @@ type Event = record {
   id : nat;
   prev_id : opt nat;
   timestamp : nat64;
-  namespace : text;
+  chain_id : nat32;
   data : Value;
   headers : opt vec Map;
 };
@@ -17,7 +17,7 @@ type EventNotification = record {
   event_id : nat;
   event_prev_id : opt nat;
   timestamp : nat64;
-  namespace : text;
+  chain_id : nat32;
   data : Value;
   topics: opt vec text;
   tx_hash: text;
@@ -90,7 +90,7 @@ type RegisterSubscriptionResult = variant {
 type SubscriptionInfo = record {
   subscription_id : nat;
   subscriber_principal : principal;
-  namespace : text;
+  chain_id : nat32;
   filter : Filter;
   stats : vec Map;
 };

@@ -1,10 +1,9 @@
-use evm_logs_types::ChainName;
 use evm_rpc_canister_types::LogEntry;
 
 const MAX_RESPONSE_BYTES: u32 = 1_000_000;
 const EVM_EVENT_SIZE_BYTES: u32 = 800;
 
-pub fn convert_log_to_string(chain_name: &ChainName, log: &LogEntry) -> String {
+pub fn convert_log_to_string(chain_name: &u32, log: &LogEntry) -> String {
     format!(
         "Chain: {:?}, Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
         chain_name,

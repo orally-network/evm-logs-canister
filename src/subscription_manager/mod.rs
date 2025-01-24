@@ -2,13 +2,12 @@ use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{
     RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
-    SubscriptionRegistration, UnsubscribeResult, ChainName,
+    SubscriptionRegistration, UnsubscribeResult,
 };
 use crate::log;
 
 pub mod events_publisher;
 pub mod queries;
-pub mod state;
 
 use crate::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER, NEXT_SUBSCRIPTION_ID};
 
@@ -43,13 +42,7 @@ pub async fn register_subscription(
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists);
     }
 
-    let chain = match registration.chain.to_string().parse::<ChainName>() {
-        Ok(parsed_chain) => parsed_chain,
-        Err(e) => {
-            log!("Failed to parse chain name: {}", e);
-            return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InvalidChainName);
-        }
-    };
+    let chain_id = registration.chain_id;
 
     let sub_id = NEXT_SUBSCRIPTION_ID.with(|id| {
         let mut id = id.borrow_mut();
@@ -61,7 +54,7 @@ pub async fn register_subscription(
     let subscription_info = SubscriptionInfo {
         subscription_id: sub_id.clone(),
         subscriber_principal: caller,
-        namespace: registration.chain.clone(),
+        chain_id,
         filter: filter.clone(),
         skip: None,
         stats: vec![],
@@ -80,13 +73,13 @@ pub async fn register_subscription(
 
     TOPICS_MANAGER.with(|manager| {
         let mut manager = manager.borrow_mut();
-        manager.add_filter(chain, &filter);
+        manager.add_filter(chain_id, &filter);
     });
 
     log!(
         "Subscription registered: ID={}, Namespace={}",
         sub_id,
-        registration.chain,
+        registration.chain_id,
     );
 
     RegisterSubscriptionResult::Ok(sub_id)
@@ -101,17 +94,11 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
     if let Some(subscription_info) = subscription_removed {
         let filter = subscription_info.filter;
 
-        let chain = match subscription_info.namespace.parse::<ChainName>() {
-            Ok(parsed_chain) => parsed_chain,
-            Err(_) => {
-                log!("Failed to parse chain name from namespace");
-                return UnsubscribeResult::Err("Invalid namespace in subscription".to_string());
-            }
-        };
+        let chain_id = subscription_info.chain_id;
 
         TOPICS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
-            manager.remove_filter(chain, &filter);
+            manager.remove_filter(chain_id, &filter);
         });
 
         SUBSCRIBERS.with(|subs| {
