@@ -3,7 +3,7 @@ use crate::read_contract::SolidityToken;
 use candid::Principal;
 use evm_logs_types::Filter;
 use evm_logs_types::{EventNotification, RegisterSubscriptionResult, SubscriptionRegistration};
-use ic_cdk::api::call::{call, call_with_payment};
+use ic_cdk::api::call::call_with_payment;
 use crate::log;
 
 // Helper to register a subscription and store the decoder

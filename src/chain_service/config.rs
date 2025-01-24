@@ -1,5 +1,5 @@
 use candid::Principal;
-use evm_rpc_canister_types::RpcServices;
+use evm_rpc_types::RpcServices;
 
 #[derive(Clone)]
 pub struct ChainConfig {
