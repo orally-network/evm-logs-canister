@@ -56,9 +56,9 @@ pub async fn fetch_logs(
 
     let mut futures = vec![];
 
-    for (_i, chunk) in chunks_iter.enumerate() {
+    for chunk in chunks_iter {
         let chunk_vec = chunk.to_vec();
-        let evm_rpc_clone = evm_rpc.clone();
+        let evm_rpc_clone = evm_rpc;
         let rpc_providers_clone = rpc_providers.clone();
         let topics_clone = topics.clone();
         let from_block = from_block.clone();

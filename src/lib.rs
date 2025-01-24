@@ -72,6 +72,16 @@ async fn init(config: types::config::Config) {
             rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
+        ChainConfig {
+            chain_id: ARBITRUM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(ARBITRUM_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+        },
+        ChainConfig {
+            chain_id: BSC_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(BSC_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+        },
     ];
 
     let services: Vec<Arc<ChainService>> = chain_configs

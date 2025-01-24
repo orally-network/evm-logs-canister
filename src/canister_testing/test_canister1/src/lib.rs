@@ -6,7 +6,7 @@ pub mod macros;
 
 use crate::read_contract::SolidityToken;
 
-use candid::{CandidType, Deserialize, Nat, Principal};
+use candid::{CandidType, Deserialize, Principal};
 
 use decoders::{
     chainfusion_deposit_decoder, ethereum_sync_decoder, primex_deposit_decoder,

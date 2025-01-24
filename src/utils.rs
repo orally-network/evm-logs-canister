@@ -3,7 +3,7 @@ use ic_cdk::api::call::call_with_payment128;
 use ic_cdk::api::time;
 use metrics::cycles_count;
 use std::cell::RefCell;
-use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, L2MainnetService, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
+use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
 
 use evm_logs_types::{Event, Filter};
 
@@ -73,19 +73,21 @@ pub async fn get_latest_block_number(
 }
 
 pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
-    let rpc_providers;
     match chain {
         1 => {
-            rpc_providers = RpcServices::EthMainnet(None);
+            RpcServices::EthMainnet(None)
         }
         8453 => {
-            rpc_providers = RpcServices::BaseMainnet(None);
+            RpcServices::BaseMainnet(None)
         }
         10 => {
-            rpc_providers = RpcServices::OptimismMainnet(None)
+            RpcServices::OptimismMainnet(None)
         }
+        42161 => {
+            RpcServices::ArbitrumOne(None)
+        },
         137 => {
-            rpc_providers = RpcServices::Custom {
+            RpcServices::Custom {
                 chain_id: 137,
                 services: vec![
                     RpcApi {
@@ -101,11 +103,29 @@ pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
                         headers: None,
                     },
                 ],
-            };
+            }
+        },
+        56 => {
+            RpcServices::Custom {
+                chain_id: 56,
+                services: vec![
+                    RpcApi {
+                        url: "https://binance.llamarpc.com".to_string(),
+                        headers: None,
+                    },
+                    RpcApi {
+                        url: "https://rpc.ankr.com/bsc".to_string(),
+                        headers: None,
+                    },
+                    RpcApi {
+                        url: "https://bscrpc.com".to_string(),
+                        headers: None,
+                    },
+                ],
+            }
         }
         _ => unreachable!(),
     }
-    rpc_providers
 }
 
 // TODO move to another module

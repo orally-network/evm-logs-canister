@@ -26,7 +26,7 @@ pub fn init(config: Config) {
         let mut state = state.borrow_mut();
         state.evm_rpc_canister = config.evm_rpc_canister;
         state.proxy_canister = config.proxy_canister;
-        state.estimate_events_num = config.estimate_events_num.clone();
+        state.estimate_events_num = config.estimate_events_num;
     });
 }
 

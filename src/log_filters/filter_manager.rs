@@ -12,15 +12,6 @@ struct PerChainData {
     first_position_topics: HashMap<String, Nat>,
 }
 
-impl PerChainData {
-    fn new() -> Self {
-        Self {
-            addresses: HashMap::new(),
-            first_position_topics: HashMap::new(),
-        }
-    }
-}
-
 /// A main FilterManager that stores PerChainData for each `chain_id`.
 pub struct FilterManager {
     chain_data: HashMap<u32, PerChainData>,
@@ -38,7 +29,7 @@ impl FilterManager {
     fn get_chain_data_mut(&mut self, chain_id: u32) -> &mut PerChainData {
         self.chain_data
             .entry(chain_id)
-            .or_insert_with(PerChainData::new)
+            .or_default()
     }
 
     /// Helper: get an immutable reference to PerChainData for a given chain, if it exists.
