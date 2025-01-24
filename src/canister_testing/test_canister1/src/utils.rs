@@ -16,10 +16,9 @@ pub async fn register_subscription_and_map_decoder(
         "Registering subscription with filter: {:?}",
         subscription.filter
     );
-    let this_canister_id = ic_cdk::id();
 
     let result: Result<(RegisterSubscriptionResult,), _> =
-        call_with_payment(canister_id, "subscribe", (subscription, this_canister_id,), 10000000000).await;
+        call_with_payment(canister_id, "subscribe", (subscription,), 10000000000).await;
 
     match result {
         Ok((response,)) => match response {
@@ -55,6 +54,7 @@ pub fn create_base_swaps_config() -> SubscriptionRegistration {
         chain_id: 8453,
         filter,
         memo: None,
+        canister_to_top_up: ic_cdk::id(),
     }
 }
 
@@ -72,6 +72,7 @@ pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
         chain_id: 1,
         filter,
         memo: None,
+        canister_to_top_up: ic_cdk::id(),
     }
 }
 
@@ -89,6 +90,7 @@ pub fn create_primex_deposit_config() -> SubscriptionRegistration {
         chain_id: 137,
         filter,
         memo: None,
+        canister_to_top_up: ic_cdk::id(),
     }
 }
 
@@ -104,6 +106,7 @@ pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
         chain_id: 1,
         filter,
         memo: None,
+        canister_to_top_up: ic_cdk::id(),
     }
 }
 
@@ -120,6 +123,7 @@ pub fn create_curve_token_exchange_config() -> SubscriptionRegistration {
         chain_id: 137,
         filter,
         memo: None,
+        canister_to_top_up: ic_cdk::id(),
     }
 }
 /// Extracts and decodes the event data bytes from the notification.

@@ -14,13 +14,12 @@ use crate::types::balances::Balances;
 #[candid_method(update)]
 pub async fn subscribe(
     registration: SubscriptionRegistration,
-    canister_to_top_up: Principal,
 ) -> RegisterSubscriptionResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
 
-    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, canister_to_top_up.to_text());
+    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, registration.canister_to_top_up.to_text());
 
-    if let Err(err) = Balances::top_up(canister_to_top_up, Nat::from(received_cycles)) {
+    if let Err(err) = Balances::top_up(registration.canister_to_top_up, Nat::from(received_cycles)) {
         log!("Failed to top up balance: {}", err);
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
     }
