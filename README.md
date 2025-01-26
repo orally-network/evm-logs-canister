@@ -54,6 +54,21 @@ Notes:
    make local_deploy
    ```
    
+3. **Subscribe to test events:**
+   ```
+   make local_test_canister_subscribe
+   ```
+
+4. **Then you can check logs by subscription:**
+   ```
+   dfx canister call test_canister1 get_decoded_notifications_by_subscription '(<SUB_ID>:nat)'
+   ```
+   
+5. **Get the balance of test canister:**
+   ```
+   dfx canister call evm_logs_canister get_balance '(principal "br5f7-7uaaa-aaaaa-qaaca-cai")'
+   ```
+   
 #### After these steps you can use evm-logs-canister functionality by calling implemented candid methods.
 
 
