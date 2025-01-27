@@ -41,6 +41,8 @@ pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, P
 }
 
 async fn distribute_event(event: Event) {
+    let balance_before = ic_cdk::api::canister_balance();
+
     // Get all subscriptions for the event's namespace
     let subscriptions = SUBSCRIPTIONS.with(|subs| {
         subs.borrow()
@@ -49,7 +51,8 @@ async fn distribute_event(event: Event) {
             .cloned()
             .collect::<Vec<_>>()
     });
-    let cycles_for_event_send = Nat::from(10_000u32); // TODO
+    // this amount is a minimum required for subscriber to have, otherwise event won't be send
+    let estimate_cycles_for_event_send = Nat::from(1_000_000u32);
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
@@ -58,10 +61,6 @@ async fn distribute_event(event: Event) {
         if event_matches_filter(&event, filter) {
             
             let subscriber_principal = sub.subscriber_principal;
-            
-            if Balances::is_sufficient(subscriber_principal, cycles_for_event_send.clone()).unwrap() {
-                Balances::reduce(&subscriber_principal, cycles_for_event_send.clone()).unwrap();
-            }
 
             // Generate a unique notification ID
             let notification_id = NEXT_NOTIFICATION_ID.with(|id| {
@@ -86,8 +85,14 @@ async fn distribute_event(event: Event) {
                 filter: None,
             };
 
+            // Check if the subscriber has sufficient balance
+            if !Balances::is_sufficient(subscriber_principal, estimate_cycles_for_event_send.clone()).unwrap() {
+                log!("Insufficient balance for subscriber: {}", subscriber_principal);
+                continue; // Skip this subscriber and continue with the next ones
+            }
+            
             // Send the notification to the subscriber via proxy canister
-            let call_result: Result<(SendNotificationResult,), _>= call(
+            let call_result: Result<(SendNotificationResult,), _>= call( 
                 get_state_value!(proxy_canister),
                 "send_notification",
                 (sub.subscriber_principal, notification.clone()),
@@ -98,7 +103,15 @@ async fn distribute_event(event: Event) {
             match call_result {
                 Ok((send_result,)) => match send_result {
                     SendNotificationResult::Ok => {
-                        log!("Notification sent successfully. ID: {}", notification_id);
+                        // if notification was succesfully sent - charge this subscriber 
+                        let balance_after = ic_cdk::api::canister_balance();
+                        let cycles_spent = balance_before - balance_after;
+
+                        if Balances::is_sufficient(subscriber_principal, Nat::from(cycles_spent)).unwrap() {
+                            Balances::reduce(&subscriber_principal, Nat::from(cycles_spent)).unwrap();
+                        }
+                        
+                        log!("Notification sent successfully. ID: {}, Charged: {}", notification_id, cycles_spent);
                     }
                     SendNotificationResult::Err(error) => {
                         // Handle application-level error

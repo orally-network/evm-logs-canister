@@ -45,12 +45,11 @@ pub enum DepositError {
 #[derive(Debug, CandidType, Deserialize, Serialize, Default, Clone)]
 pub struct BalanceEntry {
     pub amount: Nat,
-    pub nonces: Vec<Nat>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Default, Clone, Debug)]
 pub struct Balances {
-    pub balances: HashMap<Principal, BalanceEntry>,
+    pub balances: HashMap<Principal, Nat>,
 }
 
 impl Balances {
@@ -58,12 +57,9 @@ impl Balances {
         STATE.with(|state| {
             let mut state = state.borrow_mut();
             let balances = &mut state.user_balances.balances;
-            let entry = balances.entry(caller).or_insert_with(|| BalanceEntry {
-                amount: Nat::from(0u32),
-                nonces: vec![],
-            });
+            let entry = balances.entry(caller).or_insert_with(|| Nat::from(0u32));
 
-            entry.amount += amount.clone();
+            *entry += amount.clone();
             Ok(())
         })
     }
@@ -81,7 +77,7 @@ impl Balances {
                 .get(&address)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
 
-            Ok(balance_entry.amount >= amount)
+            Ok(*balance_entry >= amount)
         })
     }
 
@@ -94,11 +90,11 @@ impl Balances {
                 .get_mut(address)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
 
-            if balance_entry.amount < amount {
+            if *balance_entry < amount {
                 return Err(BalanceError::InsufficientBalance);
             }
 
-            balance_entry.amount -= amount.clone();
+            *balance_entry -= amount.clone();
 
             Ok(())
         })
@@ -112,7 +108,7 @@ impl Balances {
                 .balances
                 .get(principal);
     
-            Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.amount.clone()))
+            Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.clone()))
         })
     }     
 }

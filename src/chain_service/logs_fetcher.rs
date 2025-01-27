@@ -22,7 +22,7 @@ fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
         if Balances::is_sufficient(subscriber_principal, cycles_per_one_address.clone()).unwrap() {
             Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()).unwrap();
         }
-        user_balance.amount -= cycles_per_one_address.clone();
+        *user_balance -= cycles_per_one_address.clone();
 
     }
 
