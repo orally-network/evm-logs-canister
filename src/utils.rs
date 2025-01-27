@@ -83,7 +83,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {
                     total: Some(4),
-                    min: 2,
+                    min: 4,
                 }),
             }),
         },

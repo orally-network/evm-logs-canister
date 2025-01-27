@@ -20,8 +20,7 @@
         "id": {
           "ic": "7hfb6-caaaa-aaaar-qadga-cai"
         }
-      },
-      "init_arg": "(record { nodesInSubnet = 12; consoleFilter = opt variant { HideAll } })"
+      }
     },
     "test_canister1": {
       "type": "custom",
