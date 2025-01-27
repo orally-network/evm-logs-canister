@@ -4,8 +4,9 @@ use ic_cdk::api::time;
 use metrics::cycles_count;
 use std::cell::RefCell;
 use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
-
+use crate::chain_service::ChainConfig;
 use evm_logs_types::{Event, Filter};
+use crate::constants::*;
 
 #[macro_export]
 macro_rules! get_state_value {
@@ -72,6 +73,84 @@ pub async fn get_latest_block_number(
     }
 }
 
+pub fn generate_chain_configs() -> Vec<ChainConfig> {
+    vec![
+        ChainConfig {
+            chain_id: ETHEREUM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(ETHEREUM_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            rpc_config: Some(RpcConfig {
+                response_size_estimate: None,
+                response_consensus: Some(ConsensusStrategy::Threshold {
+                    total: Some(4),
+                    min: 2,
+                }),
+            }),
+        },
+        ChainConfig {
+            chain_id: BASE_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(BASE_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            rpc_config: Some(RpcConfig {
+                response_size_estimate: None,
+                response_consensus: Some(ConsensusStrategy::Threshold {
+                    total: Some(4),
+                    min: 2,
+                }),
+            }),
+        },
+        ChainConfig {
+            chain_id: OPTIMISM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(OPTIMISM_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            rpc_config: Some(RpcConfig {
+                response_size_estimate: None,
+                response_consensus: Some(ConsensusStrategy::Threshold {
+                    total: Some(4),
+                    min: 2,
+                }),
+            }),
+        },
+        ChainConfig {
+            chain_id: POLYGON_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            rpc_config: Some(RpcConfig {
+                response_size_estimate: None,
+                response_consensus: Some(ConsensusStrategy::Threshold {
+                    total: Some(3),
+                    min: 2,
+                }),
+            }),
+        },
+        ChainConfig {
+            chain_id: ARBITRUM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(ARBITRUM_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            rpc_config: Some(RpcConfig {
+                response_size_estimate: None,
+                response_consensus: Some(ConsensusStrategy::Threshold {
+                    total: Some(3),
+                    min: 2,
+                }),
+            }),
+        },
+        ChainConfig {
+            chain_id: BSC_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(BSC_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            rpc_config: Some(RpcConfig {
+                response_size_estimate: None,
+                response_consensus: Some(ConsensusStrategy::Threshold {
+                    total: Some(3),
+                    min: 2,
+                }),
+            }),
+        },
+    ]
+}
+
+
 pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
     match chain {
         1 => {
@@ -127,6 +206,7 @@ pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
         _ => unreachable!(),
     }
 }
+
 
 // TODO move to another module
 // Function to check if the event matches the subscriber's filter

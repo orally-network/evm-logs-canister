@@ -13,7 +13,6 @@ use ic_cdk_macros::*;
 use candid::Nat;
 use chain_service::{service::ChainService, ChainConfig};
 use ic_cdk_macros::query;
-use utils::get_rpc_providers_for_chain;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;
@@ -21,11 +20,12 @@ use crate::types::state::State;
 use evm_logs_types::*;
 
 use crate::log_filters::filter_manager::FilterManager;
+use crate::utils::generate_chain_configs;
+
 use candid::Principal;
 use std::collections::HashMap;
 
 use evm_logs_types::{Event, SubscriptionInfo};
-use constants::*;
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -50,38 +50,7 @@ async fn init(config: types::config::Config) {
 
     let monitoring_interval = Duration::from_secs(15);
 
-    let chain_configs = vec![
-        ChainConfig {
-            chain_id: ETHEREUM_CHAIN_ID,
-            rpc_providers: get_rpc_providers_for_chain(ETHEREUM_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
-        },
-        ChainConfig {
-            chain_id: BASE_CHAIN_ID,
-            rpc_providers: get_rpc_providers_for_chain(BASE_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
-        },
-        ChainConfig {
-            chain_id: OPTIMISM_CHAIN_ID,
-            rpc_providers: get_rpc_providers_for_chain(OPTIMISM_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
-        },
-        ChainConfig {
-            chain_id: POLYGON_CHAIN_ID,
-            rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
-        },
-        ChainConfig {
-            chain_id: ARBITRUM_CHAIN_ID,
-            rpc_providers: get_rpc_providers_for_chain(ARBITRUM_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
-        },
-        ChainConfig {
-            chain_id: BSC_CHAIN_ID,
-            rpc_providers: get_rpc_providers_for_chain(BSC_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
-        },
-    ];
+    let chain_configs = generate_chain_configs();
 
     let services: Vec<Arc<ChainService>> = chain_configs
         .into_iter()
