@@ -136,4 +136,5 @@ service : {
   get_notifications: () -> (vec EventNotification) query;
   get_subscriptions: (principal) -> (vec SubscriptionInfo);
   get_decoded_notifications: () -> (vec DecodedNotification) query;
+  get_decoded_notifications_by_subscription: (nat) -> (vec DecodedNotification) query;
 }

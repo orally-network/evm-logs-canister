@@ -41,7 +41,6 @@ thread_local! {
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
     pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::new());
-
 }
 
 #[init]
@@ -70,6 +69,16 @@ async fn init(config: types::config::Config) {
         ChainConfig {
             chain_id: POLYGON_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+        },
+        ChainConfig {
+            chain_id: ARBITRUM_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(ARBITRUM_CHAIN_ID),
+            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+        },
+        ChainConfig {
+            chain_id: BSC_CHAIN_ID,
+            rpc_providers: get_rpc_providers_for_chain(BSC_CHAIN_ID),
             evm_rpc_canister: get_state_value!(evm_rpc_canister),
         },
     ];

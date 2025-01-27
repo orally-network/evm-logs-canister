@@ -77,7 +77,7 @@ async fn distribute_event(event: Event) {
                 event_id: event.id.clone(),
                 event_prev_id: event.prev_id.clone(),
                 timestamp: current_timestamp(),
-                chain_id: event.chain_id.clone(),
+                chain_id: event.chain_id,
                 data: event.data.clone(),
                 tx_hash: event.tx_hash.clone(),
                 headers: event.headers.clone(),

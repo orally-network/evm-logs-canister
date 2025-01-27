@@ -6,7 +6,7 @@ pub mod macros;
 
 use crate::read_contract::SolidityToken;
 
-use candid::{CandidType, Deserialize, Nat, Principal};
+use candid::{CandidType, Deserialize, Principal};
 
 use decoders::{
     chainfusion_deposit_decoder, ethereum_sync_decoder, primex_deposit_decoder,
@@ -113,6 +113,21 @@ fn get_decoded_notifications() -> Vec<DecodedNotification> {
         decoded
             .borrow()
             .iter()
+            .map(|(notif, toks)| DecodedNotification {
+                notification: notif.clone(),
+                tokens: toks.clone(),
+            })
+            .collect()
+    })
+}
+
+#[query]
+fn get_decoded_notifications_by_subscription(subscription_id: candid::Nat) -> Vec<DecodedNotification> {
+    DECODED_NOTIFICATIONS.with(|decoded| {
+        decoded
+            .borrow()
+            .iter()
+            .filter(|(notif, _)| notif.sub_id == subscription_id)
             .map(|(notif, toks)| DecodedNotification {
                 notification: notif.clone(),
                 tokens: toks.clone(),

@@ -11,7 +11,6 @@ use super::events_processor::process_events;
 use super::logs_fetcher::fetch_logs;
 use super::service::ChainService;
 use std::time::Duration;
-use candid::Nat;
 
 pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration) {
     let service_clone = Arc::clone(&service);
@@ -28,7 +27,7 @@ pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration)
 
 impl ChainService {
     pub async fn logs_fetching_and_processing_task(&self) {
-        let (addresses, topics) = queries::get_active_addresses_and_topics(self.config.chain_id.clone());
+        let (addresses, topics) = queries::get_active_addresses_and_topics(self.config.chain_id);
 
         if addresses.is_empty() && topics.is_none() {
             log!(
@@ -40,7 +39,7 @@ impl ChainService {
 
         let last_processed_block = self.last_processed_block.borrow().clone();
 
-        if last_processed_block == Nat::from(0u32) {
+        if last_processed_block == 0u32 {
             // Initialize last_processed_block
             match get_latest_block_number(self.config.rpc_providers.clone()).await {
                 Ok(latest_block_number) => {
@@ -63,7 +62,7 @@ impl ChainService {
             }
         }
 
-        let from_block = Nat::from(last_processed_block.clone() + 1u32);
+        let from_block = last_processed_block.clone() + 1u32;
 
         log!(
             "{:?}: Fetching logs from block {} to latest",

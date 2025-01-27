@@ -29,12 +29,16 @@ local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
 			estimate_events_num = 5:nat32; \
 		})" evm_logs_canister \
 
+local_test_canister_subscribe:
+	$(eval EVM_LOGS_CANISTER := $(shell dfx canister id evm_logs_canister))
+	dfx canister call test_canister1 subscribe '(principal "${EVM_LOGS_CANISTER}")'
+
 local_upgrade:
 	dfx build evm_logs_canister 
 	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
 	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz evm_logs_canister
 
-	dfx build test_canister1 
+	dfx build test_canister1
 	gzip -f -1 ./.dfx/local/canisters/test_canister1/test_canister1.wasm
 	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/test_canister1/test_canister1.wasm.gz test_canister1
 

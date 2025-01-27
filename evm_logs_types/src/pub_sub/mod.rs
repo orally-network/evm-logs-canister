@@ -74,6 +74,7 @@ pub struct SubscriptionRegistration {
     pub chain_id: u32,
     pub filter: Filter,
     pub memo: Option<Vec<u8>>, // Blob
+    pub canister_to_top_up: Principal,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

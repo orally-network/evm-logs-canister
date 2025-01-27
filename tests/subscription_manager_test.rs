@@ -97,6 +97,7 @@ async fn test_event_publishing_and_notification_delivery() {
             topics: None,
         },
         memo: None,
+        canister_to_top_up: subscriber_canister_id,
     };
 
     let register_subscription_result = pic

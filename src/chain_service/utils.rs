@@ -1,28 +1,6 @@
-use evm_rpc_types::LogEntry;
 
 const MAX_RESPONSE_BYTES: u32 = 1_000_000;
 const EVM_EVENT_SIZE_BYTES: u32 = 800;
-
-// pub fn convert_log_to_string(chain_name: &u32, log: &LogEntry) -> String {
-//     format!(
-//         "Chain: {:?}, Address: {}, TxHash: {:?}, Block: {:?}, Topics: {:?}, Data: {}",
-//         chain_name,
-//         log.address,
-//         log.transaction_hash,
-//         log.block_number
-//             .as_ref()
-//             .map(|n| n.0.clone())
-//             .unwrap_or_default(),
-//         log.topics,
-//         log.data
-//     )
-// }
-
-pub fn print_logs(logs: &Vec<String>) {
-    for log in logs {
-        crate::log!("Log: {:?}", log);
-    }
-}
 
 pub fn calculate_request_chunk_size(events_num_per_interval: u32, addresses_num: u32) -> usize {
     if addresses_num == 0 {
