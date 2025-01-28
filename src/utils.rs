@@ -73,11 +73,14 @@ pub async fn get_latest_block_number(
 }
 
 pub fn generate_chain_configs() -> Vec<ChainConfig> {
+    
+    let evm_rpc_canister = get_state_value!(evm_rpc_canister);
+
     vec![
         ChainConfig {
             chain_id: ETHEREUM_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(ETHEREUM_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {
@@ -89,7 +92,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         ChainConfig {
             chain_id: BASE_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(BASE_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {
@@ -101,7 +104,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         ChainConfig {
             chain_id: OPTIMISM_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(OPTIMISM_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {
@@ -113,7 +116,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         ChainConfig {
             chain_id: POLYGON_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(POLYGON_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {
@@ -125,7 +128,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         ChainConfig {
             chain_id: ARBITRUM_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(ARBITRUM_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {
@@ -137,7 +140,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         ChainConfig {
             chain_id: BSC_CHAIN_ID,
             rpc_providers: get_rpc_providers_for_chain(BSC_CHAIN_ID),
-            evm_rpc_canister: get_state_value!(evm_rpc_canister),
+            evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: None,
                 response_consensus: Some(ConsensusStrategy::Threshold {

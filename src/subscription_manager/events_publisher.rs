@@ -1,6 +1,6 @@
 
 use crate::types::balances::Balances;
-use crate::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
+use crate::{NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::{
     utils::current_timestamp,
     log, get_state_value
@@ -12,23 +12,7 @@ use ic_cdk;
 use ic_cdk::api::call::call;
 
 pub async fn publish_events(events: Vec<Event>) {
-    for mut event in events {
-        // Generate a unique event ID
-        let event_id = NEXT_EVENT_ID.with(|id| {
-            let mut id = id.borrow_mut();
-            let current_id = id.clone();
-            *id += Nat::from(1u32);
-            current_id
-        });
-
-        // Update event data with the new event ID and current timestamp
-        event.id = event_id.clone();
-        event.timestamp = current_timestamp();
-
-        EVENTS.with(|evs| {
-            evs.borrow_mut().insert(event_id.clone(), event.clone());
-        });
-
+    for event in events {
         // all errors are being handled there individually for each event
         distribute_event(event).await;
     }
@@ -66,7 +50,7 @@ async fn distribute_event(event: Event) {
 
             let notification = EventNotification {
                 sub_id: sub.subscription_id.clone(),
-                event_id: event.id.clone(),
+                event_id: notification_id.clone(),
                 event_prev_id: event.prev_id.clone(),
                 timestamp: current_timestamp(),
                 chain_id: event.chain_id,

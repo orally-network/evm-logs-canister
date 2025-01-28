@@ -71,8 +71,7 @@ impl ChainService {
         );
 
         match fetch_logs(
-            self.evm_rpc_canister,
-            &self.config.rpc_providers,
+            &self.config,
             from_block.clone(),
             Some(addresses),
             topics,

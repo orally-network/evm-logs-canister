@@ -1,11 +1,11 @@
-use candid::{Nat, Principal};
+use candid::Nat;
 use evm_rpc_types::{
-    BlockTag, ConsensusStrategy, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, RpcConfig, RpcServices, RpcResult, Nat256
+    BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, RpcResult, Nat256
 };
 use futures::future::join_all;
 use crate::types::balances::Balances;
 use crate::{get_state_value, log};
-use super::utils::*;
+use super::{utils::*, ChainConfig};
 use ic_cdk::api::call::call_with_payment128;
 use std::str::FromStr;
 
@@ -28,8 +28,7 @@ fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
 }
 
 pub async fn fetch_logs(
-    evm_rpc: Principal,
-    rpc_providers: &RpcServices,
+    chain_config: &ChainConfig,
     from_block: Nat,
     addresses: Option<Vec<String>>,
     topics: Option<Vec<Vec<String>>>,
@@ -39,8 +38,7 @@ pub async fn fetch_logs(
 
     if addresses.is_empty() {
         return eth_get_logs_call_with_retry(
-            evm_rpc,
-            rpc_providers,
+            chain_config,
             from_block.clone(),
             None,
             topics.clone(),
@@ -57,15 +55,12 @@ pub async fn fetch_logs(
 
     for chunk in chunks_iter {
         let chunk_vec = chunk.to_vec();
-        let evm_rpc_clone = evm_rpc;
-        let rpc_providers_clone = rpc_providers.clone();
         let topics_clone = topics.clone();
         let from_block = from_block.clone();
 
         let fut = async move {
             eth_get_logs_call_with_retry(
-                evm_rpc_clone,
-                &rpc_providers_clone,
+                chain_config,
                 from_block.clone(),
                 Some(chunk_vec),
                 topics_clone,
@@ -103,8 +98,7 @@ pub async fn fetch_logs(
 }
 
 async fn eth_get_logs_call_with_retry(
-    evm_rpc: Principal,
-    rpc_providers: &RpcServices,
+    chain_config: &ChainConfig,
     from_block: Nat,
     addresses: Option<Vec<String>>,
     topics: Option<Vec<Vec<String>>>,
@@ -144,13 +138,7 @@ async fn eth_get_logs_call_with_retry(
         topics,
     };
 
-    let rpc_config = RpcConfig {
-        response_size_estimate: None,
-        response_consensus: Some(ConsensusStrategy::Threshold {
-            total: Some(3),
-            min: 1,
-        }),
-    };
+    let rpc_config = chain_config.rpc_config.clone();
 
     let cycles = 10_000_000_000;
     let max_retries = 2; // Set the maximum number of retries
@@ -158,9 +146,9 @@ async fn eth_get_logs_call_with_retry(
     // Retry logic
     for attempt in 1..=max_retries {
         let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
-            evm_rpc,
+            chain_config.evm_rpc_canister,
             "eth_getLogs",
-            (rpc_providers.clone(), Some(rpc_config.clone()), get_logs_args.clone()),
+            (chain_config.rpc_providers.clone(), Some(rpc_config.clone()), get_logs_args.clone()),
             cycles,
         )
         .await;
