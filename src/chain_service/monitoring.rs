@@ -7,7 +7,7 @@ use ic_cdk;
 use ic_cdk_timers::set_timer_interval;
 use std::sync::Arc;
 
-use super::events_processor::process_events;
+use super::events_processor::process_and_publish_events;
 use super::logs_fetcher::fetch_logs;
 use super::service::ChainService;
 use std::time::Duration;
@@ -65,7 +65,7 @@ impl ChainService {
         let from_block = last_processed_block.clone() + 1u32;
 
         log!(
-            "{:?}: Fetching logs from block {} to latest",
+            "Chain {:?}: Fetching logs from block {} to latest",
             self.config.chain_id,
             from_block
         );
@@ -94,16 +94,10 @@ impl ChainService {
                         *self.last_processed_block.borrow()
                     );
 
-                    // let log_strings: Vec<String> = logs
-                    //     .iter()
-                    //     .map(|log| convert_log_to_string(&self.config.chain_id, log))
-                    //     .collect();
-                    // print_logs(&log_strings);
+                    process_and_publish_events(self, logs).await;
 
-                    if let Err(e) = process_events(self, logs).await {
-                        log!("Error processing events: {}", e);
-                    }
-                } else {
+                } 
+                else {
                     *self.last_processed_block.borrow_mut() = from_block.clone();
                     log!(
                         "{:?}: No new logs found. Advancing to block {}",

@@ -2,19 +2,16 @@
 use crate::types::balances::Balances;
 use crate::{EVENTS, NEXT_EVENT_ID, NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
 use crate::{
-    utils::{current_timestamp, event_matches_filter},
+    utils::current_timestamp,
     log, get_state_value
 };
-
+use super::utils::event_matches_filter;
 use candid::Nat;
-use evm_logs_types::{Event, EventNotification, PublishError, SendNotificationResult, SendNotificationError};
+use evm_logs_types::{Event, EventNotification, SendNotificationResult, SendNotificationError};
 use ic_cdk;
 use ic_cdk::api::call::call;
 
-// TODO rework return type
-pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
-    let mut results = Vec::new();
-
+pub async fn publish_events(events: Vec<Event>) {
     for mut event in events {
         // Generate a unique event ID
         let event_id = NEXT_EVENT_ID.with(|id| {
@@ -32,14 +29,12 @@ pub async fn publish_events(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, P
             evs.borrow_mut().insert(event_id.clone(), event.clone());
         });
 
+        // all errors are being handled there individually for each event
         distribute_event(event).await;
-
-        results.push(Some(Ok(vec![event_id])));
     }
-
-    results
 }
 
+// distibute event to corresponding subscribers and handle sending errors
 async fn distribute_event(event: Event) {
     let balance_before = ic_cdk::api::canister_balance();
 
@@ -57,7 +52,6 @@ async fn distribute_event(event: Event) {
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
         let filter = &sub.filter;
-        // Check if the event matches the subscriber's filter
         if event_matches_filter(&event, filter) {
             
             let subscriber_principal = sub.subscriber_principal;
@@ -70,7 +64,6 @@ async fn distribute_event(event: Event) {
                 current_id
             });
 
-            // Create the notification to send
             let notification = EventNotification {
                 sub_id: sub.subscription_id.clone(),
                 event_id: event.id.clone(),
@@ -88,7 +81,7 @@ async fn distribute_event(event: Event) {
             // Check if the subscriber has sufficient balance
             if !Balances::is_sufficient(subscriber_principal, estimate_cycles_for_event_send.clone()).unwrap() {
                 log!("Insufficient balance for subscriber: {}", subscriber_principal);
-                continue; // Skip this subscriber and continue with the next ones
+                continue;
             }
             
             // Send the notification to the subscriber via proxy canister
@@ -117,7 +110,7 @@ async fn distribute_event(event: Event) {
                         // Handle application-level error
                         match error {
                             SendNotificationError::FailedToSend => {
-                                log!("Failed to send notification.");
+                                log!("Failed to send notification to subscriber.");
                             }
                             SendNotificationError::InvalidSubscriber => {
                                 log!("Invalid subscriber principal provided.");
