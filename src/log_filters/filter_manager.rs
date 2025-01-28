@@ -13,17 +13,12 @@ struct PerChainData {
 }
 
 /// A main FilterManager that stores PerChainData for each `chain_id`.
+#[derive(Debug, Default)]
 pub struct FilterManager {
     chain_data: HashMap<u32, PerChainData>,
 }
 
 impl FilterManager {
-    /// Creates a new, empty manager.
-    pub fn new() -> Self {
-        Self {
-            chain_data: HashMap::new(),
-        }
-    }
 
     /// Helper: get (or create if missing) a mutable reference to PerChainData for a given chain.
     fn get_chain_data_mut(&mut self, chain_id: u32) -> &mut PerChainData {
@@ -155,7 +150,7 @@ mod tests {
 
     #[test]
     fn test_add_single_filter_with_first_position_topics() {
-        let mut manager = FilterManager::new();
+        let mut manager = FilterManager::default();
 
         // Create a filter with one address and some topics in the first position
         let filter = make_filter(
@@ -187,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_remove_filter_clears_data() {
-        let mut manager = FilterManager::new();
+        let mut manager = FilterManager::default();
 
         // Create a filter with a single address and a single topic in the first position
         let filter = make_filter("0xAddress2", Some(vec![vec!["TopicX"]]));
@@ -210,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_add_multiple_filters_different_addresses() {
-        let mut manager = FilterManager::new();
+        let mut manager = FilterManager::default();
 
         let filter1 = make_filter("0xAddrA", Some(vec![vec!["T1", "T2"]]));
         let filter2 = make_filter("0xAddrB", Some(vec![vec!["T2", "T3"]]));
@@ -246,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_interleaved() {
-        let mut manager = FilterManager::new();
+        let mut manager = FilterManager::default();
 
         let filter1 = make_filter("0xAddrA", Some(vec![vec!["X"]]));
         let filter2 = make_filter("0xAddrB", Some(vec![vec!["Y"]]));
@@ -289,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_no_filters_for_chain() {
-        let manager = FilterManager::new();
+        let manager = FilterManager::default();
         // chain_id=99 has no filters
         let (addresses, topics) = manager.get_active_addresses_and_topics(99);
         assert!(addresses.is_empty());

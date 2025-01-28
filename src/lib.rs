@@ -1,31 +1,28 @@
-// lib.rs
-
 mod chain_service;
 mod log_filters;
 mod subscription_manager;
-mod utils;
 mod types;
-mod candid_methods;
+mod utils;
 mod constants;
+mod candid_methods;
 
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    sync::Arc,
+    time::Duration,
+};
+
+use candid::{Nat, Principal};
+use chain_service::{service::ChainService, ChainConfig};
+use evm_logs_types::*;
 use ic_cdk_macros::*;
 
-use candid::Nat;
-use chain_service::{service::ChainService, ChainConfig};
-use ic_cdk_macros::query;
-use std::cell::RefCell;
-use std::sync::Arc;
-use std::time::Duration;
-use crate::types::state::State;
-use evm_logs_types::*;
-
-use crate::log_filters::filter_manager::FilterManager;
-use crate::utils::generate_chain_configs;
-
-use candid::Principal;
-use std::collections::HashMap;
-
-use evm_logs_types::{Event, SubscriptionInfo};
+use crate::{
+    log_filters::filter_manager::FilterManager,
+    types::state::{State, init as init_state},
+    utils::generate_chain_configs,
+};
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -36,13 +33,13 @@ thread_local! {
     pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
-    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::new());
+    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
 }
 
 #[init]
 async fn init(config: types::config::Config) {
     subscription_manager::init();
-    crate::types::state::init(config);
+    init_state(config);
 
     let monitoring_interval = Duration::from_secs(15);
 

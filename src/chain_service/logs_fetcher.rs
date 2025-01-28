@@ -148,7 +148,7 @@ async fn eth_get_logs_call_with_retry(
         let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
             chain_config.evm_rpc_canister,
             "eth_getLogs",
-            (chain_config.rpc_providers.clone(), Some(rpc_config.clone()), get_logs_args.clone()),
+            (chain_config.rpc_providers.clone(), rpc_config.clone(), get_logs_args.clone()),
             cycles,
         )
         .await;
