@@ -16,6 +16,8 @@ check_error() {
 build_canisters() {
     echo "Building canisters..."
     cargo build --release --target wasm32-unknown-unknown --package $EVM_LOGS_CANISTER
+    cargo build --release --target wasm32-unknown-unknown --package $TEST_CANISTER
+
     check_error "Build failed"
     echo "Build successful"
 

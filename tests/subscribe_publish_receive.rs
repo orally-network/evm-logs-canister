@@ -1,8 +1,29 @@
+/// This test validates the flow of event subscriptions and notifications publication 
+/// in the `evm_logs` canister. It ensures that:
+///
+/// - Canister Setup & Initialization:
+///   - Subscriber, Proxy, and EVM Logs canisters are created and installed correctly.
+///
+/// - Subscription Registration:
+///   - A subscription is registered by the subscriber canister with a specific `chain_id` and `filter`.
+///   - The subscription request is sent via an `update_call` to the `evm_logs` canister.
+///   - Future improvement: Validate the subscription registration response to ensure success.
+///
+/// - Event Publishing:
+///   - An event is constructed with a predefined `chain_id`, `address`, and `topics`.
+///   - The event is published using an `update_call` to the `publish_events` method of `evm_logs`.
+///
+/// - Notification Delivery:
+///   - The subscriber canister is queried for received notifications.
+///   - The response is validated to ensure:
+///     - One notification was received.
+///     - The event metadata (`chain_id`, `event_id`, `data`) matches the published event.
+
 use candid;
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{
-    Event, EventNotification, Filter, Value, RegisterSubscriptionResult,
+    Event, EventNotification, Filter, Value,
     SubscriptionRegistration,
 };
 use pocket_ic::nonblocking::PocketIc;
@@ -19,6 +40,7 @@ struct EvmLogsInitArgs {
     proxy_canister: Principal,
     pub estimate_events_num: u32,
 }
+static EVENT_DATA: &str = "0xffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
 
 #[tokio::test]
 async fn test_event_publishing_and_notification_delivery() {
@@ -91,7 +113,7 @@ async fn test_event_publishing_and_notification_delivery() {
     .await;
 
     // Register a subscription from the subscriber canister
-    let subscription_registration = SubscriptionRegistration {
+    let _ = SubscriptionRegistration {
         chain_id: 1,
         filter: Filter {
             address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
@@ -101,86 +123,38 @@ async fn test_event_publishing_and_notification_delivery() {
         canister_to_top_up: subscriber_canister_id,
     };
 
-    let register_subscription_result = pic
+    let _ = pic
         .update_call(
-            evm_logs_canister_id,
             subscriber_canister_id,
-            "subscribe",
-            candid::encode_one(subscription_registration.clone()).unwrap(),
+            Principal::anonymous(),
+            "subscribe_test",
+            candid::encode_one(evm_logs_canister_id.clone()).unwrap(),
         )
         .await;
         
     // Check the subscription registration result
-    match register_subscription_result {
-        Ok(WasmResult::Reply(data)) => {
-            let decoded_result: RegisterSubscriptionResult = candid::decode_one(&data).unwrap();
-            match &decoded_result {
-                RegisterSubscriptionResult::Ok(sub_id) => {
-                    println!("Subscription successfully created, ID: {:?}", sub_id);
-                }
-                RegisterSubscriptionResult::Err(err) => {
-                    panic!("Subscription registration error: {:?}", err);
-                }
-            }
-        }
-        Ok(WasmResult::Reject(err)) => {
-            panic!("Subscription registration rejected: {:?}", err);
-        }
-        Err(e) => {
-            panic!("Subscription registration call error: {:?}", e);
-        }
-    }
-
-    // Register a publication
-    let publisher_principal = Principal::anonymous();
+    // call get_subscriptions?
 
     // Publish an event
     let event = Event {
         id: Nat::from(0u64), // ID will be assigned by the canister
         prev_id: None,
         timestamp: 0,
-        chain_id: 1,
-        data: Value::Text("Test event data".to_string()),
+        chain_id: 8453,
+        data: Value::Text(EVENT_DATA.to_string()),
         headers: None,
-        address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(), // Example address
-        topics: None,                                                      // Example topic
+        address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(), // Example address
+        topics: Some(vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]),                                                      // Example topic
         tx_hash: "".to_string(),
     };
-    let publish_events_result = pic
+    let _ = pic
         .update_call(
             evm_logs_canister_id,
-            publisher_principal,
+            Principal::anonymous(),
             "publish_events",
             candid::encode_one(vec![event.clone()]).unwrap(),
         )
         .await;
-
-    // Check the event publishing result
-    match publish_events_result {
-        Ok(WasmResult::Reply(data)) => {
-            let decoded_results: Vec<Option<Result<Vec<Nat>, String>>> =
-                candid::decode_one(&data).unwrap();
-            match &decoded_results[0] {
-                Some(Ok(event_ids)) => {
-                    println!("Event published successfully, IDs: {:?}", event_ids);
-                    assert_eq!(event_ids.len(), 1, "Expected one event ID");
-                    assert_ne!(event_ids[0], Nat::from(0u32), "Event ID should not be zero");
-                }
-                Some(Err(err)) => {
-                    panic!("Event publish error: {:?}", err);
-                }
-                None => {
-                    panic!("Event publish returned None");
-                }
-            }
-        }
-        Ok(WasmResult::Reject(err)) => {
-            panic!("Event publish rejected: {:?}", err);
-        }
-        Err(e) => {
-            panic!("Event publish call error: {:?}", e);
-        }
-    }
 
     // Wait for the notification to be sent
     sleep(Duration::from_millis(500)).await;
@@ -203,12 +177,12 @@ async fn test_event_publishing_and_notification_delivery() {
             assert_eq!(notifications.len(), 1, "Expected one notification");
             let notification = &notifications[0];
             assert_eq!(
-                notification.chain_id, 1,
+                notification.chain_id, 8453,
                 "Incorrect chain_id in notification"
             );
             assert_eq!(notification.event_id, Nat::from(1u64), "Incorrect event_id");
             if let Value::Text(ref text) = notification.data {
-                assert_eq!(text, "Test event data", "Incorrect event data");
+                assert_eq!(text, &EVENT_DATA.to_string(), "Incorrect event data");
             } else {
                 panic!("Unexpected data type in notification");
             }

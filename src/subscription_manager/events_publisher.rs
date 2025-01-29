@@ -31,7 +31,6 @@ async fn distribute_event(event: Event) {
             .cloned()
             .collect::<Vec<_>>()
     });
-    
     // this amount is a minimum required for subscriber to have, otherwise event won't be send
     let estimate_cycles_for_event_send = Nat::from(1_000_000u32);
 
