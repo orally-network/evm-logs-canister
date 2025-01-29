@@ -26,6 +26,7 @@ async fn test_event_publishing_and_notification_delivery() {
 
     // Create the subscriber canister
     let subscriber_canister_id = pic.create_canister().await;
+    ic_cdk::println!("Added cycled for subscriber_id: {:?}", subscriber_canister_id.to_text());
     pic.add_cycles(subscriber_canister_id, 4_000_000_000_000)
         .await;
 
@@ -61,34 +62,34 @@ async fn test_event_publishing_and_notification_delivery() {
     )
     .await;
 
-        // create evm_logs canister
-        let evm_logs_canister_id = pic.create_canister().await;
-        pic.add_cycles(evm_logs_canister_id, 4_000_000_000_000)
-            .await;
-    
-        let evm_logs_wasm_path =
-            std::env::var("EVM_LOGS_CANISTER_PATH").expect("EVM_LOGS_CANISTER_PATH must be set");
-        let evm_logs_wasm_bytes = tokio::fs::read(evm_logs_wasm_path)
-            .await
-            .expect("Failed to read the subscription manager WASM file");
-    
-        let init_args_value = EvmLogsInitArgs {
-            evm_rpc_canister: Principal::from_text("aaaaa-aa").expect("EVM_RPC_CANISTER incorrect principal"),
-            proxy_canister: proxy_canister_id,
-            estimate_events_num: 5, // test
-        };
-        
-        let init_args = candid::encode_args((init_args_value,))
-        .expect("Failed to encode init arguments");
-    
-        pic.install_canister(
-            evm_logs_canister_id,
-            evm_logs_wasm_bytes.to_vec(),
-            init_args,
-            None,
-        )
+    // create evm_logs canister
+    let evm_logs_canister_id = pic.create_canister().await;
+    pic.add_cycles(evm_logs_canister_id, 4_000_000_000_000)
         .await;
+
+    let evm_logs_wasm_path =
+        std::env::var("EVM_LOGS_CANISTER_PATH").expect("EVM_LOGS_CANISTER_PATH must be set");
+    let evm_logs_wasm_bytes = tokio::fs::read(evm_logs_wasm_path)
+        .await
+        .expect("Failed to read the subscription manager WASM file");
+
+    let init_args_value = EvmLogsInitArgs {
+        evm_rpc_canister: Principal::from_text("aaaaa-aa").expect("EVM_RPC_CANISTER incorrect principal"),
+        proxy_canister: proxy_canister_id,
+        estimate_events_num: 5, // test
+    };
     
+    let init_args = candid::encode_args((init_args_value,))
+    .expect("Failed to encode init arguments");
+
+    pic.install_canister(
+        evm_logs_canister_id,
+        evm_logs_wasm_bytes.to_vec(),
+        init_args,
+        None,
+    )
+    .await;
+
     // Register a subscription from the subscriber canister
     let subscription_registration = SubscriptionRegistration {
         chain_id: 1,
@@ -108,7 +109,7 @@ async fn test_event_publishing_and_notification_delivery() {
             candid::encode_one(subscription_registration.clone()).unwrap(),
         )
         .await;
-
+        
     // Check the subscription registration result
     match register_subscription_result {
         Ok(WasmResult::Reply(data)) => {

@@ -20,7 +20,7 @@ pub struct BalanceEntry {
     pub amount: Nat,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(CandidType, Deserialize, Serialize, Default, Clone)]
 pub struct Balances {
     pub balances: HashMap<Principal, Nat>,
 }
@@ -84,4 +84,14 @@ impl Balances {
             Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.clone()))
         })
     }     
+}
+
+
+impl std::fmt::Debug for Balances {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for it in &self.balances {
+            ic_cdk::println!("{:?} : {:?}", it.0.to_text(), it.1);
+        }        
+        Ok(())
+    }
 }
