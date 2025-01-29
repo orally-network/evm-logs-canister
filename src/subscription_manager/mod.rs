@@ -4,13 +4,14 @@ use evm_logs_types::{
     RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
     SubscriptionRegistration, UnsubscribeResult,
 };
+use crate::get_state_value;
 use crate::log;
 
 pub mod events_publisher;
 pub mod queries;
 pub mod utils;
 
-use crate::{SUBSCRIBERS, SUBSCRIPTIONS, TOPICS_MANAGER, NEXT_SUBSCRIPTION_ID};
+use crate::{TOPICS_MANAGER, NEXT_SUBSCRIPTION_ID};
 
 pub fn init() {
     log!("SubscriptionManager initialized");
@@ -19,26 +20,27 @@ pub fn init() {
 pub async fn register_subscription(
     registration: SubscriptionRegistration,
 ) -> RegisterSubscriptionResult {
-    let caller = ic_cdk::caller();
+    let subscriber_principal = registration.canister_to_top_up;
     let filter = registration.filter.clone();
 
-    let is_subscription_exist = SUBSCRIBERS.with(|subs| {
-        subs.borrow().get(&caller).and_then(|sub_ids| {
+    let subscribers = get_state_value!(subscribers);
+    let subscriptions = get_state_value!(subscriptions);
+
+    let is_subscription_exist = subscribers
+        .get(&subscriber_principal)
+        .and_then(|sub_ids| {
             sub_ids.iter().find_map(|sub_id| {
-                SUBSCRIPTIONS.with(|subs| {
-                    subs.borrow()
-                        .get(sub_id)
-                        .filter(|sub_info| sub_info.filter == filter)
-                        .cloned()
-                })
+                subscriptions
+                    .get(sub_id)
+                    .filter(|sub_info| sub_info.filter == filter)
+                    .cloned()
             })
-        })
-    });
+        });
 
     if is_subscription_exist.is_some() {
         log!(
             "Subscription already exists for caller {} with the same filter",
-            caller
+            subscriber_principal
         );
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists);
     }
@@ -54,20 +56,21 @@ pub async fn register_subscription(
 
     let subscription_info = SubscriptionInfo {
         subscription_id: sub_id.clone(),
-        subscriber_principal: caller,
+        subscriber_principal,
         chain_id,
         filter: filter.clone(),
         skip: None,
         stats: vec![],
     };
 
-    SUBSCRIPTIONS.with(|subs| {
-        subs.borrow_mut().insert(sub_id.clone(), subscription_info);
+    // add to subscriptions
+    crate::STATE.with(|subs| {
+        subs.borrow_mut().subscriptions.insert(sub_id.clone(), subscription_info);
     });
 
-    SUBSCRIBERS.with(|subs| {
-        subs.borrow_mut()
-            .entry(caller)
+    // add to subscribers
+    crate::STATE.with(|subs| {
+        subs.borrow_mut().subscribers.entry(subscriber_principal)
             .or_default()
             .push(sub_id.clone());
     });
@@ -87,27 +90,29 @@ pub async fn register_subscription(
 }
 
 pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult {
-    let subscription_removed = SUBSCRIPTIONS.with(|subs| {
-        let mut subs = subs.borrow_mut();
-        subs.remove(&subscription_id)
+    // remove subscription from the state
+    let removed_subscription = crate::STATE.with(|subs| {
+        subs.borrow_mut().subscriptions.remove(&subscription_id)
     });
 
-    if let Some(subscription_info) = subscription_removed {
+    if let Some(subscription_info) = removed_subscription {
         let filter = subscription_info.filter;
 
         let chain_id = subscription_info.chain_id;
 
+        // remove subscription filter from the filter manager
         TOPICS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
             manager.remove_filter(chain_id, &filter);
         });
 
-        SUBSCRIBERS.with(|subs| {
+        // update subscribers state
+        crate::STATE.with(|subs| {
             let mut subs = subs.borrow_mut();
-            if let Some(sub_list) = subs.get_mut(&caller) {
+            if let Some(sub_list) = subs.subscribers.get_mut(&caller) {
                 sub_list.retain(|id| *id != subscription_id);
                 if sub_list.is_empty() {
-                    subs.remove(&caller);
+                    subs.subscribers.remove(&caller);
                 }
             }
         });

@@ -8,7 +8,6 @@ mod candid_methods;
 
 use std::{
     cell::RefCell,
-    collections::HashMap,
     sync::Arc,
     time::Duration,
 };
@@ -26,9 +25,6 @@ use crate::{
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
-
-    pub static SUBSCRIPTIONS: RefCell<HashMap<Nat, SubscriptionInfo>> = RefCell::new(HashMap::new());
-    pub static SUBSCRIBERS: RefCell<HashMap<Principal, Vec<Nat>>> = RefCell::new(HashMap::new());
 
     pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));

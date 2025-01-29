@@ -87,10 +87,10 @@ pub async fn fetch_logs(
         "Cost for logs fetching request: {}",
         balance_before - balance_after
     );
+    
     // after sending request we need to charge cycles for each subscriber accordingly 
     // to amount of their subscribtion addresses(filters)
     // note: later events_publisher will charge cycles accordingly to amount of logs received by each subscriber
-
     charge_subscribers(addresses.len(), cycles_used);
     
     Ok(merged_logs)

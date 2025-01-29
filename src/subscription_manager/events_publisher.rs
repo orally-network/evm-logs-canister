@@ -1,6 +1,6 @@
 
 use crate::types::balances::Balances;
-use crate::{NEXT_NOTIFICATION_ID, SUBSCRIPTIONS};
+use crate::NEXT_NOTIFICATION_ID;
 use crate::{
     utils::current_timestamp,
     log, get_state_value
@@ -22,14 +22,16 @@ pub async fn publish_events(events: Vec<Event>) {
 async fn distribute_event(event: Event) {
     let balance_before = ic_cdk::api::canister_balance();
 
-    // Get all subscriptions for the event's namespace
-    let subscriptions = SUBSCRIPTIONS.with(|subs| {
-        subs.borrow()
+    // Get all subscriptions for the event's chain_id
+    let subscriptions = crate::STATE.with(|state| {
+        let subs = state.borrow();
+        subs.subscriptions
             .values()
             .filter(|sub| sub.chain_id == event.chain_id)
             .cloned()
             .collect::<Vec<_>>()
     });
+    
     // this amount is a minimum required for subscriber to have, otherwise event won't be send
     let estimate_cycles_for_event_send = Nat::from(1_000_000u32);
 

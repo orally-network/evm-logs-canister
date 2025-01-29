@@ -16,6 +16,7 @@ pub struct State {
     pub proxy_canister: Principal,
     pub estimate_events_num: u32,
     pub subscriptions: HashMap<Nat, SubscriptionInfo>,
+    pub subscribers: HashMap<Principal, Vec<Nat>>,
     pub user_balances: Balances,
     pub test: u32,
 }
@@ -38,6 +39,7 @@ impl Default for State {
             proxy_canister: Principal::from_str("aaaaa-aa").expect("Invalid principal"),
             estimate_events_num: 5,
             subscriptions: HashMap::new(),
+            subscribers: HashMap::new(),
             user_balances: Balances::default(),
             test: 0,
         }

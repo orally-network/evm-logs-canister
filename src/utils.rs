@@ -15,6 +15,15 @@ macro_rules! get_state_value {
 }
 
 #[macro_export]
+macro_rules! update_state {
+    ($field:ident, $value:expr) => {{
+        $crate::STATE.with(|state| {
+            state.borrow_mut().$field = $value;
+        })
+    }};
+}
+
+#[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {{
         ic_cdk::println!($($arg)*);
