@@ -160,6 +160,14 @@ async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::Subscr
     }
 }
 
+// These methods will only be used in integration tests. They are not part of the public API.
+// Note: any change of these methods will require changes in the integration tests.
+#[update]
+async fn subscribe_test(evm_logs_canister: Principal) {
+    let base_swaps_filter = create_base_swaps_config();
+    register_subscription_and_map_decoder(evm_logs_canister, base_swaps_filter, swap_event_data_decoder).await;
+}
+
 #[query]
 fn get_candid_pointer() -> String {
     __export_service()

@@ -9,48 +9,20 @@ use candid::{CandidType, Nat, Principal};
 
 #[derive(Error, Debug)]
 pub enum BalanceError {
-    #[error("balance already exists")]
-    BalanceAlreadyExists,
     #[error("balance does not exist")]
     BalanceDoesNotExist,
-    #[error("nonce already used")]
-    NonceAlreadyUsed,
     #[error("insufficient balance")]
     InsufficientBalance,
 }
 
-#[derive(Error, Debug)]
-pub enum DepositError {
-    #[error("balance error: {0}")]
-    BalanceError(#[from] BalanceError),
-    #[error("tx is not finalized")]
-    TxNotFinalized,
-    #[error("tx has failed")]
-    TxFailed,
-    #[error("caller is not tx sender")]
-    CallerIsNotTxSender,
-    #[error("tx without receiver")]
-    TxWithoutReceiver,
-    #[error("caller is not the sender of the transfer")]
-    CallerIsNotTransferSender,
-    #[error("token receiver is not the canister eth address")]
-    TokenReceiverIsNotCanisterEthAddress,
-    #[error("invalid transfer event")]
-    InvalidTransferEvent,
-    #[error("This chain is not allowed for deposit")]
-    ChainNotAllowed,
-}
-
-
 #[derive(Debug, CandidType, Deserialize, Serialize, Default, Clone)]
 pub struct BalanceEntry {
     pub amount: Nat,
-    pub nonces: Vec<Nat>,
 }
 
-#[derive(CandidType, Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(CandidType, Deserialize, Serialize, Default, Clone)]
 pub struct Balances {
-    pub balances: HashMap<Principal, BalanceEntry>,
+    pub balances: HashMap<Principal, Nat>,
 }
 
 impl Balances {
@@ -58,12 +30,9 @@ impl Balances {
         STATE.with(|state| {
             let mut state = state.borrow_mut();
             let balances = &mut state.user_balances.balances;
-            let entry = balances.entry(caller).or_insert_with(|| BalanceEntry {
-                amount: Nat::from(0u32),
-                nonces: vec![],
-            });
+            let entry = balances.entry(caller).or_insert_with(|| Nat::from(0u32));
 
-            entry.amount += amount.clone();
+            *entry += amount.clone();
             Ok(())
         })
     }
@@ -81,7 +50,7 @@ impl Balances {
                 .get(&address)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
 
-            Ok(balance_entry.amount >= amount)
+            Ok(*balance_entry >= amount)
         })
     }
 
@@ -94,11 +63,11 @@ impl Balances {
                 .get_mut(address)
                 .ok_or(BalanceError::BalanceDoesNotExist)?;
 
-            if balance_entry.amount < amount {
+            if *balance_entry < amount {
                 return Err(BalanceError::InsufficientBalance);
             }
 
-            balance_entry.amount -= amount.clone();
+            *balance_entry -= amount.clone();
 
             Ok(())
         })
@@ -112,7 +81,17 @@ impl Balances {
                 .balances
                 .get(principal);
     
-            Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.amount.clone()))
+            Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.clone()))
         })
     }     
+}
+
+
+impl std::fmt::Debug for Balances {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for it in &self.balances {
+            ic_cdk::println!("{:?} : {:?}", it.0.to_text(), it.1);
+        }        
+        Ok(())
+    }
 }

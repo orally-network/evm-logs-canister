@@ -89,6 +89,6 @@ pub fn get_balance(canister_id: Principal) -> Nat {
 // only testing purpose
 #[update(name = "publish_events")]
 #[candid_method(update)]
-pub async fn icrc72_publish(events: Vec<Event>) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
+pub async fn icrc72_publish(events: Vec<Event>) {
     subscription_manager::events_publisher::publish_events(events).await
 }

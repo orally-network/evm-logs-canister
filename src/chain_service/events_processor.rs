@@ -1,14 +1,11 @@
 use super::service::ChainService;
-use crate::{
-    log,
-    subscription_manager::events_publisher::publish_events,
-};
+use crate::subscription_manager::events_publisher::publish_events;
 use candid::Nat;
 use evm_logs_types::{Event, Value};
 use evm_rpc_types::LogEntry;
 use ic_cdk::api::time;
 
-pub async fn process_events(service: &ChainService, logs: Vec<LogEntry>) -> Result<(), String> {
+pub async fn process_and_publish_events(service: &ChainService, logs: Vec<LogEntry>) {
     let events: Vec<Event> = logs
         .iter()
         .enumerate()
@@ -30,23 +27,6 @@ pub async fn process_events(service: &ChainService, logs: Vec<LogEntry>) -> Resu
         })
         .collect();
 
-    let publish_result = publish_events(events).await;
+    publish_events(events).await;
 
-    for opt_result in publish_result {
-        match opt_result {
-            Some(Ok(event_ids)) => {
-                log!(
-                    "Event published and sent to subscribers with Event IDs: {:?}",
-                    event_ids
-                );
-            }
-            Some(Err(error)) => {
-                log!("Failed to publish or send event: {:?}", error);
-            }
-            None => {
-                log!("Event was not published (no result available).");
-            }
-        }
-    }
-    Ok(())
 }
