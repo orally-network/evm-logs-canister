@@ -1,11 +1,18 @@
 use candid::Nat;
 use candid::Principal;
+use evm_logs_types::Filter;
 use evm_logs_types::{
     RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
     SubscriptionRegistration, UnsubscribeResult,
 };
 use crate::get_state_value;
 use crate::log;
+use crate::types::balances::Balances;
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+};
+use crate::State;
 
 pub mod events_publisher;
 pub mod queries;
@@ -124,4 +131,61 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
             subscription_id
         ))
     }
+}
+
+#[test]
+fn test_register_subscription_success() {
+    // Using tokio runtime explicitly because of tokio::test error. TODO fix 
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let registration = SubscriptionRegistration {
+                canister_to_top_up: Principal::anonymous(),
+                chain_id: 1u32,
+                filter: Filter {
+                    address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
+                    topics: Some(vec![vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]]),
+                },
+                memo: None,
+            };
+            let result = register_subscription(registration).await;
+            assert!(matches!(result, RegisterSubscriptionResult::Ok(_)));
+        })
+}
+
+#[test]
+fn test_register_subscription_duplicate_filter() {
+    // Using tokio runtime explicitly because of tokio::test error. TODO fix 
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let registration = SubscriptionRegistration {
+                canister_to_top_up: Principal::anonymous(),
+                chain_id: 1u32,
+                filter: Filter {
+                    address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
+                    topics: Some(vec![vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]]),
+                },
+                memo: None,
+            };
+            let _ = register_subscription(registration.clone()).await;
+            let second_attempt = register_subscription(registration).await;
+            assert!(matches!(second_attempt, RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists)));
+        })
+}
+#[test]
+fn test_unsubscribe_nonexistent() {
+    // Using tokio runtime explicitly because of tokio::test error. TODO fix 
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let result = unsubscribe(Principal::anonymous(), Nat::from(9999u32));
+            assert!(matches!(result, UnsubscribeResult::Err(_)));
+        })
 }
