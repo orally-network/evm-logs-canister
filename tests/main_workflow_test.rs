@@ -2,7 +2,6 @@ use candid::{CandidType, Nat, Principal};
 use evm_logs_types::{Filter, SubscriptionRegistration, SubscriptionInfo};
 use pocket_ic::nonblocking::PocketIc;
 use pocket_ic::WasmResult;
-use rand::{distr::Alphanumeric, Rng};
 use serde::Deserialize;
 
 #[derive(CandidType, Deserialize)]
@@ -23,7 +22,7 @@ struct WalletCall128Args {
 #[tokio::test]
 async fn test_main_worflow_with_bunch_subscribers() {
     let pic = PocketIc::new().await;
-    let num_subscribers = 5;
+    let num_subscribers = 100;
 
     // initialize and install proxy canister
     let proxy_canister_id = pic.create_canister().await;
@@ -48,7 +47,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
     // initialize and install cycles-wallet, for calling evm-logs-canister with payment from different subscribers
     let cycles_wallet_id = pic.create_canister().await;
     pic.add_cycles(cycles_wallet_id, 4_000_000_000_000).await;
-    
+
     let cycles_wallet_wasm_bytes = tokio::fs::read(std::env::var("CYCLES_WALLET_WASM_PATH").unwrap()).await.unwrap();
     pic.install_canister(cycles_wallet_id, cycles_wallet_wasm_bytes, vec![], None).await;
 
@@ -66,7 +65,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
 
     // subscribe on evm-logs-canister from each subscriber with random topic 
     for subscriber_canister_id in subscriber_canisters {
-        let random_topic = format!("0x{}", rand::rng().sample_iter(&Alphanumeric).take(64).map(char::from).collect::<String>());
+        let random_topic = "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string();
 
         let sub_registration = SubscriptionRegistration {
             chain_id: 8453,
