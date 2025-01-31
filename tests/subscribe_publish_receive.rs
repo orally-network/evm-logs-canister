@@ -52,28 +52,6 @@ struct WalletCall128Args {
 
 static EVENT_DATA: &str = "0xffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
 
-
-// 1. Create and install 100 subscriber canisters
-// let mut subscriber_canisters = Vec::new();
-// for i in 0..100 {
-//     let subscriber_canister_id = pic.create_canister().await;
-//     pic.add_cycles(subscriber_canister_id, 4_000_000_000_000).await;
-
-//     // Optionally pass an initialization arg (e.g. which subscriber index)
-//     // so each canister knows it is subscriber #i:
-//     let init_args = candid::encode_args((i,))?;  
-//       // Only if your subscriber canister has an init that takes an integer or something
-
-//     pic.install_canister(
-//         subscriber_canister_id,
-//         subscriber_wasm_bytes.to_vec(),
-//         init_args,
-//         None,
-//     ).await;
-
-//     subscriber_canisters.push(subscriber_canister_id);
-// }
-
 #[tokio::test]
 async fn test_event_publishing_and_notification_delivery() {
     let pic = PocketIc::new().await;

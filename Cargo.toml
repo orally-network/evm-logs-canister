@@ -32,10 +32,10 @@ thiserror = "2.0.11"
 quote = "1.0.38"
 syn = "2.0.96"
 evm_rpc_types = "1.2.0"
+rand = {version = "0.9.0", features = ["std"] }
 
 [dev-dependencies]
 pocket-ic = "6.0.0"
 
 [package.metadata.candid]
 generate = true
-
