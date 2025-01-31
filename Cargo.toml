@@ -34,7 +34,7 @@ syn = "2.0.96"
 evm_rpc_types = "1.2.0"
 
 [dev-dependencies]
-pocket-ic = "4.0.0"
+pocket-ic = "6.0.0"
 
 [package.metadata.candid]
 generate = true

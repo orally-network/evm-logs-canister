@@ -3,6 +3,7 @@ POCKET_IC_BIN := ./pocket-ic
 EVM_LOGS_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/evm_logs_canister.wasm
 TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister1.wasm
 PROXY_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/proxy_canister.wasm
+CYCLES_WALLET_WASM := ./target/wasm32-unknown-unknown/release/wallet.wasm
 .DEFAULT_GOAL: help
 
 local_deploy_evm_rpc:
@@ -14,7 +15,10 @@ local_deploy_proxy:
 local_deploy_test_canister:
 	dfx deploy test_canister1
 
-local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
+local_deploy_cycles_wallet:
+	dfx deploy cycles_wallet
+
+local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister local_deploy_cycles_wallet
 	$(eval MAINNET_RPC_URL?=https://eth.llamarpc.com)
 	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
 	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister))
@@ -64,6 +68,7 @@ test: build ## Run tests
 	fi
 	@EVM_LOGS_CANISTER_PATH=$(EVM_LOGS_CANISTER_WASM) \
 	   TEST_CANISTER_WASM_PATH=$(TEST_CANISTER_WASM) \
+	   CYCLES_WALLET_WASM_PATH=$(CYCLES_WALLET_WASM) \
 	   PROXY_CANISTER_WASM_PATH=$(PROXY_CANISTER_WASM) \
 	   POCKET_IC_BIN=$(POCKET_IC_BIN) \
 	   RUST_BACKTRACE=1 cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture

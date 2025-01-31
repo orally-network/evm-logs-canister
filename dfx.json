@@ -57,6 +57,11 @@
           "value": "src/proxy_canister/proxy_canister.did"
         }
       ]
+    },
+    "cycles_wallet": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.did",
+      "wasm": "https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.wasm"
     }
   },
   "version": 1

@@ -3,6 +3,7 @@
 EVM_LOGS_CANISTER=evm_logs_canister
 TEST_CANISTER=test_canister1
 EVM_RPC_CANISTER=evm-rpc
+CYCLES_CANISTER=cycles_canister
 CANISTER_WASM=target/wasm32-unknown-unknown/release/$(echo $EVM_LOGS_CANISTER | tr '-' '_').wasm
 
 check_error() {
