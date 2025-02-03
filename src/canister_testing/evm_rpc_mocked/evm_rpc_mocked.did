@@ -1,0 +1,81 @@
+type Hex20 = blob;
+type Hex32 = blob;
+type Hex = blob;
+type Nat256 = nat;
+type RpcServices = variant {
+  Provider : nat64;
+  Custom : record { url : text; headers : opt vec record { name : text; value : text } };
+  EthSepolia : opt vec text;
+  EthMainnet : opt vec text;
+  ArbitrumOne : opt vec text;
+  BaseMainnet : opt vec text;
+  OptimismMainnet : opt vec text;
+};
+
+type EthMainnetService = variant {
+  Alchemy;
+  Ankr;
+  BlockPi;
+  Cloudflare;
+  PublicNode;
+  Llama;
+};
+type EthSepoliaService = variant {
+  Alchemy;
+  Ankr;
+  BlockPi;
+  PublicNode;
+  Sepolia;
+};
+type L2MainnetService = variant {
+  Alchemy;
+  Ankr;
+  BlockPi;
+  PublicNode;
+  Llama;
+};
+
+type RpcConfig = record {
+  responseSizeEstimate : opt nat64;
+  responseConsensus : opt record {
+    total : opt nat8;
+    min : nat8;
+  };
+};
+type GetLogsArgs = record {
+  fromBlock : opt variant { Earliest; Safe; Finalized; Latest; Number : nat; Pending };
+  toBlock : opt variant { Earliest; Safe; Finalized; Latest; Number : nat; Pending };
+  addresses : vec text;
+  topics : opt vec vec text;
+};
+
+type MultiGetLogsResult = variant {
+  Consistent : GetLogsResult;
+  Inconsistent : vec record { RpcService; GetLogsResult };
+};
+
+type GetLogsResult = variant { Ok : vec LogEntry; Err : RpcError };
+
+type RpcService = variant {
+  EthSepolia : EthSepoliaService;
+  EthMainnet : EthMainnetService;
+};
+
+type LogEntry = record {
+  transactionHash : opt Hex32;
+  blockNumber : opt Nat256;
+  data : Hex;
+  blockHash : opt Hex32;
+  transactionIndex : opt Nat256;
+  topics : vec Hex32;
+  address : Hex20;
+  logIndex : opt Nat256;
+  removed : bool;
+};
+
+type RpcError = variant {
+
+};
+service : {
+  eth_getLogs : (RpcServices, opt RpcConfig, GetLogsArgs) -> (MultiGetLogsResult);
+}
