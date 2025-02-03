@@ -1,7 +1,7 @@
 [workspace]
 members = [
     ".",
-    "evm_logs_types", "metrics",
+    "evm_logs_types", "metrics", "src/canister_testing/evm_rpc_mocked",
     "src/canister_testing/test_canister1",
     "src/canister_testing/test_canister2",
     "src/proxy",
