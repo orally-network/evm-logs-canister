@@ -25,30 +25,44 @@ pub async fn eth_get_logs(
     _config: Option<RpcConfig>,
     _args: GetLogsArgs,
 ) -> MultiRpcResult<Vec<LogEntry>> {
-    let log_entries = vec![
+    let mut log_entries = vec![
         LogEntry {
-            transaction_hash: Some(Hex32::from([0; 32])),
-            block_number: Some(Nat256::from(1111u32)),
-            data: Hex::from(vec![]),
-            block_hash: Some(Hex32::from([0; 32])),
-            transaction_index: Some(Nat256::from(1u32)),
-            topics: vec![Hex32::from([0; 32])],
             address: Hex20::from([0; 20]),
-            log_index: Some(Nat256::from(0u32)),
+            topics: vec![Hex32::from([0; 32])],
+            transaction_hash: None,
+            block_number: None,
+            data: Hex::from(vec![]),
+            block_hash: None,
+            transaction_index: None,
+            log_index: None,
             removed: false,
         },
         LogEntry {
-            transaction_hash: Some(Hex32::from([0; 32])),
-            block_number: Some(Nat256::from(2222u32)),
-            data: Hex::from(vec![]),
-            block_hash: Some(Hex32::from([0; 32])),
-            transaction_index: Some(Nat256::from(1u32)),
-            topics: vec![Hex32::from([0; 32])],
             address: Hex20::from([0; 20]),
-            log_index: Some(Nat256::from(0u32)),
+            topics: vec![Hex32::from([0; 32])],
+            transaction_hash: None,
+            block_number: None,
+            data: Hex::from(vec![]),
+            block_hash: None,
+            transaction_index: None,
+            log_index: None,
             removed: false,
         },
     ];
     
+    for _i in 1..100 {
+        let log_entry_instance = LogEntry {
+            address: Hex20::from([0; 20]),
+            topics: vec![Hex32::from([0; 32])],
+            transaction_hash: None,
+            block_number: None,
+            data: Hex::from(vec![]),
+            block_hash: None,
+            transaction_index: None,
+            log_index: None,
+            removed: false,
+        };
+        log_entries.push(log_entry_instance);
+    }
     MultiRpcResult::Consistent(Ok(log_entries))
 }

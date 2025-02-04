@@ -59,7 +59,6 @@ pub async fn register_subscription(
         subscriber_principal,
         chain_id,
         filter: filter.clone(),
-        skip: None,
         stats: vec![],
     };
 
