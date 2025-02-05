@@ -11,18 +11,16 @@ use std::str::FromStr;
 
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
     let subscribers = get_state_value!(subscriptions);
-    let mut user_balances = get_state_value!(user_balances);
+
     // charge subscribers accordingly to amount addresses in their filters
     let cycles_per_one_address = Nat::from(cycles_used / addresses_amound as u64);
 
     for (_sub_id, sub_info) in subscribers.iter() {
         let subscriber_principal = sub_info.subscriber_principal;
-        let user_balance = user_balances.balances.get_mut(&subscriber_principal).unwrap();
 
         if Balances::is_sufficient(subscriber_principal, cycles_per_one_address.clone()).unwrap() {
             Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()).unwrap();
         }
-        *user_balance -= cycles_per_one_address.clone();
     }
 
 }
@@ -145,6 +143,7 @@ async fn eth_get_logs_call_with_retry(
 
     // Retry logic
     for attempt in 1..=max_retries {
+        log!("calling eth_getLogs, attempt {}", attempt);
         let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
             chain_config.evm_rpc_canister,
             "eth_getLogs",

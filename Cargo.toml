@@ -1,10 +1,12 @@
 [workspace]
 members = [
     ".",
-    "evm_logs_types", "metrics",
+    "evm_logs_types", 
+    "metrics", 
     "src/canister_testing/test_canister1",
     "src/canister_testing/test_canister2",
     "src/proxy",
+    "tests/evm_rpc_mocked",
 ]
 
 [package]
@@ -32,10 +34,11 @@ thiserror = "2.0.11"
 quote = "1.0.38"
 syn = "2.0.96"
 evm_rpc_types = "1.2.0"
+hex = "0.4.3"
+getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
-pocket-ic = "4.0.0"
+pocket-ic = "6.0.0"
 
 [package.metadata.candid]
 generate = true
-

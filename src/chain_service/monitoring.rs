@@ -61,7 +61,7 @@ impl ChainService {
                 }
             }
         }
-
+        log!("HERE AFTER THE BLOCK");
         let from_block = last_processed_block.clone() + 1u32;
 
         log!(

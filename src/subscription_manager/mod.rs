@@ -1,18 +1,11 @@
 use candid::Nat;
 use candid::Principal;
-use evm_logs_types::Filter;
 use evm_logs_types::{
     RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
     SubscriptionRegistration, UnsubscribeResult,
 };
 use crate::get_state_value;
 use crate::log;
-use crate::types::balances::Balances;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-};
-use crate::State;
 
 pub mod events_publisher;
 pub mod queries;
@@ -66,7 +59,6 @@ pub async fn register_subscription(
         subscriber_principal,
         chain_id,
         filter: filter.clone(),
-        skip: None,
         stats: vec![],
     };
 
@@ -88,9 +80,10 @@ pub async fn register_subscription(
     });
 
     log!(
-        "Subscription registered: ID={}, Namespace={}",
+        "Subscription registered: ID={}, Namespace={}, Filter = {:?}",
         sub_id,
         registration.chain_id,
+        filter,
     );
 
     RegisterSubscriptionResult::Ok(sub_id)
@@ -132,9 +125,12 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
         ))
     }
 }
-
-#[test]
-fn test_register_subscription_success() {
+#[cfg(test)]
+mod tests{
+    use super::*;
+    use evm_logs_types::Filter;
+    #[test]
+    fn test_register_subscription_success() {
     // Using tokio runtime explicitly because of tokio::test error. TODO fix 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -153,10 +149,10 @@ fn test_register_subscription_success() {
             let result = register_subscription(registration).await;
             assert!(matches!(result, RegisterSubscriptionResult::Ok(_)));
         })
-}
+    }
 
-#[test]
-fn test_register_subscription_duplicate_filter() {
+    #[test]
+    fn test_register_subscription_duplicate_filter() {
     // Using tokio runtime explicitly because of tokio::test error. TODO fix 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -176,9 +172,9 @@ fn test_register_subscription_duplicate_filter() {
             let second_attempt = register_subscription(registration).await;
             assert!(matches!(second_attempt, RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists)));
         })
-}
-#[test]
-fn test_unsubscribe_nonexistent() {
+    }
+    #[test]
+    fn test_unsubscribe_nonexistent() {
     // Using tokio runtime explicitly because of tokio::test error. TODO fix 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -188,4 +184,5 @@ fn test_unsubscribe_nonexistent() {
             let result = unsubscribe(Principal::anonymous(), Nat::from(9999u32));
             assert!(matches!(result, UnsubscribeResult::Err(_)));
         })
+    }
 }

@@ -30,7 +30,7 @@ struct DecodedNotification {
 
 #[init]
 async fn init() {
-    log!("Test_canister1 initialized");
+    log!("Test Canister Initialized!");
 }
 
 // Candid update methods

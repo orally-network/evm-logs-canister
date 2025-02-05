@@ -1,33 +1,29 @@
-type ConfirmationResult = variant {
-  AllAccepted : null;
-  SomeRejected : vec nat;
+type Config = record {
+  estimate_events_num : nat32;
+  proxy_canister : principal;
+  evm_rpc_canister : principal;
 };
 
 type Event = record {
   id : nat;
   prev_id : opt nat;
-  timestamp : nat64;
-  namespace : text;
   data : Value;
   headers : opt vec Map;
+  chain_id : nat32;
+  topics : opt vec text;
+  address : text;
+  timestamp : nat64;
+  tx_hash : text;
 };
 
-type EventNotification = record {
-  sub_id : nat;
-  event_id : nat;
-  event_prev_id : opt nat;
-  timestamp : nat64;
-  chain_id : nat64;
-  data : Value;
-  tx_hash: text;
-  headers : opt vec Map;
-  source : principal;
-  filter : opt text;
+type Filter = record {
+  topics : opt vec vec text;
+  address : text;
 };
 
 type GenericError = record {
-  error_code : nat;
   message : text;
+  error_code : nat;
 };
 
 type Map = record {
@@ -35,49 +31,14 @@ type Map = record {
   value : Value;
 };
 
-type Property = record {
-  name : text;
-  value : Value;
-  immutable : bool;
-};
-
-type Value = variant {
-  Array : vec Value;
-  Blob : vec nat8;
-  Bool : bool;
-  Bytes : vec nat8;
-  Class : vec Property;
-  Float : float64;
-  Floats : vec float64;
-  Int : int;
-  Int16 : int16;
-  Int32 : int32;
-  Int64 : int64;
-  Int8 : int8;
-  Map : vec Map;
-  ValueMap : vec ValueMap;
-  Nat : nat;
-  Nat16 : nat16;
-  Nat32 : nat32;
-  Nat64 : nat64;
-  Nat8 : nat8;
-  Nats : vec nat;
-  Option : Value;
-  Principal : principal;
-  Set : vec Value;
-  Text : text;
-};
-
-type ValueMap = record {
-  key : Value;
-  value : Value;
-};
-
 type RegisterSubscriptionError = variant {
-  Unauthorized : null;
-  UnauthorizedSubscriber : record { namespace : text };
-  ImproperConfig : text;
+  SameFilterExists;
   GenericError : GenericError;
+  ImproperConfig : text;
+  InvalidChainName;
+  UnauthorizedSubscriber : record { namespace : text };
+  Unauthorized;
+  InsufficientFunds;
 };
 
 type RegisterSubscriptionResult = variant {
@@ -85,58 +46,73 @@ type RegisterSubscriptionResult = variant {
   Err : RegisterSubscriptionError;
 };
 
-type Skip = record {
-  modulus : nat;
-  offset : opt nat;
-};
-
 type SubscriptionInfo = record {
   subscription_id : nat;
-  subscriber_principal : principal;
-  chain_id : nat64;
-  filter : Filter;
   stats : vec Map;
+  filter : Filter;
+  chain_id : nat32;
+  subscriber_principal : principal;
 };
 
 type SubscriptionRegistration = record {
-  namespace : text;
+  memo : opt blob;
   filter : Filter;
-  memo : opt vec nat8;
+  chain_id : nat32;
+  canister_to_top_up : principal;
 };
 
-type Filter = record {
-    addresses: vec text;
-    topics: opt vec vec text;
+type TopUpBalanceError = variant { GenericError };
+
+type TopUpBalanceResult = variant { 
+  Ok; 
+  Err : TopUpBalanceError;
 };
 
-type UnsubscribeResult = variant {
-    Ok : null;
-    Err : text;
+type UnsubscribeResult = variant { 
+  Ok : record {}; 
+  Err : text;
 };
 
-type PublishError = variant {
-  Unauthorized : null;
-  ImproperId : text;
-  Busy : null;
-  GenericError : GenericError;
+type Value = variant {
+  Map : Vec;
+  Nat : nat;
+  Bool : bool;
+  Text : text;
+  Bytes : blob;
+  Float : float64;
+  Principal : principal;
 };
 
-type SendNotificationError = variant {
-    FailedToSend;
-    InvalidSubscriber
+type Vec = vec record {
+  key : variant {
+    Map : Vec;
+    Nat : nat;
+    Bool : bool;
+    Text : text;
+    Bytes : blob;
+    Float : float64;
+    Principal : principal;
+  };
+  value : variant {
+    Map : Vec;
+    Nat : nat;
+    Bool : bool;
+    Text : text;
+    Bytes : blob;
+    Float : float64;
+    Principal : principal;
+  };
 };
 
-type SendNotificationResult = variant {
-    Ok;
-    Err : SendNotificationError
-};
-
-service : {
-  subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
-  unsubscribe : (nat) -> (UnsubscribeResult);
-  get_subscriptions : (namespace : opt text, from_id : opt nat, stats_filter : opt vec Filter) -> (vec SubscriptionInfo) query;
+service : (Config) -> {
+  get_active_filters : () -> (vec Filter) query;
+  get_balance : (principal) -> (nat) query;
+  get_candid_pointer : () -> (text) query;
+  get_subscriptions : (opt nat32, opt nat, opt vec Filter) -> (vec SubscriptionInfo) query;
   get_user_subscriptions : () -> (vec SubscriptionInfo) query;
-  get_active_filters: () -> (vec Filter) query;
-  get_active_addresses_and_topics: () -> (vec text, opt vec vec text) query;
-  icrc72_publish : (vec Event) -> (vec opt variant { Ok : vec nat; Err : PublishError });
-}
+  icrc72_publish : (vec Event) -> ();
+  publish_events : (vec Event) -> ();
+  subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
+  top_up_balance : (principal) -> (TopUpBalanceResult);
+  unsubscribe : (nat) -> (UnsubscribeResult);
+};

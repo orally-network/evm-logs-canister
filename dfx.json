@@ -57,6 +57,23 @@
           "value": "src/proxy_canister/proxy_canister.did"
         }
       ]
+    },
+    "cycles_wallet": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.did",
+      "wasm": "https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.wasm"
+    },
+    "evm_rpc_mocked": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm",
+      "candid": "tests/evm_rpc_mocked/evm_rpc_mocked.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package evm_rpc_mocked",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "tests/evm_rpc_mocked.did"
+        }
+      ]
     }
   },
   "version": 1

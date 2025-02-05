@@ -40,6 +40,16 @@ struct EvmLogsInitArgs {
     proxy_canister: Principal,
     pub estimate_events_num: u32,
 }
+
+#[derive(CandidType, Deserialize)]
+struct WalletCall128Args {
+    canister: Principal,
+    method_name: String,
+    args: Vec<u8>,
+    cycles: Nat,
+}
+
+
 static EVENT_DATA: &str = "0xffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
 
 #[tokio::test]
@@ -70,7 +80,7 @@ async fn test_event_publishing_and_notification_delivery() {
     pic.add_cycles(proxy_canister_id, 4_000_000_000_000)
         .await;
 
-    // Install the subscriber wasm
+    // Install proxy wasm
     let proxy_canister_wasm_path =
         std::env::var("PROXY_CANISTER_WASM_PATH").expect("PROXY_CANISTER_WASM_PATH must be set");
     let proxy_wasm_bytes = tokio::fs::read(proxy_canister_wasm_path)
@@ -112,28 +122,68 @@ async fn test_event_publishing_and_notification_delivery() {
     )
     .await;
 
+    // create cycles_wallet canister
+    let cycles_wallet_id = pic.create_canister().await;
+    pic.add_cycles(cycles_wallet_id, 4_000_000_000_000)
+        .await;
+
+    let cycles_wallet_wasm_path =
+        std::env::var("CYCLES_WALLET_WASM_PATH").expect("CYCLES_WALLET_WASM_PATH must be set");
+    let cycles_wallet_wasm_bytes = tokio::fs::read(cycles_wallet_wasm_path)
+        .await
+        .expect("Failed to read the cycles wallet WASM file");
+
+    pic.install_canister(
+        cycles_wallet_id,
+        cycles_wallet_wasm_bytes.to_vec(),
+        vec![],
+        None,
+    )
+    .await;
+
     // Register a subscription from the subscriber canister
-    let _ = SubscriptionRegistration {
-        chain_id: 1,
+    let sub_registration = SubscriptionRegistration {
+        chain_id: 8453,
         filter: Filter {
-            address: "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".to_string(),
-            topics: None,
+            address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(), // Example address
+            topics: Some(vec![vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]]),
         },
         memo: None,
         canister_to_top_up: subscriber_canister_id,
     };
+    let sub_reg_encoded = candid::encode_args((sub_registration,)).unwrap();
 
-    let _ = pic
+    let call_args = WalletCall128Args {
+        canister: evm_logs_canister_id,
+        method_name: "subscribe".to_string(),
+        args: sub_reg_encoded,
+        cycles: 2_000_000_000_000u128.into(),
+    };
+    let bytes = candid::encode_args((call_args,))
+        .expect("Failed to encode wallet_call128 args");
+
+    let subscribe_via_cycles_wallet = pic
         .update_call(
-            subscriber_canister_id,
+            cycles_wallet_id,
             Principal::anonymous(),
-            "subscribe_test",
-            candid::encode_one(evm_logs_canister_id.clone()).unwrap(),
+            "wallet_call128",
+            bytes,
         )
         .await;
-        
-    // Check the subscription registration result
-    // call get_subscriptions?
+
+    match subscribe_via_cycles_wallet {
+        Ok(WasmResult::Reply(data)) => {
+            ic_cdk::println!("Reply: {:?}", data);
+        }
+        Ok(WasmResult::Reject(err)) => {
+            panic!("Subscription rejected: {:?}", err);
+        }
+        Err(e) => {
+            panic!("Subscription call error: {:?}", e);
+        }
+    }
+    
+    // TODO Check the subscription registration result
 
     // Publish an event
     let event = Event {
