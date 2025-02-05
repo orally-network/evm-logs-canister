@@ -4,6 +4,8 @@ EVM_LOGS_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/evm_logs_canis
 TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister1.wasm
 PROXY_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/proxy_canister.wasm
 CYCLES_WALLET_WASM := ./target/wasm32-unknown-unknown/release/wallet.wasm
+EVM_RPC_MOCKED_WASM := ./target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm
+
 .DEFAULT_GOAL: help
 
 local_deploy_evm_rpc:
@@ -54,13 +56,13 @@ help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
+
 .PHONY: build
 build: ## Build all canisters
-	@./scripts/build build
-
-.PHONY: deploy
-deploy: ## Deploy all canisters
-	@./scripts/build deploy
+	cargo build --release --target wasm32-unknown-unknown --package evm_logs_canister
+	cargo build --release --target wasm32-unknown-unknown --package test_canister1
+	cargo build --release --target wasm32-unknown-unknown --package evm_rpc_mocked
+	cargo build --release --target wasm32-unknown-unknown --package proxy_canister
 
 .PHONY: test
 test: build ## Run tests
@@ -73,6 +75,7 @@ test: build ## Run tests
 	   TEST_CANISTER_WASM_PATH=$(TEST_CANISTER_WASM) \
 	   CYCLES_WALLET_WASM_PATH=$(CYCLES_WALLET_WASM) \
 	   PROXY_CANISTER_WASM_PATH=$(PROXY_CANISTER_WASM) \
+	   EVM_RPC_MOCKED_WASM_PATH=$(EVM_RPC_MOCKED_WASM) \
 	   POCKET_IC_BIN=$(POCKET_IC_BIN) \
 	   RUST_BACKTRACE=1 cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture
 

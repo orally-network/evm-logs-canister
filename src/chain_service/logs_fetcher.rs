@@ -143,6 +143,7 @@ async fn eth_get_logs_call_with_retry(
 
     // Retry logic
     for attempt in 1..=max_retries {
+        log!("calling eth_getLogs, attempt {}", attempt);
         let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
             chain_config.evm_rpc_canister,
             "eth_getLogs",

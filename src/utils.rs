@@ -54,7 +54,7 @@ pub async fn get_latest_block_number(
         }),
     };
     let evm_rpc_canister = get_state_value!(evm_rpc_canister);
-
+    log!("calling eth_getBlockByNumber!");
     let (result,): (MultiRpcResult<Block>,) = 
         call_with_payment128(
             evm_rpc_canister, 
