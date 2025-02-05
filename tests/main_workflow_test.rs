@@ -6,6 +6,7 @@ use serde::Deserialize;
 use std::time::Duration;
 use hex;
 use getrandom::getrandom;
+use std::collections::HashMap;
 
 #[derive(CandidType, Deserialize)]
 struct EvmLogsInitArgs {
@@ -56,6 +57,11 @@ async fn test_main_worflow_with_bunch_subscribers() {
     let pic = PocketIc::new().await;
 
     let num_subscribers = 3;
+
+    // This hashmap will store the subscriber canister ID -> filter
+    let mut subscriber_filters = HashMap::<Principal, Filter>::new();
+
+
     let evm_logs_canister_id = pic.create_canister().await;
 
     // initialize and install evm-rpc-mocked canister
@@ -114,15 +120,20 @@ async fn test_main_worflow_with_bunch_subscribers() {
     for subscriber_canister_id in subscriber_canisters.clone() {
         let random_topic = generate_random_topic();
 
+        let filter = Filter {
+            address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
+            topics: Some(vec![vec![random_topic]]),
+        }; 
+
+        // Put it in our local hashmap so we can verify later
+        subscriber_filters.insert(subscriber_canister_id, filter.clone());
+
         let sub_registration = SubscriptionRegistration {
             chain_id: 8453,
-            filter: Filter {
-                address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
-                topics: Some(vec![vec![random_topic]]),
-            },
+            filter,
             memo: None,
             canister_to_top_up: subscriber_canister_id,
-        };
+        }; 
 
         let sub_reg_encoded = candid::encode_args((sub_registration,)).unwrap();
 
@@ -188,10 +199,29 @@ async fn test_main_worflow_with_bunch_subscribers() {
 
         if let WasmResult::Reply(reply_data) = received_notifications_bytes {
             let notifications: Vec<EventNotification> = candid::decode_one(&reply_data).unwrap();
-    
+            
+            // We assume that each subscriber should get exactly one notification
             assert_eq!(notifications.len(), 1, "Notifications count mismatch");
 
-            ic_cdk::println!("{:?}", notifications);
+            let notification = &notifications[0];
+
+            let stored_filter = subscriber_filters
+                .get(&subscriber_canister_id)
+                .expect("Filter not found for subscriber");
+
+            let stored_address = stored_filter.address.clone().to_lowercase();
+            let stored_topics = &stored_filter.topics.as_ref().unwrap()[0];
+
+            // Check that the notification's address matches the address we originally used in the filter
+            assert_eq!(notification.address, stored_address, 
+                "Notification address does not match the original subscriber filter"
+            );
+
+            // Check that the notification's address matches the address we originally used in the filter
+            assert_eq!(&notification.topics, stored_topics, 
+                "Notification topic does not match the original subscriber filter"
+            );
+
         } 
         else {
             panic!("Failed to get notifications for subscriber");

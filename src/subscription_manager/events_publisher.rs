@@ -58,6 +58,7 @@ async fn distribute_event(event: Event) {
                 data: event.data.clone(),
                 tx_hash: event.tx_hash.clone(),
                 headers: event.headers.clone(),
+                address: event.address.clone(),
                 topics: event.topics.clone().unwrap_or_default(),
                 source: ic_cdk::api::id(),
                 filter: None,

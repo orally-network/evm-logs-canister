@@ -39,6 +39,7 @@ pub struct EventNotification {
     pub timestamp: u64,
     pub chain_id: u32,
     pub data: Value,
+    pub address: String,
     pub topics: Vec<String>,
     pub tx_hash: String,
     pub headers: Option<Vec<Map>>,

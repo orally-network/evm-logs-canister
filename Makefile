@@ -20,10 +20,7 @@ local_deploy_test_canister:
 local_deploy_cycles_wallet:
 	dfx deploy cycles_wallet
 
-local_evm_rpc_mocked:
-	dfx deploy evm_rpc_mocked
-
-local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister local_deploy_cycles_wallet local_evm_rpc_mocked
+local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister local_deploy_cycles_wallet
 	$(eval MAINNET_RPC_URL?=https://eth.llamarpc.com)
 	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
 	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister))

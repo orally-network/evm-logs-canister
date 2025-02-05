@@ -66,12 +66,12 @@
     "evm_rpc_mocked": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm",
-      "candid": "src/canister_testing/evm_rpc_mocked/evm_rpc_mocked.did",
+      "candid": "tests/evm_rpc_mocked/evm_rpc_mocked.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package evm_rpc_mocked",
       "metadata": [
         {
           "name": "candid:service",
-          "value": "src/evm_rpc_mocked.did"
+          "value": "tests/evm_rpc_mocked.did"
         }
       ]
     }
