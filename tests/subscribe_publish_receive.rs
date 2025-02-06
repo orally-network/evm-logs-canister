@@ -18,6 +18,7 @@
 ///   - The response is validated to ensure:
 ///     - One notification was received.
 ///     - The event metadata (`chain_id`, `event_id`, `data`) matches the published event.
+mod common;
 
 use candid;
 use candid::Nat;
@@ -30,25 +31,7 @@ use pocket_ic::nonblocking::PocketIc;
 use pocket_ic::WasmResult;
 use std::time::Duration;
 use tokio::time::sleep;
-
-use candid::CandidType;
-use serde::Deserialize;
-
-#[derive(CandidType, Deserialize)]
-struct EvmLogsInitArgs {
-    evm_rpc_canister: Principal,
-    proxy_canister: Principal,
-    pub estimate_events_num: u32,
-}
-
-#[derive(CandidType, Deserialize)]
-struct WalletCall128Args {
-    canister: Principal,
-    method_name: String,
-    args: Vec<u8>,
-    cycles: Nat,
-}
-
+use common::*;
 
 static EVENT_DATA: &str = "0xffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
 
@@ -109,6 +92,7 @@ async fn test_event_publishing_and_notification_delivery() {
         evm_rpc_canister: Principal::from_text("aaaaa-aa").expect("EVM_RPC_CANISTER incorrect principal"),
         proxy_canister: proxy_canister_id,
         estimate_events_num: 5, // test
+        max_response_bytes: 1_000_000,
     };
     
     let init_args = candid::encode_args((init_args_value,))

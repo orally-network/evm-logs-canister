@@ -17,11 +17,17 @@ thread_local! {
     static CONFIG: RefCell<Config> = RefCell::new(Config {
         evm_logs_canister_id: Principal::anonymous(),
     });
+    static ETH_GET_LOGS_COUNTER: RefCell<u64> = RefCell::new(0);
 }
 
 #[init]
 async fn init(config: Config) {
     CONFIG.with(|c| *c.borrow_mut() = config);
+}
+
+#[query(name = "get_eth_get_logs_count")]
+fn get_eth_get_logs_count() -> u64 {
+    ETH_GET_LOGS_COUNTER.with(|counter| *counter.borrow())
 }
 
 #[query]
@@ -38,6 +44,8 @@ pub async fn eth_get_logs(
     _args: GetLogsArgs,
 ) -> MultiRpcResult<Vec<LogEntry>> {
     ic_cdk::println!("CALLING eth_getLogs");
+    ETH_GET_LOGS_COUNTER.with(|counter| *counter.borrow_mut() += 1);
+    
     let log_entries = get_same_logs_as_sub_filters().await;
 
     MultiRpcResult::Consistent(Ok(log_entries))

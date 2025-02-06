@@ -1,56 +1,17 @@
-use candid::{CandidType, Nat, Principal};
-use evm_logs_types::{Filter, SubscriptionRegistration, SubscriptionInfo, EventNotification};
+pub mod common;
+
+use candid::Principal;
+use evm_logs_types::{SubscriptionRegistration, EventNotification};
 use pocket_ic::nonblocking::PocketIc;
 use pocket_ic::WasmResult;
-use serde::Deserialize;
 use std::time::Duration;
-use hex;
-use getrandom::getrandom;
-use std::collections::HashMap;
-
-#[derive(CandidType, Deserialize)]
-struct EvmLogsInitArgs {
-    evm_rpc_canister: Principal,
-    proxy_canister: Principal,
-    pub estimate_events_num: u32,
-}
-
-#[derive(CandidType, Deserialize)]
-struct WalletCall128Args {
-    canister: Principal,
-    method_name: String,
-    args: Vec<u8>,
-    cycles: Nat,
-}
-
-#[derive(CandidType, Deserialize)]
-
-struct EvmRpcMockedConfig {
-    pub evm_logs_canister_id: Principal,
-}
-
-fn generate_random_filter() -> Filter {
-    let mut address_bytes = [0u8; 20]; // Ethereum addresses are 20 bytes long
-    let mut topic_bytes = [0u8; 32]; // Topics are 32 bytes long
-
-    getrandom(&mut address_bytes).expect("Failed to generate random address bytes");
-    getrandom(&mut topic_bytes).expect("Failed to generate random topic bytes");
-
-    let address = format!("0x{}", hex::encode(address_bytes)); // Convert address to hex string
-    let topic = format!("0x{}", hex::encode(topic_bytes)); // Convert topic to hex string
-
-    Filter {
-        address,
-        topics: Some(vec![vec![topic]]),
-    }
-}
-
+use common::*;
 
 #[tokio::test]
 async fn test_batch_requests() {
     let pic = PocketIc::new().await;
 
-    let num_filters = 100;
+    let num_filters = 5;
 
     // This hashmap will store the subscriber canister ID -> filter
     let mut subscriber_filters = Vec::new();
@@ -84,6 +45,7 @@ async fn test_batch_requests() {
         evm_rpc_canister: evm_rpc_mocked_canister_id,
         proxy_canister: proxy_canister_id,
         estimate_events_num: 5,
+        max_response_bytes: 10000,
     },)).unwrap();
 
     pic.install_canister(evm_logs_canister_id, evm_logs_wasm_bytes, init_args, None).await;
@@ -172,4 +134,27 @@ async fn test_batch_requests() {
     } else {
         panic!("Failed to get notifications for subscriber");
     }
+
+
+    let eth_get_logs_counter_bytes = pic.query_call(
+        evm_rpc_mocked_canister_id, 
+        Principal::anonymous(), 
+        "get_eth_get_logs_count", 
+        candid::encode_args(
+            ()
+        ).unwrap()
+    ).await
+    .unwrap();
+
+    
+    if let WasmResult::Reply(reply_data) = eth_get_logs_counter_bytes {
+        let eth_get_logs_counter: u64 = candid::decode_one(&reply_data).unwrap();
+
+        assert_eq!(eth_get_logs_counter, 3);
+        
+    } else {
+        panic!("Failed to get notifications for subscriber");
+    }
+
+
 }

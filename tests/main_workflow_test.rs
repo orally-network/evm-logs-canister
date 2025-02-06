@@ -1,39 +1,12 @@
-use candid::{CandidType, Nat, Principal};
+mod common;
+
+use candid::{Nat, Principal};
 use evm_logs_types::{Filter, SubscriptionRegistration, SubscriptionInfo, EventNotification};
 use pocket_ic::nonblocking::PocketIc;
 use pocket_ic::WasmResult;
-use serde::Deserialize;
 use std::time::Duration;
-use hex;
-use getrandom::getrandom;
 use std::collections::HashMap;
-
-#[derive(CandidType, Deserialize)]
-struct EvmLogsInitArgs {
-    evm_rpc_canister: Principal,
-    proxy_canister: Principal,
-    pub estimate_events_num: u32,
-}
-
-#[derive(CandidType, Deserialize)]
-struct WalletCall128Args {
-    canister: Principal,
-    method_name: String,
-    args: Vec<u8>,
-    cycles: Nat,
-}
-
-#[derive(CandidType, Deserialize)]
-
-struct EvmRpcMockedConfig {
-    pub evm_logs_canister_id: Principal,
-}
-
-fn generate_random_topic() -> String {
-    let mut random_bytes = [0u8; 32]; // 32 bytes for a valid topic
-    getrandom(&mut random_bytes).expect("Failed to generate random bytes");
-    format!("0x{}", hex::encode(random_bytes)) // Convert to hex string
-}
+use common::*;
 
 /// This test verifies the main workflow of the EVM logs canister with multiple subscribers.
 /// 
@@ -91,6 +64,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
         evm_rpc_canister: evm_rpc_mocked_canister_id,
         proxy_canister: proxy_canister_id,
         estimate_events_num: 5,
+        max_response_bytes: 1_000_000,
     },)).unwrap();
 
     pic.install_canister(evm_logs_canister_id, evm_logs_wasm_bytes, init_args, None).await;
@@ -118,12 +92,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
 
     // subscribe on evm-logs-canister from each subscriber with random topic 
     for subscriber_canister_id in subscriber_canisters.clone() {
-        let random_topic = generate_random_topic();
-
-        let filter = Filter {
-            address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
-            topics: Some(vec![vec![random_topic]]),
-        }; 
+        let filter = generate_random_filter();
 
         // Put it in our local hashmap so we can verify later
         subscriber_filters.insert(subscriber_canister_id, filter.clone());
