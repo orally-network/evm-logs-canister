@@ -18,6 +18,7 @@ pub struct State {
     pub subscriptions: HashMap<Nat, SubscriptionInfo>,
     pub subscribers: HashMap<Principal, Vec<Nat>>,
     pub user_balances: Balances,
+    pub max_response_bytes: u32,
     pub test: u32,
 }
 
@@ -28,6 +29,7 @@ pub fn init(config: Config) {
         state.evm_rpc_canister = config.evm_rpc_canister;
         state.proxy_canister = config.proxy_canister;
         state.estimate_events_num = config.estimate_events_num;
+        state.max_response_bytes = config.max_response_bytes;
     });
 }
 
@@ -41,6 +43,7 @@ impl Default for State {
             subscriptions: HashMap::new(),
             subscribers: HashMap::new(),
             user_balances: Balances::default(),
+            max_response_bytes: 1_000_000,
             test: 0,
         }
     }

@@ -7,4 +7,5 @@ pub struct Config {
     pub evm_rpc_canister: Principal,
     pub proxy_canister: Principal,
     pub estimate_events_num: u32,
+    pub max_response_bytes: u32,
 }

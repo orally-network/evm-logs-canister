@@ -292,4 +292,5 @@ type ValidationError = variant {
 service : {
   eth_getLogs : (RpcServices, opt RpcConfig, GetLogsArgs) -> (MultiGetLogsResult);
   eth_getBlockByNumber : (RpcServices, opt RpcConfig, BlockTag) -> (MultiGetBlockByNumberResult);
+  get_eth_get_logs_count: () -> (nat);
 };
