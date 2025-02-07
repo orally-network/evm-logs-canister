@@ -8,23 +8,6 @@ use std::time::Duration;
 use std::collections::HashMap;
 use common::*;
 
-/// This test verifies the main workflow of the EVM logs canister with multiple subscribers.
-/// 
-/// ## Overview:
-/// - It sets up a simulated Internet Computer environment using PocketIc.
-/// - It deploys and initializes multiple canisters: `evm-logs-canister`, `evm-rpc-mocked`, `proxy`, `cycles-wallet`, 
-/// and multiple subscriber canisters(const value in the code).
-/// - Each subscriber canister subscribes to the `evm-logs-canister` with a randomly generated filter.
-/// - The test ensures that all subscriptions are correctly registered(subscription count match).
-/// - It advances time and triggers the event processing cycle to simulate the logs fetching.
-/// - Finally, it verifies that each subscriber received the expected event notification.
-///
-/// ## Key Assertions:
-/// - The number of registered subscriptions matches the expected count.
-/// - Each subscriber receives exactly one event notification after the logs are fetched and processed.
-/// 
-/// This test ensures the correctness of the subscription workflow and event delivery mechanism in a controlled local environment.
-
 #[tokio::test]
 async fn test_main_worflow_with_bunch_subscribers() {
     let pic = PocketIc::new().await;
