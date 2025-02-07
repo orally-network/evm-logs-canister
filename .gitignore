@@ -1,2 +1,5 @@
 /target
 .dfx/
+pocket-ic
+.idea
+commands.txt

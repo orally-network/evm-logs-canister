@@ -14,20 +14,66 @@
     },
     "evm_rpc": {
       "type": "custom",
-      "candid": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc.did",
-      "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/latest/download/evm_rpc.wasm.gz",
+      "candid": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/download/v2.2.0/evm_rpc.did",
+      "wasm": "https://github.com/internet-computer-protocol/evm-rpc-canister/releases/download/v2.2.0/evm_rpc.wasm.gz",
       "remote": {
         "id": {
           "ic": "7hfb6-caaaa-aaaar-qadga-cai"
         }
-      },
-      "init_arg": "(record {nodesInSubnet=28})"
-    }
-  },
-  "networks": {
-    "local": {
-      "bind": "127.0.0.1:8000",
-      "type": "ephemeral"
+      }
+    },
+    "test_canister1": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister1.wasm",
+      "candid": "src/canister_testing/test_canister1/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister1",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "src/test_canister1/test_canister.did"
+        }
+      ]
+    },
+    "test_canister2": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister2.wasm",
+      "candid": "src/canister_testing/test_canister2/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister2",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "src/test_canister2/test_canister.did"
+        }
+      ]
+    },
+    "proxy_canister": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/proxy_canister.wasm",
+      "candid": "src/proxy/proxy_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package proxy_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "src/proxy_canister/proxy_canister.did"
+        }
+      ]
+    },
+    "cycles_wallet": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.did",
+      "wasm": "https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.wasm"
+    },
+    "evm_rpc_mocked": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm",
+      "candid": "tests/evm_rpc_mocked/evm_rpc_mocked.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package evm_rpc_mocked",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "tests/evm_rpc_mocked.did"
+        }
+      ]
     }
   },
   "version": 1

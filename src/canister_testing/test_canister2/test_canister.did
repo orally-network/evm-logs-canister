@@ -1,0 +1,123 @@
+type ConfirmationResult = variant {
+  AllAccepted : null;
+  SomeRejected : vec nat;
+};
+
+type Event = record {
+  id : nat;
+  prev_id : opt nat;
+  timestamp : nat64;
+  namespace : text;
+  data : Value;
+  headers : opt vec Map;
+};
+
+type EventNotification = record {
+  id : nat;
+  event_id : nat;
+  event_prev_id : opt nat;
+  timestamp : nat64;
+  namespace : text;
+  data : Value;
+  topics: opt vec text;
+  tx_hash: text;
+  headers : opt vec Map;
+  source : principal;
+  filter : opt text;
+};
+
+type GenericError = record {
+  error_code : nat;
+  message : text;
+};
+
+type Map = record {
+  key : Value;
+  value : Value;
+};
+
+type Property = record {
+  name : text;
+  value : Value;
+  immutable : bool;
+};
+
+type Value = variant {
+  Array : vec Value;
+  Blob : vec nat8;
+  Bool : bool;
+  Bytes : vec nat8;
+  Class : vec Property;
+  Float : float64;
+  Floats : vec float64;
+  Int : int;
+  Int16 : int16;
+  Int32 : int32;
+  Int64 : int64;
+  Int8 : int8;
+  Map : vec Map;
+  ValueMap : vec ValueMap;
+  Nat : nat;
+  Nat16 : nat16;
+  Nat32 : nat32;
+  Nat64 : nat64;
+  Nat8 : nat8;
+  Nats : vec nat;
+  Option : Value;
+  Principal : principal;
+  Set : vec Value;
+  Text : text;
+};
+
+type ValueMap = record {
+  key : Value;
+  value : Value;
+};
+
+type RegisterSubscriptionError = variant {
+  Unauthorized : null;
+  UnauthorizedSubscriber : record { namespace : text };
+  ImproperConfig : text;
+  GenericError : GenericError;
+};
+
+type RegisterSubscriptionResult = variant {
+  Ok : nat;
+  Err : RegisterSubscriptionError;
+};
+
+
+type SubscriptionInfo = record {
+  subscription_id : nat;
+  subscriber_principal : principal;
+  namespace : text;
+  filters : vec Filter;
+  stats : vec Map;
+};
+
+type SubscriptionRegistration = record {
+  namespace : text;
+  filters : vec Filter;
+  memo : opt vec nat8;
+};
+
+type Filter = record {
+    addresses: vec text;
+    topics: opt vec vec text;
+};
+
+type UnsubscribeResult = variant {
+    Ok : null;
+    Err : text;
+};
+
+service : {
+  register_subscription: (principal, vec SubscriptionRegistration) -> ();
+  icrc72_handle_notification: (EventNotification) -> ();
+  get_notifications: () -> (vec EventNotification) query;
+  unsubscribe: (principal, nat) -> ();
+  get_subscriptions: (principal) -> (vec SubscriptionInfo);
+}
+
+
+

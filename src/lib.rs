@@ -1,121 +1,60 @@
-// #[macro_use]
-// extern crate num_derive;
-
+mod chain_service;
+mod log_filters;
+mod subscription_manager;
 mod types;
 mod utils;
-mod subscription_manager;
-mod chain_service; 
+mod constants;
+mod candid_methods;
 
+use std::{
+    cell::RefCell,
+    sync::Arc,
+    time::Duration,
+};
+
+use candid::{Nat, Principal};
+use chain_service::{service::ChainService, ChainConfig};
+use evm_logs_types::*;
 use ic_cdk_macros::*;
-use candid::candid_method;
-use crate::types::*;
 
-use candid::Nat;
+use crate::{
+    log_filters::filter_manager::FilterManager,
+    types::state::{State, init as init_state},
+    utils::generate_chain_configs,
+};
+
 use ic_cdk_macros::query;
-use chain_service::ChainService;
-use std::cell::RefCell;
-use std::time::Duration;
 
 thread_local! {
-    static CHAIN_SERVICE: RefCell<Option<ChainService>> = RefCell::new(None);
-}
+    pub static STATE: RefCell<State> = RefCell::default();
 
-// canister init and update
+    pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
+    pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
+
+    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
+}
 
 #[init]
-fn init() {
+async fn init(config: types::config::Config) {
     subscription_manager::init();
+    init_state(config);
 
-    CHAIN_SERVICE.with(|cs| {
-        *cs.borrow_mut() = Some(ChainService::new("https://rpc-url".to_string()));
-    });
+    let monitoring_interval = Duration::from_secs(15);
+
+    let chain_configs = generate_chain_configs();
+
+    chain_configs
+        .into_iter()
+        .for_each(|config| init_chain_service(config, monitoring_interval));
+
+    log!("EVM logs monitoring is started");
 }
 
-#[pre_upgrade]
-fn pre_upgrade() {
-    subscription_manager::pre_upgrade();
+fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) {
+    let service = Arc::new(ChainService::new(config));
+    service.clone().start_monitoring(monitoring_interval);
 }
 
-#[post_upgrade]
-fn post_upgrade() {
-    subscription_manager::post_upgrade();
-    CHAIN_SERVICE.with(|cs| {
-        *cs.borrow_mut() = Some(ChainService::new("https://rpc-url".to_string()));
-    });
-}
-
-// Orchestrator export 
-
-#[update]
-#[candid_method(update)]
-async fn call_register_publication(
-    registrations: Vec<PublicationRegistration>,
-) -> Vec<RegisterPublicationResult> {
-    subscription_manager::register_publication(registrations).await
-}
-
-#[update(name = "icrc72_register_subscription")]
-#[candid_method(update)]
-async fn call_register_subscription(
-    registrations: Vec<SubscriptionRegistration>,
-) -> Vec<RegisterSubscriptionResult> {
-    subscription_manager::register_subscription(registrations).await
-}
-
-// Broadcaster export
-
-#[update(name = "icrc72_publish")]
-#[candid_method(update)]
-async fn icrc72_publish(
-    events: Vec<Event>,
-) -> Vec<Option<Result<Vec<Nat>, PublishError>>> {
-    subscription_manager::publish_events(events).await
-}
-
-#[update]
-#[candid_method(update)]
-async fn call_confirm_messages(
-    notification_ids: Vec<Nat>,
-) -> ConfirmationResult {
-    subscription_manager::confirm_messages(notification_ids).await
-}
-
-
-// Subscriber export
-
-#[update(name = "icrc72_handle_notification")]
-#[candid_method(update)]
-async fn icrc72_handle_notification(
-    notification: EventNotification,
-) {
-    subscription_manager::handle_notification(notification).await
-}
-
-// Query methods export
-
-#[query(name = "icrc72_get_subscriptions")]
-#[candid_method(query)]
-fn call_get_subscriptions(
-    namespace: Option<String>,
-    prev: Option<Nat>,
-    take: Option<u64>,
-    stats_filter: Option<Vec<ICRC16Map>>,
-) -> Vec<SubscriptionInfo> {
-    subscription_manager::get_subscriptions_info(namespace, prev, take, stats_filter)
-}
-
-// ChainService: get EVM logs
-#[update]
-#[candid_method(update)]
-async fn get_chain_events() -> String {
-    let chain_service = ChainService::new("bd3sg-teaaa-aaaaa-qaaba-cai".to_string());
-    chain_service.start_monitoring(Duration::from_secs(10));
-
-    "Monitoring started".to_string()
-}
-
-
-// Candid interface export
 
 #[query]
 fn get_candid_pointer() -> String {

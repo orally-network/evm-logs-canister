@@ -1,107 +1,44 @@
-type ConfirmationResult = variant {
-  AllAccepted : null;
-  SomeRejected : vec nat;
+type Config = record {
+  estimate_events_num : nat32;
+  proxy_canister : principal;
+  evm_rpc_canister : principal;
 };
 
 type Event = record {
   id : nat;
   prev_id : opt nat;
+  data : Value;
+  headers : opt vec Map;
+  chain_id : nat32;
+  topics : opt vec text;
+  address : text;
   timestamp : nat64;
-  namespace : text;
-  data : ICRC16Value;
-  headers : opt vec ICRC16Map;
+  tx_hash : text;
 };
 
-type EventNotification = record {
-  id : nat;
-  event_id : nat;
-  event_prev_id : opt nat;
-  timestamp : nat64;
-  namespace : text;
-  data : ICRC16Value;
-  headers : opt vec ICRC16Map;
-  source : principal;
-  filter : opt text;
+type Filter = record {
+  topics : opt vec vec text;
+  address : text;
 };
 
 type GenericError = record {
-  error_code : nat;
   message : text;
+  error_code : nat;
 };
 
-type ICRC16Map = record {
-  key : ICRC16Value;
-  value : ICRC16Value;
-};
-
-type ICRC16Property = record {
-  name : text;
-  value : ICRC16Value;
-  immutable : bool;
-};
-
-type ICRC16Value = variant {
-  Array : vec ICRC16Value;
-  Blob : vec nat8;
-  Bool : bool;
-  Bytes : vec nat8;
-  Class : vec ICRC16Property;
-  Float : float64;
-  Floats : vec float64;
-  Int : int;
-  Int16 : int16;
-  Int32 : int32;
-  Int64 : int64;
-  Int8 : int8;
-  Map : vec ICRC16Map;
-  ValueMap : vec ICRC16ValueMap;
-  Nat : nat;
-  Nat16 : nat16;
-  Nat32 : nat32;
-  Nat64 : nat64;
-  Nat8 : nat8;
-  Nats : vec nat;
-  Option : ICRC16Value;
-  Principal : principal;
-  Set : vec ICRC16Value;
-  Text : text;
-};
-
-type ICRC16ValueMap = record {
-  key : ICRC16Value;
-  value : ICRC16Value;
-};
-
-type PublicationRegistration = record {
-  namespace : text;
-  config : vec ICRC16Map;
-  memo : opt vec nat8;
-};
-
-type PublishError = variant {
-  Unauthorized : null;
-  ImproperId : text;
-  Busy : null;
-  GenericError : GenericError;
-};
-
-type RegisterPublicationError = variant {
-  Unauthorized : null;
-  UnauthorizedPublisher : record { namespace : text };
-  ImproperConfig : text;
-  GenericError : GenericError;
-};
-
-type RegisterPublicationResult = variant {
-  Ok : nat;
-  Err : RegisterPublicationError;
+type Map = record {
+  key : Value;
+  value : Value;
 };
 
 type RegisterSubscriptionError = variant {
-  Unauthorized : null;
-  UnauthorizedSubscriber : record { namespace : text };
-  ImproperConfig : text;
+  SameFilterExists;
   GenericError : GenericError;
+  ImproperConfig : text;
+  InvalidChainName;
+  UnauthorizedSubscriber : record { namespace : text };
+  Unauthorized;
+  InsufficientFunds;
 };
 
 type RegisterSubscriptionResult = variant {
@@ -109,33 +46,73 @@ type RegisterSubscriptionResult = variant {
   Err : RegisterSubscriptionError;
 };
 
-type Skip = record {
-  modulus : nat;
-  offset : opt nat;
-};
-
 type SubscriptionInfo = record {
   subscription_id : nat;
+  stats : vec Map;
+  filter : Filter;
+  chain_id : nat32;
   subscriber_principal : principal;
-  namespace : text;
-  config : vec ICRC16Map;
-  filter : opt text;
-  skip : opt Skip;
-  stats : vec ICRC16Map;
 };
 
 type SubscriptionRegistration = record {
-  namespace : text;
-  config : vec ICRC16Map;
-  memo : opt vec nat8;
+  memo : opt blob;
+  filter : Filter;
+  chain_id : nat32;
+  canister_to_top_up : principal;
 };
 
-service : {
-  call_register_publication : (vec PublicationRegistration) -> (vec RegisterPublicationResult);
-  icrc72_register_subscription : (vec SubscriptionRegistration) -> (vec RegisterSubscriptionResult);
-  icrc72_publish : (vec Event) -> (vec opt variant { Ok : vec nat; Err : PublishError });
-  call_confirm_messages : (vec nat) -> (ConfirmationResult);
-  icrc72_handle_notification : (EventNotification) -> ();
-  icrc72_get_subscriptions : (namespace : opt text, prev : opt nat, take : opt nat64, stats_filter : opt vec ICRC16Map) -> (vec SubscriptionInfo) query;
-  get_chain_events : () -> (text);
-}
+type TopUpBalanceError = variant { GenericError };
+
+type TopUpBalanceResult = variant { 
+  Ok; 
+  Err : TopUpBalanceError;
+};
+
+type UnsubscribeResult = variant { 
+  Ok : record {}; 
+  Err : text;
+};
+
+type Value = variant {
+  Map : Vec;
+  Nat : nat;
+  Bool : bool;
+  Text : text;
+  Bytes : blob;
+  Float : float64;
+  Principal : principal;
+};
+
+type Vec = vec record {
+  key : variant {
+    Map : Vec;
+    Nat : nat;
+    Bool : bool;
+    Text : text;
+    Bytes : blob;
+    Float : float64;
+    Principal : principal;
+  };
+  value : variant {
+    Map : Vec;
+    Nat : nat;
+    Bool : bool;
+    Text : text;
+    Bytes : blob;
+    Float : float64;
+    Principal : principal;
+  };
+};
+
+service : (Config) -> {
+  get_active_filters : () -> (vec Filter) query;
+  get_balance : (principal) -> (nat) query;
+  get_candid_pointer : () -> (text) query;
+  get_subscriptions : (opt nat32, opt nat, opt vec Filter) -> (vec SubscriptionInfo) query;
+  get_user_subscriptions : () -> (vec SubscriptionInfo) query;
+  icrc72_publish : (vec Event) -> ();
+  publish_events : (vec Event) -> ();
+  subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
+  top_up_balance : (principal) -> (TopUpBalanceResult);
+  unsubscribe : (nat) -> (UnsubscribeResult);
+};

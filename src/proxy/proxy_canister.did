@@ -1,0 +1,33 @@
+type Filter = record {
+    address: text;
+    topics: opt vec vec text;
+};
+
+type EventNotification = record {
+  sub_id : nat;
+  event_id : nat;
+  event_prev_id : opt nat;
+  timestamp : nat64;
+  namespace : text;
+  data : vec nat8;
+  tx_hash : opt text;
+  headers : vec record { text; text };
+  topics : vec text;
+  source : principal;
+  filter : opt Filter;
+};
+
+type SendNotificationError = variant { 
+    FailedToSend; 
+    InvalidSubscriber 
+};
+
+type SendNotificationResult = variant { 
+    Ok; 
+    Err : SendNotificationError 
+};
+
+service : {
+  send_notification : (principal, EventNotification) -> (SendNotificationResult);
+  __get_candid_interface_tmp_hack : () -> (text) query;
+}
