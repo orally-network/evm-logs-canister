@@ -8,7 +8,7 @@ use std::time::Duration;
 use common::*;
 
 #[tokio::test]
-async fn test_batch_requests() {
+async fn batch_requests_test() {
     let pic = PocketIc::new().await;
 
     let num_filters = 5;
@@ -105,6 +105,26 @@ async fn test_batch_requests() {
     pic.advance_time(Duration::from_secs(20)).await;
     pic.tick().await;  
     
+    let eth_get_logs_counter_bytes = pic.query_call(
+        evm_rpc_mocked_canister_id, 
+        Principal::anonymous(), 
+        "get_eth_get_logs_count", 
+        candid::encode_args(
+            ()
+        ).unwrap()
+    ).await
+    .unwrap();
+
+    
+    if let WasmResult::Reply(reply_data) = eth_get_logs_counter_bytes {
+        let eth_get_logs_counter: u64 = candid::decode_one(&reply_data).unwrap();
+
+        assert_eq!(eth_get_logs_counter, 3);
+        
+    } else {
+        panic!("Failed to get notifications for subscriber");
+    }
+
     let received_notifications_bytes = pic.query_call(
         subscriber_canister_id, 
         Principal::anonymous(), 
@@ -134,27 +154,5 @@ async fn test_batch_requests() {
     } else {
         panic!("Failed to get notifications for subscriber");
     }
-
-
-    let eth_get_logs_counter_bytes = pic.query_call(
-        evm_rpc_mocked_canister_id, 
-        Principal::anonymous(), 
-        "get_eth_get_logs_count", 
-        candid::encode_args(
-            ()
-        ).unwrap()
-    ).await
-    .unwrap();
-
-    
-    if let WasmResult::Reply(reply_data) = eth_get_logs_counter_bytes {
-        let eth_get_logs_counter: u64 = candid::decode_one(&reply_data).unwrap();
-
-        assert_eq!(eth_get_logs_counter, 3);
-        
-    } else {
-        panic!("Failed to get notifications for subscriber");
-    }
-
 
 }

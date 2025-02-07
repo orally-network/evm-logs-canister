@@ -1,23 +1,3 @@
-/// This test validates the flow of event subscriptions and notifications publication 
-/// in the `evm_logs` canister. It ensures that:
-///
-/// - Canister Setup & Initialization:
-///   - Subscriber, Proxy, and EVM Logs canisters are created and installed correctly.
-///
-/// - Subscription Registration:
-///   - A subscription is registered by the subscriber canister with a specific `chain_id` and `filter`.
-///   - The subscription request is sent via an `update_call` to the `evm_logs` canister.
-///   - Future improvement: Validate the subscription registration response to ensure success.
-///
-/// - Event Publishing:
-///   - An event is constructed with a predefined `chain_id`, `address`, and `topics`.
-///   - The event is published using an `update_call` to the `publish_events` method of `evm_logs`.
-///
-/// - Notification Delivery:
-///   - The subscriber canister is queried for received notifications.
-///   - The response is validated to ensure:
-///     - One notification was received.
-///     - The event metadata (`chain_id`, `event_id`, `data`) matches the published event.
 mod common;
 
 use candid;
