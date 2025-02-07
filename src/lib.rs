@@ -23,6 +23,8 @@ use crate::{
     utils::generate_chain_configs,
 };
 
+use ic_cdk_macros::query;
+
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
 
