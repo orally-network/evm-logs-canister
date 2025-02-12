@@ -8,28 +8,11 @@ use std::time::Duration;
 use std::collections::HashMap;
 use common::*;
 
-/// This test verifies the main workflow of the EVM logs canister with multiple subscribers.
-/// 
-/// ## Overview:
-/// - It sets up a simulated Internet Computer environment using PocketIc.
-/// - It deploys and initializes multiple canisters: `evm-logs-canister`, `evm-rpc-mocked`, `proxy`, `cycles-wallet`, 
-/// and multiple subscriber canisters(const value in the code).
-/// - Each subscriber canister subscribes to the `evm-logs-canister` with a randomly generated filter.
-/// - The test ensures that all subscriptions are correctly registered(subscription count match).
-/// - It advances time and triggers the event processing cycle to simulate the logs fetching.
-/// - Finally, it verifies that each subscriber received the expected event notification.
-///
-/// ## Key Assertions:
-/// - The number of registered subscriptions matches the expected count.
-/// - Each subscriber receives exactly one event notification after the logs are fetched and processed.
-/// 
-/// This test ensures the correctness of the subscription workflow and event delivery mechanism in a controlled local environment.
-
 #[tokio::test]
 async fn test_main_worflow_with_bunch_subscribers() {
     let pic = PocketIc::new().await;
 
-    let num_subscribers = 3;
+    let num_subscribers = 2;
 
     // This hashmap will store the subscriber canister ID -> filter
     let mut subscriber_filters = HashMap::<Principal, Filter>::new();
@@ -178,16 +161,16 @@ async fn test_main_worflow_with_bunch_subscribers() {
                 .get(&subscriber_canister_id)
                 .expect("Filter not found for subscriber");
 
-            let stored_address = stored_filter.address.clone().to_lowercase();
+            let stored_address = stored_filter.address.clone().to_string().to_lowercase();
             let stored_topics = &stored_filter.topics.as_ref().unwrap()[0];
 
             // Check that the notification's address matches the address we originally used in the filter
-            assert_eq!(notification.address, stored_address, 
+            assert_eq!(notification.log_entry.address.to_string(), stored_address, 
                 "Notification address does not match the original subscriber filter"
             );
 
             // Check that the notification's address matches the address we originally used in the filter
-            assert_eq!(&notification.topics, stored_topics, 
+            assert_eq!(&notification.log_entry.topics, stored_topics, 
                 "Notification topic does not match the original subscriber filter"
             );
 

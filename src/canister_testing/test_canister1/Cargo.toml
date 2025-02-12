@@ -12,6 +12,7 @@ evm_logs_types = { path = "../../../evm_logs_types" }
 ic-cdk-macros = "0.9"
 ic-web3-rs = "0.1.9"
 hex = "0.4.3"
+evm_rpc_types = "1.2.0"
 
 [lib]
 crate-type = ["cdylib"]

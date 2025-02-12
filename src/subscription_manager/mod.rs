@@ -127,8 +127,11 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
 }
 #[cfg(test)]
 mod tests{
+    use std::str::FromStr;
+
     use super::*;
     use evm_logs_types::Filter;
+    use evm_rpc_types::{Hex20, Hex32};
     #[test]
     fn test_register_subscription_success() {
     // Using tokio runtime explicitly because of tokio::test error. TODO fix 
@@ -141,8 +144,8 @@ mod tests{
                 canister_to_top_up: Principal::anonymous(),
                 chain_id: 1u32,
                 filter: Filter {
-                    address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
-                    topics: Some(vec![vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]]),
+                    address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(),
+                    topics: Some(vec![vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()]]),
                 },
                 memo: None,
             };
@@ -163,8 +166,8 @@ mod tests{
                 canister_to_top_up: Principal::anonymous(),
                 chain_id: 1u32,
                 filter: Filter {
-                    address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(),
-                    topics: Some(vec![vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]]),
+                    address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(),
+                    topics: Some(vec![vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()]]),
                 },
                 memo: None,
             };

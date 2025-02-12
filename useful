@@ -1,0 +1,45 @@
+dfx canister call test_canister1 subscribe '( 
+  principal "bw4dl-smaaa-aaaaa-qaacq-cai"
+)'
+
+dfx canister call test_canister1 get_decoded_notifications > decoded_notifications.txt 
+
+dfx canister call evm_logs_canister top_up_balance '(principal "br5f7-7uaaa-aaaaa-qaaca-cai")' 
+--wallet $(dfx identity get-wallet) --with-cycles 1000000000
+
+minter:
+https://vscode.dev/github/dfinity/ic/blob/master/rs/ethereum/cketh/minter/src/eth_rpc_client/mod.rs#L88
+
+RECEIVED_ETH_OR_ERC20_WITH_SUBACCOUNT_EVENT_TOPIC
+register_deposit_events
+
+The ERC-20 -> ckERC-20 flow involves the following steps:
+
+. The user submits an Ethereum transaction calling the `approve` function of the ERC-20 smart contract to allow the helper smart contract address to use some of the user’s funds. Depending on the amount specified, additional deposits may not need to be approved beforehand. The `approve` function can be invoked directly on the contract's Etherscan page after connecting any of Web3-capable wallets.
+. The user calls the link:https://etherscan.io/address/0x18901044688D3756C35Ed2b36D93e6a5B8e00E68#writeContract[minter helper contract] `depositErc20` method of the helper smart contract (just as `approve` this method can be called from contract's Etherscan page) specifying
+.. The ERC-20 smart contract address. This identifies the ERC-20 token being deposited.
+.. The amount of ERC-20 tokens being deposited.
+.. The IC principal encoded as a `bytes32`.
+.. The IC ledger subaccount (use `0x` for the default subaccount), which is a 32-byte array, encoded as a hexadecimal string and prefixed by `0x`. The IC principal together with the IC ledger subaccount uniquely identify an IC ledger account to which the amount of ckERC-20 should be minted.
+. The helper smart contract does the following steps within the *same* Ethereum transaction
+.. Call `transferFrom` on the ERC-20 smart contract to transfer the given amount of ERC-20 tokens from the user’s address to the minter’s address. (This requires that the smart contract’s address was previously approved as in step 2).
+.. Emits the `ReceivedEthOrErc20(address,address,uint,bytes32,bytes32)` event
+... The first `address` argument is the ERC-20 smart contract Ethereum address.
+... The second `address` argument is the source Ethereum address.
+... The `uint` argument is the deposit value.
+... The first `bytes32` argument encodes the IC principal.
+... The second `bytes32` argument encodes the ledger subaccount. The principal and subaccount together identify the receiver of ckERC20 on the IC.
+. The scrapping of the logs will be done as in ckETH, meaning that ckETH minter executes the following steps on a timer:
+.. Query the latest finalized block number using the `eth_getBlockByNumber` RPC endpoint. If the finalized block number hasn't changed since the last timer execution, skip the rest of the timer logic.
+.. Use the `eth_getLogs` RPC endpoint to fetch the helper smart contract logs from the previous finalized block number to the block number obtained in the previous step. The response is an array of events, where each event includes in particular the transaction hash `transactionHash` and the log entry index `logIndex`. Parse `ReceivedEthOrErc20` events contained in the logs.
+.. For each new event, if the `transactionHash` was not seen before (minter keeps track of minted transactions), check that the sender of the transaction is not on the blocklist and mint ckERC20 and include the transaction hash and the log entry index in the ckERC-20 mint transaction memo (ICRC-1 ledger feature). Add the `transactionHash` to the list of seen transactions kept by the minter. If the sender of the transaction was a blocked address, then the minter does not mint ckERC20, but still marks the transaction hash as seen.
+
+
+
+ICP deploy canisters
+dfx canister create proxy_canister --network ic
+proxy_canister canister created on network ic with canister id: t4x7z-qqaaa-aaaag-at3uq-cai
+Installing code for canister proxy_canister, with canister ID t4x7z-qqaaa-aaaag-at3uq-cai
+
+evm_logs_canister canister created on network ic with canister id: tvuuf-gyaaa-aaaag-at3va-cai
+Installing code for canister evm_logs_canister, with canister ID tvuuf-gyaaa-aaaag-at3va-cai

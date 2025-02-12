@@ -1,39 +1,21 @@
-/// This test validates the flow of event subscriptions and notifications publication 
-/// in the `evm_logs` canister. It ensures that:
-///
-/// - Canister Setup & Initialization:
-///   - Subscriber, Proxy, and EVM Logs canisters are created and installed correctly.
-///
-/// - Subscription Registration:
-///   - A subscription is registered by the subscriber canister with a specific `chain_id` and `filter`.
-///   - The subscription request is sent via an `update_call` to the `evm_logs` canister.
-///   - Future improvement: Validate the subscription registration response to ensure success.
-///
-/// - Event Publishing:
-///   - An event is constructed with a predefined `chain_id`, `address`, and `topics`.
-///   - The event is published using an `update_call` to the `publish_events` method of `evm_logs`.
-///
-/// - Notification Delivery:
-///   - The subscriber canister is queried for received notifications.
-///   - The response is validated to ensure:
-///     - One notification was received.
-///     - The event metadata (`chain_id`, `event_id`, `data`) matches the published event.
 mod common;
 
 use candid;
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{
-    Event, EventNotification, Filter, Value,
+    Event, EventNotification, Filter,
     SubscriptionRegistration,
 };
+use evm_rpc_types::{Hex20, Hex32, LogEntry, Hex};
 use pocket_ic::nonblocking::PocketIc;
 use pocket_ic::WasmResult;
+use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::sleep;
 use common::*;
 
-static EVENT_DATA: &str = "0xffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
+static EVENT_DATA: &str = "ffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
 
 #[tokio::test]
 async fn test_event_publishing_and_notification_delivery() {
@@ -129,8 +111,8 @@ async fn test_event_publishing_and_notification_delivery() {
     let sub_registration = SubscriptionRegistration {
         chain_id: 8453,
         filter: Filter {
-            address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(), // Example address
-            topics: Some(vec![vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]]),
+            address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(), // Example address
+            topics: Some(vec![vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()]]),
         },
         memo: None,
         canister_to_top_up: subscriber_canister_id,
@@ -172,14 +154,25 @@ async fn test_event_publishing_and_notification_delivery() {
     // Publish an event
     let event = Event {
         id: Nat::from(0u64), // ID will be assigned by the canister
-        prev_id: None,
         timestamp: 0,
         chain_id: 8453,
-        data: Value::Text(EVENT_DATA.to_string()),
-        headers: None,
-        address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(), // Example address
-        topics: Some(vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]),                                                      // Example topic
-        tx_hash: "".to_string(),
+        // data: Value::Text(EVENT_DATA.to_string()),
+        // headers: None,
+        // address: "0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59".to_string(), // Example address
+        // topics: Some(vec!["0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67".to_string()]),                                                      // Example topic
+        // tx_hash: "".to_string(),
+        log_entry: LogEntry {
+            address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(),
+            topics: vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()],
+            data: Hex::from(hex::decode(EVENT_DATA).unwrap()),
+            // data: Hex::from(vec![]),
+            block_number: None,
+            transaction_hash: None,
+            transaction_index: None,
+            block_hash: None,
+            log_index: None,
+            removed: false,
+        },
     };
     let _ = pic
         .update_call(
@@ -215,11 +208,14 @@ async fn test_event_publishing_and_notification_delivery() {
                 "Incorrect chain_id in notification"
             );
             assert_eq!(notification.event_id, Nat::from(1u64), "Incorrect event_id");
-            if let Value::Text(ref text) = notification.data {
-                assert_eq!(text, &EVENT_DATA.to_string(), "Incorrect event data");
-            } else {
-                panic!("Unexpected data type in notification");
-            }
+
+            let event_data_bytes = hex::decode(EVENT_DATA).unwrap();
+            assert_eq!(
+                notification.log_entry.data.as_ref(),
+                event_data_bytes,
+                "Incorrect event data"
+            );
+
             assert!(notification.filter.is_none(), "Expected no filter");
         }
         Ok(WasmResult::Reject(err)) => {

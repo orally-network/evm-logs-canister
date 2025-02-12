@@ -8,7 +8,7 @@ use std::time::Duration;
 use common::*;
 
 #[tokio::test]
-async fn test_batch_requests() {
+async fn batch_requests_test() {
     let pic = PocketIc::new().await;
 
     let num_filters = 5;
@@ -105,37 +105,6 @@ async fn test_batch_requests() {
     pic.advance_time(Duration::from_secs(20)).await;
     pic.tick().await;  
     
-    let received_notifications_bytes = pic.query_call(
-        subscriber_canister_id, 
-        Principal::anonymous(), 
-        "get_notifications", 
-        candid::encode_args(
-            ()
-        ).unwrap()
-    ).await
-    .unwrap();
-
-    // here we need to check if subscriber received all notifications which corresponds to its filters. it shopuld be exactly num_filters notifications
-    if let WasmResult::Reply(reply_data) = received_notifications_bytes {
-        let notifications: Vec<EventNotification> = candid::decode_one(&reply_data).unwrap();
-        
-        // Verify that the number of received notifications matches the number of subscriptions
-        // assert_eq!(notifications.len(), num_filters, "Notifications count mismatch");
-
-        for notification in notifications.iter() {
-            // Find the corresponding filter for the received notification
-            let matching_filter = subscriber_filters.iter().find(|filter| {
-                filter.address.to_lowercase() == notification.address.to_lowercase()
-                    && filter.topics.as_ref().map_or(false, |topics| topics.contains(&notification.topics))
-            });
-
-            assert!(matching_filter.is_some(), "Received notification does not match any subscribed filter");
-        }
-    } else {
-        panic!("Failed to get notifications for subscriber");
-    }
-
-
     let eth_get_logs_counter_bytes = pic.query_call(
         evm_rpc_mocked_canister_id, 
         Principal::anonymous(), 
@@ -156,5 +125,41 @@ async fn test_batch_requests() {
         panic!("Failed to get notifications for subscriber");
     }
 
+    let received_notifications_bytes = pic.query_call(
+        subscriber_canister_id, 
+        Principal::anonymous(), 
+        "get_notifications", 
+        candid::encode_args(
+            ()
+        ).unwrap()
+    ).await
+    .unwrap();
+
+    // here we need to check if subscriber received all notifications which corresponds to its filters. it shopuld be exactly num_filters notifications
+    if let WasmResult::Reply(reply_data) = received_notifications_bytes {
+        let notifications: Vec<EventNotification> = candid::decode_one(&reply_data).unwrap();
+        
+        // Verify that the number of received notifications matches the number of subscriptions
+        // assert_eq!(notifications.len(), num_filters, "Notifications count mismatch");
+
+        for notification in notifications.iter() {
+            let matching_filter = subscriber_filters.iter().find(|filter| {
+                filter.address.to_string().to_lowercase() == notification.log_entry.address.to_string().to_lowercase()
+                    && filter.topics.as_ref().map_or(true, |topics| {
+                        notification.log_entry.topics.iter().enumerate().all(|(i, topic)| {
+                            topics.get(i).map_or(true, |filter_topic_set| {
+                                filter_topic_set.iter().any(|filter_topic| {
+                                    filter_topic.to_string().to_lowercase() == topic.to_string().to_lowercase()
+                                })
+                            })
+                        })
+                    })
+            });
+    
+            assert!(matching_filter.is_some(), "Received notification does not match any subscribed filter");
+        }
+    } else {
+        panic!("Failed to get notifications for subscriber");
+    }
 
 }

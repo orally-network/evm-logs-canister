@@ -2,7 +2,7 @@ use super::config::ChainConfig;
 use super::monitoring::start_monitoring_internal;
 use ic_cdk_timers::TimerId;
 use std::cell::RefCell;
-use std::sync::Arc;
+use std::rc::Rc;
 use candid::Nat;
 
 pub struct ChainService {
@@ -23,7 +23,7 @@ impl ChainService {
         }
     }
 
-    pub fn start_monitoring(self: Arc<Self>, interval: std::time::Duration) {
+    pub fn start_monitoring(self: Rc<Self>, interval: std::time::Duration) {
         start_monitoring_internal(self, interval);
     }
 }
