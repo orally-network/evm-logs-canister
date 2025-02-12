@@ -650,6 +650,7 @@ name = "evm_logs_types"
 version = "0.1.0"
 dependencies = [
  "candid 0.10.13",
+ "evm_rpc_types",
  "ic-cdk 0.14.1",
  "serde",
  "serde_json",
@@ -2847,6 +2848,7 @@ version = "0.1.0"
 dependencies = [
  "candid 0.10.13",
  "evm_logs_types",
+ "evm_rpc_types",
  "hex",
  "ic-cdk 0.14.1",
  "ic-cdk-macros 0.9.0",
