@@ -8,6 +8,57 @@ EVM_RPC_MOCKED_WASM := ./target/wasm32-unknown-unknown/release/evm_rpc_mocked.wa
 
 .DEFAULT_GOAL: help
 
+local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister local_deploy_cycles_wallet
+	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
+	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister))
+	$(eval TEST_CANISTER := $(shell dfx canister id test_canister1))
+
+	dfx canister create evm_logs_canister && dfx build evm_logs_canister
+
+	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
+
+	dfx canister install --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz --argument \
+		"(record { \
+			evm_rpc_canister=principal\"${EVM_RPC_CANISTER}\"; \
+			proxy_canister=principal\"${PROXY_CANISTER}\"; \
+			estimate_events_num = 5:nat32; \
+			max_response_bytes = 1000000:nat32 \
+		})" evm_logs_canister \
+
+ic_deploy:
+	# Create Proxy Canister
+	dfx canister create proxy_canister --network ic
+	dfx build proxy_canister --ic
+
+	gzip -f -1 ./.dfx/ic/canisters/proxy_canister/proxy_canister.wasm
+
+	# Install Proxy Canister
+	dfx canister install proxy_canister --network ic --wasm ./.dfx/ic/canisters/proxy_canister/proxy_canister.wasm.gz
+
+	# Fetch Canister IDs
+	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc --network ic))
+	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister --network ic))
+
+	# Create EVM Logs Canister
+	dfx canister create evm_logs_canister --network ic
+	dfx build evm_logs_canister --ic
+
+	gzip -f -1 ./.dfx/ic/canisters/evm_logs_canister/evm_logs_canister.wasm
+
+	# Install EVM Logs Canister with Arguments
+	dfx canister install evm_logs_canister --network ic --wasm ./.dfx/ic/canisters/evm_logs_canister/evm_logs_canister.wasm.gz --argument \
+		"(record { \
+			evm_rpc_canister = principal \"${EVM_RPC_CANISTER}\"; \
+			proxy_canister = principal \"${PROXY_CANISTER}\"; \
+			estimate_events_num = 5 : nat32; \
+			max_response_bytes = 1000000 : nat32 \
+		})"
+
+ic_upgrade:
+	dfx build evm_logs_canister --network ic
+	gzip -f -1 ./.dfx/ic/canisters/evm_logs_canister/evm_logs_canister.wasm
+	dfx canister install --mode upgrade --wasm ./.dfx/ic/canisters/evm_logs_canister/evm_logs_canister.wasm.gz --network ic evm_logs_canister
+
 local_deploy_evm_rpc:
 	dfx deploy evm_rpc --argument '(record { nodesInSubnet = 28 })'
 
@@ -20,21 +71,6 @@ local_deploy_test_canister:
 local_deploy_cycles_wallet:
 	dfx deploy cycles_wallet
 
-local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister local_deploy_cycles_wallet
-	$(eval MAINNET_RPC_URL?=https://eth.llamarpc.com)
-	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
-	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister))
-	$(eval TEST_CANISTER := $(shell dfx canister id test_canister1))
-
-	dfx canister create evm_logs_canister && dfx build evm_logs_canister 
-	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
-	dfx canister install --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz --argument \
-		"(record { \
-			evm_rpc_canister=principal\"${EVM_RPC_CANISTER}\"; \
-			proxy_canister=principal\"${PROXY_CANISTER}\"; \
-			estimate_events_num = 5:nat32; \
-			max_response_bytes = 1000000:nat32 \
-		})" evm_logs_canister \
 
 local_test_canister_subscribe:
 	$(eval EVM_LOGS_CANISTER := $(shell dfx canister id evm_logs_canister))

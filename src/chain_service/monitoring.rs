@@ -5,18 +5,18 @@ use crate::{
 };
 use ic_cdk;
 use ic_cdk_timers::set_timer_interval;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use super::events_processor::process_and_publish_events;
 use super::logs_fetcher::fetch_logs;
 use super::service::ChainService;
 use std::time::Duration;
 
-pub fn start_monitoring_internal(service: Arc<ChainService>, interval: Duration) {
-    let service_clone = Arc::clone(&service);
+pub fn start_monitoring_internal(service: Rc<ChainService>, interval: Duration) {
+    let service_clone = Rc::clone(&service);
 
     let timer_id = set_timer_interval(interval, move || {
-        let service_inner = Arc::clone(&service_clone);
+        let service_inner = Rc::clone(&service_clone);
         ic_cdk::spawn(async move {
             service_inner.logs_fetching_and_processing_task().await;
         });
