@@ -52,16 +52,11 @@ async fn distribute_event(event: Event) {
             let notification = EventNotification {
                 sub_id: sub.subscription_id.clone(),
                 event_id: notification_id.clone(),
-                event_prev_id: event.prev_id.clone(),
                 timestamp: current_timestamp(),
                 chain_id: event.chain_id,
-                data: event.data.clone(),
-                tx_hash: event.tx_hash.clone(),
-                headers: event.headers.clone(),
-                address: event.address.clone(),
-                topics: event.topics.clone().unwrap_or_default(),
                 source: ic_cdk::api::id(),
                 filter: None,
+                log_entry: event.log_entry.clone()
             };
 
             // Check if the subscriber has sufficient balance

@@ -143,12 +143,19 @@ async fn batch_requests_test() {
         // assert_eq!(notifications.len(), num_filters, "Notifications count mismatch");
 
         for notification in notifications.iter() {
-            // Find the corresponding filter for the received notification
             let matching_filter = subscriber_filters.iter().find(|filter| {
-                filter.address.to_lowercase() == notification.address.to_lowercase()
-                    && filter.topics.as_ref().map_or(false, |topics| topics.contains(&notification.topics))
+                filter.address.to_string().to_lowercase() == notification.log_entry.address.to_string().to_lowercase()
+                    && filter.topics.as_ref().map_or(true, |topics| {
+                        notification.log_entry.topics.iter().enumerate().all(|(i, topic)| {
+                            topics.get(i).map_or(true, |filter_topic_set| {
+                                filter_topic_set.iter().any(|filter_topic| {
+                                    filter_topic.to_string().to_lowercase() == topic.to_string().to_lowercase()
+                                })
+                            })
+                        })
+                    })
             });
-
+    
             assert!(matching_filter.is_some(), "Received notification does not match any subscribed filter");
         }
     } else {

@@ -40,7 +40,7 @@ impl FilterManager {
         // Increment the counter for the address
         *chain_data
             .addresses
-            .entry(filter.address.clone())
+            .entry(filter.address.to_string().clone())
             .or_insert_with(|| Nat::from(0u32)) += Nat::from(1u32);
 
         // If filter.topics exists and is not empty, take the first position only
@@ -51,7 +51,7 @@ impl FilterManager {
                 for topic in first_position {
                     *chain_data
                         .first_position_topics
-                        .entry(topic.clone())
+                        .entry(topic.to_string().clone())
                         .or_insert_with(|| Nat::from(0u32)) += Nat::from(1u32);
                 }
             }
@@ -64,11 +64,11 @@ impl FilterManager {
         if let Some(chain_data) = self.chain_data.get_mut(&chain_id) {
 
             // Decrement address counter
-            if let Some(addr_count) = chain_data.addresses.get_mut(&filter.address) {
+            if let Some(addr_count) = chain_data.addresses.get_mut(&filter.address.to_string()) {
                 if *addr_count > 0u32 {
                     *addr_count -= Nat::from(1u32);
                     if *addr_count == 0u32 {
-                        chain_data.addresses.remove(&filter.address);
+                        chain_data.addresses.remove(&filter.address.to_string());
                     }
                 }
             }
@@ -78,11 +78,12 @@ impl FilterManager {
                 if !all_positions.is_empty() {
                     let first_position = &all_positions[0];
                     for topic in first_position {
-                        if let Some(topic_count) = chain_data.first_position_topics.get_mut(topic) {
-                            if *topic_count > 0u32 {
+                        let topic_key = topic.to_string();
+                        if let Some(topic_count) = chain_data.first_position_topics.get_mut(&topic_key) {
+                            if *topic_count > Nat::from(0u32) {
                                 *topic_count -= Nat::from(1u32);
-                                if *topic_count == 0u32 {
-                                    chain_data.first_position_topics.remove(topic);
+                                if *topic_count == Nat::from(0u32) {
+                                    chain_data.first_position_topics.remove(&topic_key);
                                 }
                             }
                         }
@@ -131,18 +132,23 @@ impl FilterManager {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use evm_logs_types::Filter;
+    use evm_rpc_types::{Hex20, Hex32};
+    use evm_logs_types::TopicsPosition;
 
     /// Helper function to create a Filter with a given address and optional topics.
     /// We'll keep it simple: `topics` can be a Vec of Vec of &str, which we convert to String.
-    fn make_filter(address: &str, topics: Option<Vec<Vec<&str>>>) -> Filter {
+    fn create_filter(address: &str, topics: Option<Vec<Vec<&str>>>) -> Filter {
         Filter {
-            address: address.to_string(),
-            topics: topics.map(|positions| {
-                positions
-                    .into_iter()
-                    .map(|pos| pos.into_iter().map(|s| s.to_string()).collect())
+            address: Hex20::from_str(address).unwrap(),
+            topics: topics.map(|ts| {
+                ts.into_iter()
+                    .map(|topic_set| topic_set.into_iter()
+                        .filter_map(|s| Hex32::from_str(s).ok())
+                        .collect::<TopicsPosition>())
                     .collect()
             }),
         }
@@ -153,7 +159,7 @@ mod tests {
         let mut manager = FilterManager::default();
 
         // Create a filter with one address and some topics in the first position
-        let filter = make_filter(
+        let filter = create_filter(
             "0xAddress1",
             Some(vec![
                 vec!["TopicA", "TopicB"], // first position
@@ -185,7 +191,7 @@ mod tests {
         let mut manager = FilterManager::default();
 
         // Create a filter with a single address and a single topic in the first position
-        let filter = make_filter("0xAddress2", Some(vec![vec!["TopicX"]]));
+        let filter = create_filter("0xAddress2", Some(vec![vec!["TopicX"]]));
 
         // Add the filter
         manager.add_filter(1, &filter);
@@ -207,10 +213,10 @@ mod tests {
     fn test_add_multiple_filters_different_addresses() {
         let mut manager = FilterManager::default();
 
-        let filter1 = make_filter("0xAddrA", Some(vec![vec!["T1", "T2"]]));
-        let filter2 = make_filter("0xAddrB", Some(vec![vec!["T2", "T3"]]));
+        let filter1 = create_filter("0xAddrA", Some(vec![vec!["T1", "T2"]]));
+        let filter2 = create_filter("0xAddrB", Some(vec![vec!["T2", "T3"]]));
         // Filter with no topics => it won't contribute to first_position_topics
-        let filter3 = make_filter("0xAddrC", None);
+        let filter3 = create_filter("0xAddrC", None);
 
         // Add them for chain_id=1
         manager.add_filter(1, &filter1);
@@ -243,9 +249,9 @@ mod tests {
     fn test_add_and_remove_interleaved() {
         let mut manager = FilterManager::default();
 
-        let filter1 = make_filter("0xAddrA", Some(vec![vec!["X"]]));
-        let filter2 = make_filter("0xAddrB", Some(vec![vec!["Y"]]));
-        let filter3 = make_filter("0xAddrA", Some(vec![vec!["Z"]]));
+        let filter1 = create_filter("0xAddrA", Some(vec![vec!["X"]]));
+        let filter2 = create_filter("0xAddrB", Some(vec![vec!["Y"]]));
+        let filter3 = create_filter("0xAddrA", Some(vec![vec!["Z"]]));
 
         // Add filter1 and filter2 on chain 5
         manager.add_filter(5, &filter1);
