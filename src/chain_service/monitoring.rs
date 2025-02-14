@@ -1,6 +1,6 @@
 use crate::{
     subscription_manager::queries,
-    utils::get_latest_block_number,
+    utils::utils::get_latest_block_number,
     log,
 };
 use ic_cdk;

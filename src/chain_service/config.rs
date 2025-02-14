@@ -1,7 +1,8 @@
-use candid::Principal;
+use candid::{CandidType, Principal};
 use evm_rpc_types::{RpcServices, RpcConfig};
+use serde::Deserialize;
 
-#[derive(Clone)]
+#[derive(Clone, CandidType, Deserialize)]
 pub struct ChainConfig {
     pub chain_id: u32,
     pub rpc_providers: RpcServices,

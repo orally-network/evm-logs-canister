@@ -1,4 +1,5 @@
-use candid::Nat;
+use candid::{CandidType, Nat};
+use serde::Deserialize;
 use std::collections::HashMap;
 use evm_logs_types::Filter;
 
@@ -6,14 +7,14 @@ use evm_logs_types::Filter;
 /// It stores:
 ///   - addresses: a map of "address -> counter",
 ///   - first_position_topics: a map of "topic -> counter" (only from the first position),
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, CandidType, Clone)]
 struct PerChainData {
     addresses: HashMap<String, Nat>,
     first_position_topics: HashMap<String, Nat>,
 }
 
 /// A main FilterManager that stores PerChainData for each `chain_id`.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, CandidType, Clone)]
 pub struct FilterManager {
     chain_data: HashMap<u32, PerChainData>,
 }
