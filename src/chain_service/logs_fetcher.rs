@@ -8,19 +8,32 @@ use crate::{get_state_value, log};
 use super::{utils::*, ChainConfig};
 use ic_cdk::api::call::call_with_payment128;
 use std::str::FromStr;
+use crate::types::balances::BalanceError;
 
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
-    let subscribers = get_state_value!(subscriptions);
+    log!("IN charge_subscribers");
+    let subscriptions = get_state_value!(subscriptions);
 
     // charge subscribers accordingly to amount addresses in their filters
     let cycles_per_one_address = Nat::from(cycles_used / addresses_amound as u64);
 
-    for (_sub_id, sub_info) in subscribers.iter() {
-        let subscriber_principal = sub_info.subscriber_principal;
+    ic_cdk::println!("cycles_used in batch requests: {}", cycles_used);
+    ic_cdk::println!("cycles_per_one_address: {}", cycles_per_one_address);
 
-        if Balances::is_sufficient(subscriber_principal, cycles_per_one_address.clone()).unwrap() {
-            Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()).unwrap();
+    for (_sub_id, sub_info) in subscriptions.iter() {
+        let subscriber_principal = sub_info.subscriber_principal;
+        match Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()) {
+            Ok(_) => {
+                ic_cdk::println!("Balance successfully reduced for {:?} - charged {}", subscriber_principal, cycles_per_one_address);
+            }
+            Err(BalanceError::BalanceDoesNotExist) => {
+                ic_cdk::println!("Failed to reduce balance: Balance does not exist for {:?}", subscriber_principal.to_text());
+            }
+            Err(BalanceError::InsufficientBalance) => {
+                ic_cdk::println!("Failed to reduce balance: Insufficient balance for {:?}", subscriber_principal.to_text());
+            }
         }
+        
     }
 
 }
@@ -138,7 +151,7 @@ async fn eth_get_logs_call_with_retry(
 
     let rpc_config = chain_config.rpc_config.clone();
 
-    let cycles = 10_000_000_000;
+    let cycles = 10_000_000_000; // TODO
     let max_retries = 2; // Set the maximum number of retries
 
     // Retry logic

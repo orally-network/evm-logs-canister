@@ -2,7 +2,7 @@
 use crate::types::balances::Balances;
 use crate::NEXT_NOTIFICATION_ID;
 use crate::{
-    utils::utils::current_timestamp,
+    utils::current_timestamp,
     log, get_state_value
 };
 use super::utils::event_matches_filter;

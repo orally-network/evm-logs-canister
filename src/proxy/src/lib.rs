@@ -17,8 +17,6 @@ async fn send_notification(
     subscriber: Principal,
     notification: EventNotification,
 ) -> SendNotificationResult {
-    log!("Calling handle_notification");
-    
     // Send the notification to the subscriber
     let call_result: Result<(), String> = call(
         subscriber,

@@ -1,5 +1,5 @@
 use crate::get_state_value;
-use crate::utils::utils::EVM_EVENT_SIZE_BYTES;
+use crate::utils::EVM_EVENT_SIZE_BYTES;
 
 pub fn calculate_request_chunk_size(events_num_per_interval: u32, addresses_num: u32) -> usize {
     let max_response_bytes = get_state_value!(max_response_bytes);

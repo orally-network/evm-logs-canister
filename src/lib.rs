@@ -21,7 +21,7 @@ use ic_cdk_macros::*;
 use crate::{
     log_filters::filter_manager::FilterManager,
     types::state::{State, init as init_state},
-    utils::utils::generate_chain_configs,
+    utils::generate_chain_configs,
 };
 
 use ic_utils::{
@@ -39,7 +39,7 @@ thread_local! {
 
     pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
 
-    pub static CHAIN_SERVICES: RefCell<Vec<Rc<ChainService>>> = RefCell::new(Vec::new());
+    pub static CHAIN_SERVICES: RefCell<Vec<Rc<ChainService>>> = const {RefCell::new(Vec::new())};
 }
 
 #[init]

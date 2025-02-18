@@ -14,7 +14,7 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
         }
 
         return filter_topics.iter().enumerate().all(|(i, filter_topic_set)| {
-            event_topics.get(i).map_or(false, |event_topic| filter_topic_set.contains(event_topic))
+            event_topics.get(i).is_some_and(|event_topic| filter_topic_set.contains(event_topic))
         });
     }
 

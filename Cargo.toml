@@ -3,8 +3,7 @@ members = [
     ".",
     "evm_logs_types", 
     "metrics", 
-    "src/canister_testing/test_canister1",
-    "src/canister_testing/test_canister2",
+    "src/test_canister",
     "src/proxy",
     "tests/evm_rpc_mocked",
 ]

@@ -68,7 +68,6 @@ impl Balances {
             }
 
             *balance_entry -= amount.clone();
-
             Ok(())
         })
     }
