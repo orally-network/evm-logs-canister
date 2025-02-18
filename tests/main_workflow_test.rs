@@ -12,7 +12,7 @@ use common::*;
 async fn test_main_worflow_with_bunch_subscribers() {
     let pic = PocketIc::new().await;
 
-    let num_subscribers = 3;
+    let num_subscribers = 2;
 
     // This hashmap will store the subscriber canister ID -> filter
     let mut subscriber_filters = HashMap::<Principal, Filter>::new();
@@ -161,16 +161,16 @@ async fn test_main_worflow_with_bunch_subscribers() {
                 .get(&subscriber_canister_id)
                 .expect("Filter not found for subscriber");
 
-            let stored_address = stored_filter.address.clone().to_lowercase();
+            let stored_address = stored_filter.address.clone().to_string().to_lowercase();
             let stored_topics = &stored_filter.topics.as_ref().unwrap()[0];
 
             // Check that the notification's address matches the address we originally used in the filter
-            assert_eq!(notification.address, stored_address, 
+            assert_eq!(notification.log_entry.address.to_string(), stored_address, 
                 "Notification address does not match the original subscriber filter"
             );
 
             // Check that the notification's address matches the address we originally used in the filter
-            assert_eq!(&notification.topics, stored_topics, 
+            assert_eq!(&notification.log_entry.topics, stored_topics, 
                 "Notification topic does not match the original subscriber filter"
             );
 

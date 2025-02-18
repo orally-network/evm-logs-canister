@@ -111,7 +111,7 @@ test: build ## Run tests
 	   PROXY_CANISTER_WASM_PATH=$(PROXY_CANISTER_WASM) \
 	   EVM_RPC_MOCKED_WASM_PATH=$(EVM_RPC_MOCKED_WASM) \
 	   POCKET_IC_BIN=$(POCKET_IC_BIN) \
-	   RUST_BACKTRACE=1 cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture
+	   cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture	
 
 
 .PHONY: fetch-pocket-ic

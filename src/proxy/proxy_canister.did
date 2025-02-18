@@ -1,33 +1,36 @@
-type Filter = record {
-    address: text;
-    topics: opt vec vec text;
+type EventNotification = record {
+  source : principal;
+  filter : opt text;
+  chain_id : nat32;
+  sub_id : nat;
+  timestamp : nat64;
+  event_id : nat;
+  log_entry : LogEntry;
 };
 
-type EventNotification = record {
-  sub_id : nat;
-  event_id : nat;
-  event_prev_id : opt nat;
-  timestamp : nat64;
-  namespace : text;
-  data : vec nat8;
-  tx_hash : opt text;
-  headers : vec record { text; text };
+type LogEntry = record {
+  transactionHash : opt text;
+  blockNumber : opt nat;
+  data : text;
+  blockHash : opt text;
+  transactionIndex : opt nat;
   topics : vec text;
-  source : principal;
-  filter : opt Filter;
+  address : text;
+  logIndex : opt nat;
+  removed : bool;
 };
 
 type SendNotificationError = variant { 
-    FailedToSend; 
-    InvalidSubscriber 
+  FailedToSend; 
+  InvalidSubscriber 
 };
 
 type SendNotificationResult = variant { 
-    Ok; 
-    Err : SendNotificationError 
+  Ok; 
+  Err : SendNotificationError 
 };
 
 service : {
+  get_candid_pointer : () -> (text) query;
   send_notification : (principal, EventNotification) -> (SendNotificationResult);
-  __get_candid_interface_tmp_hack : () -> (text) query;
 }

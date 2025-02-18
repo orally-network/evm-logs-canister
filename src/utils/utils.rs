@@ -28,7 +28,12 @@ macro_rules! update_state {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => {{
+        use crate::metrics;
         ic_cdk::println!($($arg)*);
+        ic_utils::logger::log_message(format!($($arg)*));
+        ic_utils::monitor::collect_metrics();
+
+        metrics!(set CYCLES, ic_cdk::api::canister_balance() as u128);
     }};
 }
 

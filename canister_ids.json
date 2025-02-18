@@ -1,0 +1,11 @@
+{
+  "evm_logs_canister": {
+    "ic": "tvuuf-gyaaa-aaaag-at3va-cai"
+  },
+  "proxy_canister": {
+    "ic": "t4x7z-qqaaa-aaaag-at3uq-cai"
+  },
+  "test_canister1": {
+    "ic": "runa4-cqaaa-aaaag-at3yq-cai"
+  }
+}

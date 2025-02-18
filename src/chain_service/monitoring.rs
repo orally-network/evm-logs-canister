@@ -1,6 +1,6 @@
 use crate::{
     subscription_manager::queries,
-    utils::get_latest_block_number,
+    utils::utils::get_latest_block_number,
     log,
 };
 use ic_cdk;
@@ -45,7 +45,7 @@ impl ChainService {
                 Ok(latest_block_number) => {
                     *self.last_processed_block.borrow_mut() = latest_block_number.clone();
                     log!(
-                        "Initialized last_processed_block to {} for {:?}",
+                        "Initialized last block number to {} for Chain ID {:?}",
                         latest_block_number,
                         self.config.chain_id
                     );
@@ -53,7 +53,7 @@ impl ChainService {
                 }
                 Err(err) => {
                     log!(
-                        "Failed to initialize last_processed_block for {:?}: {}",
+                        "Failed to initialize last block number Chain ID {:?}: {}",
                         self.config.chain_id,
                         err,
                     );
@@ -61,7 +61,6 @@ impl ChainService {
                 }
             }
         }
-        log!("HERE AFTER THE BLOCK");
         let from_block = last_processed_block.clone() + 1u32;
 
         log!(

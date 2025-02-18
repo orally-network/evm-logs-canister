@@ -113,15 +113,10 @@ async fn get_same_logs_as_sub_filters() -> Vec<LogEntry> {
 
         // Create a sample log entry matching the filter
         let log_entry = LogEntry {
-            address: Hex20::from_str(&filter_address).unwrap_or(Hex20::from([0; 20])),
+            address: filter_address,
             topics: filter_topics
                 .iter()
-                .flat_map(|topic_list| {
-                    topic_list
-                        .iter()
-                        .map(|t| Hex32::from_str(t).unwrap_or(Hex32::from([0; 32])))
-                        .collect::<Vec<_>>()
-                })
+                .flat_map(|topic_list| topic_list.iter().cloned())
                 .collect(),
             transaction_hash: Some(Hex32::from_str("0xd9cf780ea5308e53d5339512353367e9975e936c2fe94ac63b3da2d4b298b891").unwrap()),
             block_number: None,
