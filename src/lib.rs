@@ -8,7 +8,7 @@ mod candid_methods;
 
 use std::{
     cell::RefCell,
-    sync::Arc,
+    rc::Rc,
     time::Duration,
 };
 
@@ -51,7 +51,7 @@ async fn init(config: types::config::Config) {
 }
 
 fn init_chain_service(config: ChainConfig, monitoring_interval: Duration) {
-    let service = Arc::new(ChainService::new(config));
+    let service = Rc::new(ChainService::new(config));
     service.clone().start_monitoring(monitoring_interval);
 }
 
