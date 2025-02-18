@@ -11,6 +11,7 @@ use std::{
     rc::Rc,
     time::Duration,
 };
+
 use ic_cdk::storage;
 use candid::{Nat, Principal};
 use chain_service::{service::ChainService, ChainConfig};
@@ -21,6 +22,11 @@ use crate::{
     log_filters::filter_manager::FilterManager,
     types::state::{State, init as init_state},
     utils::utils::generate_chain_configs,
+};
+
+use ic_utils::{
+    api_type::{GetInformationRequest, GetInformationResponse, UpdateInformationRequest},
+    get_information, update_information,
 };
 
 use ic_cdk_macros::query;
@@ -124,6 +130,17 @@ fn post_upgrade() {
     ic_cdk::println!("post_upgrade: State restored successfully.");
 }   
 
+#[query(name = "getCanistergeekInformation")]
+pub async fn get_canistergeek_information(
+    request: GetInformationRequest,
+) -> GetInformationResponse<'static> {
+    get_information(request)
+}
+
+#[update(name = "updateCanistergeekInformation")]
+pub async fn update_canistergeek_information(request: UpdateInformationRequest) {
+    update_information(request);
+}
 
 #[query]
 fn get_candid_pointer() -> String {
