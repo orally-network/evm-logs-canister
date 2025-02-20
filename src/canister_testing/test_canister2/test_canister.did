@@ -13,18 +13,15 @@ type Event = record {
 };
 
 type EventNotification = record {
-  id : nat;
-  event_id : nat;
-  event_prev_id : opt nat;
-  timestamp : nat64;
-  namespace : text;
-  data : Value;
-  topics: opt vec text;
-  tx_hash: text;
-  headers : opt vec Map;
   source : principal;
   filter : opt text;
+  chain_id : nat32;
+  sub_id : nat;
+  timestamp : nat64;
+  event_id : nat;
+  log_entry : LogEntry;
 };
+
 
 type GenericError = record {
   error_code : nat;

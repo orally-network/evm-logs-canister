@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use candid::{CandidType, Deserialize, Nat, Principal};
 use getrandom::getrandom;
 use evm_logs_types::Filter;
-
+use evm_rpc_types::{Hex20, Hex32};
 #[derive(CandidType, Deserialize)]
 pub struct EvmLogsInitArgs {
     pub evm_rpc_canister: Principal,
@@ -34,7 +36,7 @@ pub fn generate_random_filter() -> Filter {
     let topic = format!("0x{}", hex::encode(topic_bytes)); // Convert topic to hex string
 
     Filter {
-        address,
-        topics: Some(vec![vec![topic]]),
+        address: Hex20::from_str(&address).unwrap(),
+        topics: Some(vec![vec![Hex32::from_str(&topic).unwrap()]]),
     }
 }

@@ -1,5 +1,6 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
+use evm_rpc_types::{LogEntry, Hex20, Hex32};
 
 // A note on specifying topic filters:
 
@@ -10,41 +11,32 @@ use serde::Serialize;
 // [null, B] “anything in first position AND B in second position (and anything after)”
 // [A, B] “A in first position AND B in second position (and anything after)”
 // [[A, B], [A, B]] “(A OR B) in first position AND (A OR B) in second position (and anything after)”
-type TopicsPosition = Vec<String>;
+pub type TopicsPosition = Vec<Hex32>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
-    pub address: String,
+    pub address: Hex20,
     pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct Event {
     pub id: Nat,
-    pub prev_id: Option<Nat>,
     pub timestamp: u64, // UTC Nanoseconds
     pub chain_id: u32,
-    pub address: String,
-    pub topics: Option<Vec<String>>, // TODO remove optional(?)
-    pub data: Value,
-    pub tx_hash: String,
-    pub headers: Option<Vec<Map>>,
+    pub log_entry: LogEntry
 }
+
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct EventNotification {
     pub sub_id: Nat,
     pub event_id: Nat,
-    pub event_prev_id: Option<Nat>,
     pub timestamp: u64,
     pub chain_id: u32,
-    pub data: Value,
-    pub address: String,
-    pub topics: Vec<String>,
-    pub tx_hash: String,
-    pub headers: Option<Vec<Map>>,
-    pub source: Principal,
     pub filter: Option<String>,
+    pub source: Principal,
+    pub log_entry: LogEntry 
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
