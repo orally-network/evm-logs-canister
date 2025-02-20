@@ -1,17 +1,16 @@
 #!/usr/bin/make
 POCKET_IC_BIN := ./pocket-ic
 EVM_LOGS_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/evm_logs_canister.wasm
-TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister1.wasm
+TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister.wasm
 PROXY_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/proxy_canister.wasm
 CYCLES_WALLET_WASM := ./target/wasm32-unknown-unknown/release/wallet.wasm
 EVM_RPC_MOCKED_WASM := ./target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm
 
 .DEFAULT_GOAL: help
 
-local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister local_deploy_cycles_wallet
+local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
 	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
 	$(eval PROXY_CANISTER := $(shell dfx canister id proxy_canister))
-	$(eval TEST_CANISTER := $(shell dfx canister id test_canister1))
 
 	dfx canister create evm_logs_canister && dfx build evm_logs_canister
 
@@ -66,7 +65,7 @@ local_deploy_proxy:
 	dfx deploy proxy_canister
 
 local_deploy_test_canister:
-	dfx deploy test_canister1
+	dfx deploy test_canister
 
 local_deploy_cycles_wallet:
 	dfx deploy cycles_wallet
@@ -74,16 +73,16 @@ local_deploy_cycles_wallet:
 
 local_test_canister_subscribe:
 	$(eval EVM_LOGS_CANISTER := $(shell dfx canister id evm_logs_canister))
-	dfx canister call test_canister1 subscribe '(principal "${EVM_LOGS_CANISTER}")'
+	dfx canister call test_canister subscribe '(principal "${EVM_LOGS_CANISTER}")'
 
 local_upgrade:
 	dfx build evm_logs_canister 
 	gzip -f -1 ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm
 	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/evm_logs_canister/evm_logs_canister.wasm.gz evm_logs_canister
 
-	dfx build test_canister1
-	gzip -f -1 ./.dfx/local/canisters/test_canister1/test_canister1.wasm
-	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/test_canister1/test_canister1.wasm.gz test_canister1
+	dfx build test_canister
+	gzip -f -1 ./.dfx/local/canisters/test_canister/test_canister.wasm
+	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/test_canister/test_canister.wasm.gz test_canister
 
 .PHONY: help
 help: ## Show this help
@@ -94,7 +93,7 @@ help: ## Show this help
 .PHONY: build
 build: ## Build all canisters
 	cargo build --release --target wasm32-unknown-unknown --package evm_logs_canister
-	cargo build --release --target wasm32-unknown-unknown --package test_canister1
+	cargo build --release --target wasm32-unknown-unknown --package test_canister
 	cargo build --release --target wasm32-unknown-unknown --package evm_rpc_mocked
 	cargo build --release --target wasm32-unknown-unknown --package proxy_canister
 

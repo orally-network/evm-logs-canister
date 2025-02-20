@@ -3,17 +3,14 @@ mod common;
 use candid;
 use candid::Nat;
 use candid::Principal;
-use evm_logs_types::{
-    Event, EventNotification, Filter,
-    SubscriptionRegistration,
-};
-use evm_rpc_types::{Hex20, Hex32, LogEntry, Hex};
+use common::*;
+use evm_logs_types::{Event, EventNotification, Filter, SubscriptionRegistration};
+use evm_rpc_types::{Hex, Hex20, Hex32, LogEntry};
 use pocket_ic::nonblocking::PocketIc;
 use pocket_ic::WasmResult;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::sleep;
-use common::*;
 
 static EVENT_DATA: &str = "ffffffffffffffffffffffffffffffffffffffffffffffffe61b66a6b5b0dc6a000000000000000000000000000000000000000000000000000000017ab51b0e00000000000000000000000000000000000000000003d2da2f154b7d200000000000000000000000000000000000000000000000000000006bf4f47dc85f3730fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd064f";
 
@@ -23,7 +20,10 @@ async fn test_event_publishing_and_notification_delivery() {
 
     // Create the subscriber canister
     let subscriber_canister_id = pic.create_canister().await;
-    ic_cdk::println!("Added cycled for subscriber_id: {:?}", subscriber_canister_id.to_text());
+    ic_cdk::println!(
+        "Added cycled for subscriber_id: {:?}",
+        subscriber_canister_id.to_text()
+    );
     pic.add_cycles(subscriber_canister_id, 4_000_000_000_000)
         .await;
 
@@ -42,8 +42,7 @@ async fn test_event_publishing_and_notification_delivery() {
     .await;
 
     let proxy_canister_id = pic.create_canister().await;
-    pic.add_cycles(proxy_canister_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(proxy_canister_id, 4_000_000_000_000).await;
 
     // Install proxy wasm
     let proxy_canister_wasm_path =
@@ -51,13 +50,8 @@ async fn test_event_publishing_and_notification_delivery() {
     let proxy_wasm_bytes = tokio::fs::read(proxy_canister_wasm_path)
         .await
         .expect("Failed to read the proxy canister WASM file");
-    pic.install_canister(
-        proxy_canister_id,
-        proxy_wasm_bytes.to_vec(),
-        vec![],
-        None,
-    )
-    .await;
+    pic.install_canister(proxy_canister_id, proxy_wasm_bytes.to_vec(), vec![], None)
+        .await;
 
     // create evm_logs canister
     let evm_logs_canister_id = pic.create_canister().await;
@@ -71,14 +65,15 @@ async fn test_event_publishing_and_notification_delivery() {
         .expect("Failed to read the subscription manager WASM file");
 
     let init_args_value = EvmLogsInitArgs {
-        evm_rpc_canister: Principal::from_text("aaaaa-aa").expect("EVM_RPC_CANISTER incorrect principal"),
+        evm_rpc_canister: Principal::from_text("aaaaa-aa")
+            .expect("EVM_RPC_CANISTER incorrect principal"),
         proxy_canister: proxy_canister_id,
         estimate_events_num: 5, // test
         max_response_bytes: 1_000_000,
     };
-    
-    let init_args = candid::encode_args((init_args_value,))
-    .expect("Failed to encode init arguments");
+
+    let init_args =
+        candid::encode_args((init_args_value,)).expect("Failed to encode init arguments");
 
     pic.install_canister(
         evm_logs_canister_id,
@@ -90,8 +85,7 @@ async fn test_event_publishing_and_notification_delivery() {
 
     // create cycles_wallet canister
     let cycles_wallet_id = pic.create_canister().await;
-    pic.add_cycles(cycles_wallet_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(cycles_wallet_id, 4_000_000_000_000).await;
 
     let cycles_wallet_wasm_path =
         std::env::var("CYCLES_WALLET_WASM_PATH").expect("CYCLES_WALLET_WASM_PATH must be set");
@@ -112,7 +106,10 @@ async fn test_event_publishing_and_notification_delivery() {
         chain_id: 8453,
         filter: Filter {
             address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(), // Example address
-            topics: Some(vec![vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()]]),
+            topics: Some(vec![vec![Hex32::from_str(
+                "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
+            )
+            .unwrap()]]),
         },
         memo: None,
         canister_to_top_up: subscriber_canister_id,
@@ -125,8 +122,7 @@ async fn test_event_publishing_and_notification_delivery() {
         args: sub_reg_encoded,
         cycles: 2_000_000_000_000u128.into(),
     };
-    let bytes = candid::encode_args((call_args,))
-        .expect("Failed to encode wallet_call128 args");
+    let bytes = candid::encode_args((call_args,)).expect("Failed to encode wallet_call128 args");
 
     let subscribe_via_cycles_wallet = pic
         .update_call(
@@ -148,7 +144,7 @@ async fn test_event_publishing_and_notification_delivery() {
             panic!("Subscription call error: {:?}", e);
         }
     }
-    
+
     // TODO Check the subscription registration result
 
     // Publish an event
@@ -163,7 +159,10 @@ async fn test_event_publishing_and_notification_delivery() {
         // tx_hash: "".to_string(),
         log_entry: LogEntry {
             address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(),
-            topics: vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()],
+            topics: vec![Hex32::from_str(
+                "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
+            )
+            .unwrap()],
             data: Hex::from(hex::decode(EVENT_DATA).unwrap()),
             // data: Hex::from(vec![]),
             block_number: None,

@@ -1,7 +1,6 @@
 // use crate::STATE;
 // use candid::{Nat, Principal};
 
-
 // // Internal function to top up balance
 // pub fn _top_up_balance(caller: Principal, amount: Nat) -> Result<(), String> {
 //     STATE.with(|state| {

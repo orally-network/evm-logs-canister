@@ -1,28 +1,49 @@
-use candid::Nat;
-use evm_rpc_types::{
-    BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, RpcResult, Nat256
-};
-use futures::future::join_all;
+use super::{utils::*, ChainConfig};
+use crate::types::balances::BalanceError;
 use crate::types::balances::Balances;
 use crate::{get_state_value, log};
-use super::{utils::*, ChainConfig};
+use candid::Nat;
+use evm_rpc_types::{
+    BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, Nat256, RpcResult,
+};
+use futures::future::join_all;
 use ic_cdk::api::call::call_with_payment128;
 use std::str::FromStr;
 
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
-    let subscribers = get_state_value!(subscriptions);
+    log!("IN charge_subscribers");
+    let subscriptions = get_state_value!(subscriptions);
 
     // charge subscribers accordingly to amount addresses in their filters
     let cycles_per_one_address = Nat::from(cycles_used / addresses_amound as u64);
 
-    for (_sub_id, sub_info) in subscribers.iter() {
-        let subscriber_principal = sub_info.subscriber_principal;
+    ic_cdk::println!("cycles_used in batch requests: {}", cycles_used);
+    ic_cdk::println!("cycles_per_one_address: {}", cycles_per_one_address);
 
-        if Balances::is_sufficient(subscriber_principal, cycles_per_one_address.clone()).unwrap() {
-            Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()).unwrap();
+    for (_sub_id, sub_info) in subscriptions.iter() {
+        let subscriber_principal = sub_info.subscriber_principal;
+        match Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()) {
+            Ok(_) => {
+                ic_cdk::println!(
+                    "Balance successfully reduced for {:?} - charged {}",
+                    subscriber_principal,
+                    cycles_per_one_address
+                );
+            }
+            Err(BalanceError::BalanceDoesNotExist) => {
+                ic_cdk::println!(
+                    "Failed to reduce balance: Balance does not exist for {:?}",
+                    subscriber_principal.to_text()
+                );
+            }
+            Err(BalanceError::InsufficientBalance) => {
+                ic_cdk::println!(
+                    "Failed to reduce balance: Insufficient balance for {:?}",
+                    subscriber_principal.to_text()
+                );
+            }
         }
     }
-
 }
 
 pub async fn fetch_logs(
@@ -44,8 +65,8 @@ pub async fn fetch_logs(
         .await;
     }
 
-    let events_per_interval = get_state_value!(estimate_events_num);  
-    let chunk_size = calculate_request_chunk_size(events_per_interval, addresses.len() as u32); 
+    let events_per_interval = get_state_value!(estimate_events_num);
+    let chunk_size = calculate_request_chunk_size(events_per_interval, addresses.len() as u32);
 
     let chunks_iter = addresses.chunks(chunk_size);
 
@@ -80,19 +101,18 @@ pub async fn fetch_logs(
     let balance_after = ic_cdk::api::canister_balance();
 
     let cycles_used = balance_before - balance_after;
-    
+
     log!(
         "Cost for logs fetching request: {}",
         balance_before - balance_after
     );
-    
-    // after sending request we need to charge cycles for each subscriber accordingly 
+
+    // after sending request we need to charge cycles for each subscriber accordingly
     // to amount of their subscribtion addresses(filters)
     // note: later events_publisher will charge cycles accordingly to amount of logs received by each subscriber
     charge_subscribers(addresses.len(), cycles_used);
-    
-    Ok(merged_logs)
 
+    Ok(merged_logs)
 }
 
 async fn eth_get_logs_call_with_retry(
@@ -105,9 +125,7 @@ async fn eth_get_logs_call_with_retry(
     let addresses: Vec<Hex20> = addresses
         .unwrap_or_default()
         .into_iter()
-        .map(|addr| {
-            Hex20::from_str(&addr).map_err(|e| format!("Invalid address {}: {}", addr, e))
-        })
+        .map(|addr| Hex20::from_str(&addr).map_err(|e| format!("Invalid address {}: {}", addr, e)))
         .collect::<Result<_, _>>()?;
 
     // Convert topics to Hex
@@ -130,7 +148,9 @@ async fn eth_get_logs_call_with_retry(
 
     // Prepare arguments for the RPC call
     let get_logs_args = GetLogsArgs {
-        from_block: Some(BlockTag::Number(Nat256::try_from(from_block.clone()).unwrap())),
+        from_block: Some(BlockTag::Number(
+            Nat256::try_from(from_block.clone()).unwrap(),
+        )),
         to_block: Some(BlockTag::Latest),
         addresses,
         topics,
@@ -138,7 +158,7 @@ async fn eth_get_logs_call_with_retry(
 
     let rpc_config = chain_config.rpc_config.clone();
 
-    let cycles = 10_000_000_000;
+    let cycles = 10_000_000_000; // TODO
     let max_retries = 2; // Set the maximum number of retries
 
     // Retry logic
@@ -147,7 +167,11 @@ async fn eth_get_logs_call_with_retry(
         let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
             chain_config.evm_rpc_canister,
             "eth_getLogs",
-            (chain_config.rpc_providers.clone(), rpc_config.clone(), get_logs_args.clone()),
+            (
+                chain_config.rpc_providers.clone(),
+                rpc_config.clone(),
+                get_logs_args.clone(),
+            ),
             cycles,
         )
         .await;
@@ -156,9 +180,7 @@ async fn eth_get_logs_call_with_retry(
             Ok((result,)) => match result {
                 MultiRpcResult::Consistent(r) => match r {
                     RpcResult::Ok(logs) => return Ok(logs),
-                    RpcResult::Err(err) => {
-                        return Err(format!("GetLogsResult error: {:?}", err))
-                    }
+                    RpcResult::Err(err) => return Err(format!("GetLogsResult error: {:?}", err)),
                 },
                 MultiRpcResult::Inconsistent(_) => {
                     if attempt == max_retries {

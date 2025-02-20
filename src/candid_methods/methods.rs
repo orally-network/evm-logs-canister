@@ -1,25 +1,28 @@
-use candid::{candid_method, Principal};
-use ic_cdk_macros::*;
 use candid::Nat;
+use candid::{candid_method, Principal};
 use evm_logs_types::*;
+use ic_cdk_macros::*;
 use metrics::cycles_count;
 
-use crate::subscription_manager;
-use ic_cdk::caller;
 use crate::log;
+use crate::subscription_manager;
 use crate::types::balances::Balances;
+use ic_cdk::caller;
 
 // register subscription by specified filter (addresses and topics)
 #[update(name = "subscribe")]
 #[candid_method(update)]
-pub async fn subscribe(
-    registration: SubscriptionRegistration,
-) -> RegisterSubscriptionResult {
+pub async fn subscribe(registration: SubscriptionRegistration) -> RegisterSubscriptionResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
 
-    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, registration.canister_to_top_up.to_text());
+    log!(
+        "Received cycles: {:?}, for principal: {:?}",
+        received_cycles,
+        registration.canister_to_top_up.to_text()
+    );
 
-    if let Err(err) = Balances::top_up(registration.canister_to_top_up, Nat::from(received_cycles)) {
+    if let Err(err) = Balances::top_up(registration.canister_to_top_up, Nat::from(received_cycles))
+    {
         log!("Failed to top up balance: {}", err);
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
     }
@@ -66,8 +69,12 @@ pub fn get_subscriptions(
 #[candid_method(update)]
 pub fn top_up_balance(canister_to_top_up: Principal) -> TopUpBalanceResult {
     let received_cycles = ic_cdk::api::call::msg_cycles_available();
-    
-    log!("Received cycles: {:?}, for principal: {:?}", received_cycles, canister_to_top_up.to_text());
+
+    log!(
+        "Received cycles: {:?}, for principal: {:?}",
+        received_cycles,
+        canister_to_top_up.to_text()
+    );
 
     match Balances::top_up(canister_to_top_up, Nat::from(received_cycles)) {
         Ok(_) => TopUpBalanceResult::Ok,

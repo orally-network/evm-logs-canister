@@ -1,8 +1,8 @@
 pub mod decoders;
+pub mod macros;
 pub mod read_contract;
 pub mod state;
 pub mod utils;
-pub mod macros;
 
 use crate::read_contract::SolidityToken;
 
@@ -44,16 +44,44 @@ async fn subscribe(evm_logs_canister: Principal) {
     let chainfusion_deposit_filter = create_chainfusion_deposit_config();
     let curve_token_exchange_config = create_curve_token_exchange_config();
 
-    register_subscription_and_map_decoder(evm_logs_canister, base_swaps_filter, swap_event_data_decoder).await;
-    register_subscription_and_map_decoder(evm_logs_canister, eth_sync_filter, ethereum_sync_decoder).await;
-    register_subscription_and_map_decoder(evm_logs_canister, primex_deposit_filter, primex_deposit_decoder).await;
-    register_subscription_and_map_decoder(evm_logs_canister, chainfusion_deposit_filter, chainfusion_deposit_decoder).await;
-    register_subscription_and_map_decoder(evm_logs_canister, curve_token_exchange_config, chainfusion_deposit_decoder).await;
+    register_subscription_and_map_decoder(
+        evm_logs_canister,
+        base_swaps_filter,
+        swap_event_data_decoder,
+    )
+    .await;
+    register_subscription_and_map_decoder(
+        evm_logs_canister,
+        eth_sync_filter,
+        ethereum_sync_decoder,
+    )
+    .await;
+    register_subscription_and_map_decoder(
+        evm_logs_canister,
+        primex_deposit_filter,
+        primex_deposit_decoder,
+    )
+    .await;
+    register_subscription_and_map_decoder(
+        evm_logs_canister,
+        chainfusion_deposit_filter,
+        chainfusion_deposit_decoder,
+    )
+    .await;
+    register_subscription_and_map_decoder(
+        evm_logs_canister,
+        curve_token_exchange_config,
+        chainfusion_deposit_decoder,
+    )
+    .await;
 }
 
 #[update]
 async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
-    log!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
+    log!(
+        "Calling unsubscribe for subscription ID: {:?}",
+        subscription_id
+    );
 
     let result: Result<(evm_logs_types::UnsubscribeResult,), _> =
         call(canister_id, "unsubscribe", (subscription_id.clone(),)).await;
@@ -122,7 +150,9 @@ fn get_decoded_notifications() -> Vec<DecodedNotification> {
 }
 
 #[query]
-fn get_decoded_notifications_by_subscription(subscription_id: candid::Nat) -> Vec<DecodedNotification> {
+fn get_decoded_notifications_by_subscription(
+    subscription_id: candid::Nat,
+) -> Vec<DecodedNotification> {
     DECODED_NOTIFICATIONS.with(|decoded| {
         decoded
             .borrow()
@@ -165,7 +195,12 @@ async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::Subscr
 #[update]
 async fn subscribe_test(evm_logs_canister: Principal) {
     let base_swaps_filter = create_base_swaps_config();
-    register_subscription_and_map_decoder(evm_logs_canister, base_swaps_filter, swap_event_data_decoder).await;
+    register_subscription_and_map_decoder(
+        evm_logs_canister,
+        base_swaps_filter,
+        swap_event_data_decoder,
+    )
+    .await;
 }
 
 #[query]

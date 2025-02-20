@@ -185,22 +185,6 @@ pub struct Metrics {
     pub CYCLES: Metric,
 }
 
-impl Metrics {
-    pub fn encode<W: io::Write>(&self, w: &mut W) -> std::io::Result<()> {
-        self.CUSTOM_FEEDS.encode(w)?;
-        self.DEFAULT_FEEDS.encode(w)?;
-        self.GET_ASSET_DATA_CALLS.encode(w)?;
-        self.SUCCESSFUL_GET_ASSET_DATA_CALLS.encode(w)?;
-        self.GET_ASSET_DATA_WITH_PROOF_CALLS.encode(w)?;
-        self.SUCCESSFUL_GET_ASSET_DATA_WITH_PROOF_CALLS.encode(w)?;
-        self.FALLBACK_XRC_CALLS.encode(w)?;
-        self.SUCCESSFUL_FALLBACK_XRC_CALLS.encode(w)?;
-        self.XRC_CALLS.encode(w)?;
-        self.SUCCESSFUL_XRC_CALLS.encode(w)?;
-        self.CYCLES.encode(w)
-    }
-}
-
 thread_local! {
     pub static METRICS: RefCell<Metrics> = RefCell::new(Metrics{
         CUSTOM_FEEDS: Metric::new(
@@ -270,14 +254,6 @@ thread_local! {
                 &[],
             ),
     });
-}
-
-pub fn gather_metrics() -> Vec<u8> {
-    let mut buffer = vec![];
-
-    METRICS.with(|m| m.borrow().encode(&mut buffer).unwrap());
-
-    buffer
 }
 
 #[macro_export]

@@ -68,7 +68,6 @@ impl Balances {
             }
 
             *balance_entry -= amount.clone();
-
             Ok(())
         })
     }
@@ -76,22 +75,18 @@ impl Balances {
     pub fn get_balance(principal: &Principal) -> Result<Nat, BalanceError> {
         STATE.with(|state| {
             let state = state.borrow();
-            let balance_entry = state
-                .user_balances
-                .balances
-                .get(principal);
-    
+            let balance_entry = state.user_balances.balances.get(principal);
+
             Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.clone()))
         })
-    }     
+    }
 }
-
 
 impl std::fmt::Debug for Balances {
     fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for it in &self.balances {
             ic_cdk::println!("{:?} : {:?}", it.0.to_text(), it.1);
-        }        
+        }
         Ok(())
     }
 }

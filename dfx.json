@@ -22,27 +22,15 @@
         }
       }
     },
-    "test_canister1": {
+    "test_canister": {
       "type": "custom",
-      "wasm": "target/wasm32-unknown-unknown/release/test_canister1.wasm",
-      "candid": "src/canister_testing/test_canister1/test_canister.did",
-      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister1",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
+      "candid": "src/test_canister/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
       "metadata": [
         {
           "name": "candid:service",
-          "value": "src/test_canister1/test_canister.did"
-        }
-      ]
-    },
-    "test_canister2": {
-      "type": "custom",
-      "wasm": "target/wasm32-unknown-unknown/release/test_canister2.wasm",
-      "candid": "src/canister_testing/test_canister2/test_canister.did",
-      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister2",
-      "metadata": [
-        {
-          "name": "candid:service",
-          "value": "src/test_canister2/test_canister.did"
+          "value": "src/test_canister/test_canister.did"
         }
       ]
     },

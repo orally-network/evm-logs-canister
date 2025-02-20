@@ -1,17 +1,17 @@
+use crate::get_state_value;
+use crate::log;
 use candid::Nat;
 use candid::Principal;
 use evm_logs_types::{
     RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo,
     SubscriptionRegistration, UnsubscribeResult,
 };
-use crate::get_state_value;
-use crate::log;
 
 pub mod events_publisher;
 pub mod queries;
 pub mod utils;
 
-use crate::{TOPICS_MANAGER, NEXT_SUBSCRIPTION_ID};
+use crate::{NEXT_SUBSCRIPTION_ID, TOPICS_MANAGER};
 
 pub fn init() {
     log!("SubscriptionManager initialized");
@@ -26,16 +26,14 @@ pub async fn register_subscription(
     let subscribers = get_state_value!(subscribers);
     let subscriptions = get_state_value!(subscriptions);
 
-    let is_subscription_exist = subscribers
-        .get(&subscriber_principal)
-        .and_then(|sub_ids| {
-            sub_ids.iter().find_map(|sub_id| {
-                subscriptions
-                    .get(sub_id)
-                    .filter(|sub_info| sub_info.filter == filter)
-                    .cloned()
-            })
-        });
+    let is_subscription_exist = subscribers.get(&subscriber_principal).and_then(|sub_ids| {
+        sub_ids.iter().find_map(|sub_id| {
+            subscriptions
+                .get(sub_id)
+                .filter(|sub_info| sub_info.filter == filter)
+                .cloned()
+        })
+    });
 
     if is_subscription_exist.is_some() {
         log!(
@@ -64,12 +62,16 @@ pub async fn register_subscription(
 
     // add to subscriptions
     crate::STATE.with(|subs| {
-        subs.borrow_mut().subscriptions.insert(sub_id.clone(), subscription_info);
+        subs.borrow_mut()
+            .subscriptions
+            .insert(sub_id.clone(), subscription_info);
     });
 
     // add to subscribers
     crate::STATE.with(|subs| {
-        subs.borrow_mut().subscribers.entry(subscriber_principal)
+        subs.borrow_mut()
+            .subscribers
+            .entry(subscriber_principal)
             .or_default()
             .push(sub_id.clone());
     });
@@ -91,9 +93,8 @@ pub async fn register_subscription(
 
 pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult {
     // remove subscription from the state
-    let removed_subscription = crate::STATE.with(|subs| {
-        subs.borrow_mut().subscriptions.remove(&subscription_id)
-    });
+    let removed_subscription =
+        crate::STATE.with(|subs| subs.borrow_mut().subscriptions.remove(&subscription_id));
 
     if let Some(subscription_info) = removed_subscription {
         let filter = subscription_info.filter;
@@ -126,7 +127,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
     }
 }
 #[cfg(test)]
-mod tests{
+mod tests {
     use std::str::FromStr;
 
     use super::*;
@@ -134,58 +135,69 @@ mod tests{
     use evm_rpc_types::{Hex20, Hex32};
     #[test]
     fn test_register_subscription_success() {
-    // Using tokio runtime explicitly because of tokio::test error. TODO fix 
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let registration = SubscriptionRegistration {
-                canister_to_top_up: Principal::anonymous(),
-                chain_id: 1u32,
-                filter: Filter {
-                    address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(),
-                    topics: Some(vec![vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()]]),
-                },
-                memo: None,
-            };
-            let result = register_subscription(registration).await;
-            assert!(matches!(result, RegisterSubscriptionResult::Ok(_)));
-        })
+        // Using tokio runtime explicitly because of tokio::test error. TODO fix
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let registration = SubscriptionRegistration {
+                    canister_to_top_up: Principal::anonymous(),
+                    chain_id: 1u32,
+                    filter: Filter {
+                        address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59")
+                            .unwrap(),
+                        topics: Some(vec![vec![Hex32::from_str(
+                            "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
+                        )
+                        .unwrap()]]),
+                    },
+                    memo: None,
+                };
+                let result = register_subscription(registration).await;
+                assert!(matches!(result, RegisterSubscriptionResult::Ok(_)));
+            })
     }
 
     #[test]
     fn test_register_subscription_duplicate_filter() {
-    // Using tokio runtime explicitly because of tokio::test error. TODO fix 
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let registration = SubscriptionRegistration {
-                canister_to_top_up: Principal::anonymous(),
-                chain_id: 1u32,
-                filter: Filter {
-                    address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59").unwrap(),
-                    topics: Some(vec![vec![Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap()]]),
-                },
-                memo: None,
-            };
-            let _ = register_subscription(registration.clone()).await;
-            let second_attempt = register_subscription(registration).await;
-            assert!(matches!(second_attempt, RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists)));
-        })
+        // Using tokio runtime explicitly because of tokio::test error. TODO fix
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let registration = SubscriptionRegistration {
+                    canister_to_top_up: Principal::anonymous(),
+                    chain_id: 1u32,
+                    filter: Filter {
+                        address: Hex20::from_str("0xb2cc224c1c9feE385f8ad6a55b4d94E92359DC59")
+                            .unwrap(),
+                        topics: Some(vec![vec![Hex32::from_str(
+                            "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
+                        )
+                        .unwrap()]]),
+                    },
+                    memo: None,
+                };
+                let _ = register_subscription(registration.clone()).await;
+                let second_attempt = register_subscription(registration).await;
+                assert!(matches!(
+                    second_attempt,
+                    RegisterSubscriptionResult::Err(RegisterSubscriptionError::SameFilterExists)
+                ));
+            })
     }
     #[test]
     fn test_unsubscribe_nonexistent() {
-    // Using tokio runtime explicitly because of tokio::test error. TODO fix 
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let result = unsubscribe(Principal::anonymous(), Nat::from(9999u32));
-            assert!(matches!(result, UnsubscribeResult::Err(_)));
-        })
+        // Using tokio runtime explicitly because of tokio::test error. TODO fix
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let result = unsubscribe(Principal::anonymous(), Nat::from(9999u32));
+                assert!(matches!(result, UnsubscribeResult::Err(_)));
+            })
     }
 }

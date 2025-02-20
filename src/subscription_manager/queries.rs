@@ -8,12 +8,14 @@ pub fn get_subscriptions_info(
     from_id: Option<Nat>,
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
-    let mut subs_vec = crate::STATE.with(|state| 
-        state.borrow().subscriptions
+    let mut subs_vec = crate::STATE.with(|state| {
+        state
+            .borrow()
+            .subscriptions
             .values()
             .cloned()
             .collect::<Vec<_>>()
-        );
+    });
 
     if let Some(ns) = chain_id {
         subs_vec.retain(|sub| sub.chain_id == ns);
@@ -41,7 +43,9 @@ pub fn get_subscriptions_info(
 
 pub fn get_active_filters() -> Vec<Filter> {
     crate::STATE.with(|state| {
-        state.borrow().subscriptions
+        state
+            .borrow()
+            .subscriptions
             .values()
             .map(|sub| sub.filter.clone())
             .collect()
@@ -57,8 +61,14 @@ pub fn get_active_addresses_and_topics(chain_id: u32) -> (Vec<String>, Option<Ve
 }
 
 pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
-    let subscription_ids =
-        crate::STATE.with(|state| state.borrow().subscribers.get(&caller).cloned().unwrap_or_else(Vec::new));
+    let subscription_ids = crate::STATE.with(|state| {
+        state
+            .borrow()
+            .subscribers
+            .get(&caller)
+            .cloned()
+            .unwrap_or_else(Vec::new)
+    });
 
     crate::STATE.with(|state| {
         subscription_ids
