@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use candid::{CandidType, Deserialize, Nat, Principal};
-use getrandom::getrandom;
 use evm_logs_types::Filter;
 use evm_rpc_types::{Hex20, Hex32};
+use getrandom::getrandom;
 #[derive(CandidType, Deserialize)]
 pub struct EvmLogsInitArgs {
     pub evm_rpc_canister: Principal,

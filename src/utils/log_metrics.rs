@@ -185,7 +185,6 @@ pub struct Metrics {
     pub CYCLES: Metric,
 }
 
-
 thread_local! {
     pub static METRICS: RefCell<Metrics> = RefCell::new(Metrics{
         CUSTOM_FEEDS: Metric::new(

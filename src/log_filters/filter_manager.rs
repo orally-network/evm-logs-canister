@@ -1,7 +1,7 @@
 use candid::{CandidType, Nat};
+use evm_logs_types::Filter;
 use serde::Deserialize;
 use std::collections::HashMap;
-use evm_logs_types::Filter;
 
 /// Data structure for a specific chain (chain_id).
 /// It stores:
@@ -20,12 +20,9 @@ pub struct FilterManager {
 }
 
 impl FilterManager {
-
     /// Helper: get (or create if missing) a mutable reference to PerChainData for a given chain.
     fn get_chain_data_mut(&mut self, chain_id: u32) -> &mut PerChainData {
-        self.chain_data
-            .entry(chain_id)
-            .or_default()
+        self.chain_data.entry(chain_id).or_default()
     }
 
     /// Helper: get an immutable reference to PerChainData for a given chain, if it exists.
@@ -63,7 +60,6 @@ impl FilterManager {
     /// Decrements counters for the address and topics in the first position.
     pub fn remove_filter(&mut self, chain_id: u32, filter: &Filter) {
         if let Some(chain_data) = self.chain_data.get_mut(&chain_id) {
-
             // Decrement address counter
             if let Some(addr_count) = chain_data.addresses.get_mut(&filter.address.to_string()) {
                 if *addr_count > 0u32 {
@@ -80,7 +76,9 @@ impl FilterManager {
                     let first_position = &all_positions[0];
                     for topic in first_position {
                         let topic_key = topic.to_string();
-                        if let Some(topic_count) = chain_data.first_position_topics.get_mut(&topic_key) {
+                        if let Some(topic_count) =
+                            chain_data.first_position_topics.get_mut(&topic_key)
+                        {
                             if *topic_count > Nat::from(0u32) {
                                 *topic_count -= Nat::from(1u32);
                                 if *topic_count == Nat::from(0u32) {
@@ -104,11 +102,7 @@ impl FilterManager {
     ) -> (Vec<String>, Option<Vec<Vec<String>>>) {
         if let Some(chain_data) = self.get_chain_data(chain_id) {
             // Gather addresses
-            let addresses = chain_data
-                .addresses
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>();
+            let addresses = chain_data.addresses.keys().cloned().collect::<Vec<_>>();
 
             // Gather topics from the first position
             let topics_collected = chain_data
@@ -137,8 +131,8 @@ mod tests {
 
     use super::*;
     use evm_logs_types::Filter;
-    use evm_rpc_types::{Hex20, Hex32};
     use evm_logs_types::TopicsPosition;
+    use evm_rpc_types::{Hex20, Hex32};
 
     /// Helper function to create a Filter with a given address and optional topics.
     /// We'll keep it simple: `topics` can be a Vec of Vec of &str, which we convert to String.
@@ -147,9 +141,12 @@ mod tests {
             address: Hex20::from_str(address).unwrap(),
             topics: topics.map(|ts| {
                 ts.into_iter()
-                    .map(|topic_set| topic_set.into_iter()
-                        .filter_map(|s| Hex32::from_str(s).ok())
-                        .collect::<TopicsPosition>())
+                    .map(|topic_set| {
+                        topic_set
+                            .into_iter()
+                            .filter_map(|s| Hex32::from_str(s).ok())
+                            .collect::<TopicsPosition>()
+                    })
                     .collect()
             }),
         }
@@ -179,7 +176,11 @@ mod tests {
         // The second part is Some(...) because we do have first-position topics
         // specifically "TopicA" and "TopicB".
         let unwrapped = topics.expect("Should have some topics");
-        assert_eq!(unwrapped.len(), 1, "We only store first position in one vector");
+        assert_eq!(
+            unwrapped.len(),
+            1,
+            "We only store first position in one vector"
+        );
         // Inside that vector, we expect "TopicA" and "TopicB"
         // The order in a HashMap-based scenario is not guaranteed, so let's just check they exist
         let first_pos = &unwrapped[0];
@@ -298,4 +299,3 @@ mod tests {
         assert!(topics.is_none());
     }
 }
-

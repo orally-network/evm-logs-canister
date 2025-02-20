@@ -1,26 +1,22 @@
+mod candid_methods;
 mod chain_service;
+mod constants;
 mod log_filters;
 mod subscription_manager;
 mod types;
 mod utils;
-mod constants;
-mod candid_methods;
 
-use std::{
-    cell::RefCell,
-    rc::Rc,
-    time::Duration,
-};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
-use ic_cdk::storage;
 use candid::{Nat, Principal};
 use chain_service::{service::ChainService, ChainConfig};
 use evm_logs_types::*;
+use ic_cdk::storage;
 use ic_cdk_macros::*;
 
 use crate::{
     log_filters::filter_manager::FilterManager,
-    types::state::{State, init as init_state},
+    types::state::{init as init_state, State},
     utils::generate_chain_configs,
 };
 
@@ -67,7 +63,6 @@ async fn init(config: types::config::Config) {
     log!("EVM logs monitoring is started");
 }
 
-
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
     let state = STATE.with(|state| state.borrow().clone());
@@ -76,7 +71,11 @@ fn pre_upgrade() {
     let topics_manager = TOPICS_MANAGER.with(|manager| manager.borrow().clone());
 
     let chain_configs: Vec<ChainConfig> = CHAIN_SERVICES.with(|chain_services| {
-        chain_services.borrow().iter().map(|service| service.config.clone()).collect()
+        chain_services
+            .borrow()
+            .iter()
+            .map(|service| service.config.clone())
+            .collect()
     });
 
     storage::stable_save((
@@ -93,8 +92,14 @@ fn pre_upgrade() {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    let (saved_state, saved_next_subscription_id, saved_next_notification_id, saved_topics_manager, saved_chain_configs): 
-        (State, Nat, Nat, FilterManager, Vec<ChainConfig>) = storage::stable_restore().expect("Failed to restore state after upgrade");
+    let (
+        saved_state,
+        saved_next_subscription_id,
+        saved_next_notification_id,
+        saved_topics_manager,
+        saved_chain_configs,
+    ): (State, Nat, Nat, FilterManager, Vec<ChainConfig>) =
+        storage::stable_restore().expect("Failed to restore state after upgrade");
 
     STATE.with(|state| {
         *state.borrow_mut() = saved_state;
@@ -128,7 +133,7 @@ fn post_upgrade() {
     });
 
     ic_cdk::println!("post_upgrade: State restored successfully.");
-}   
+}
 
 #[query(name = "getCanistergeekInformation")]
 pub async fn get_canistergeek_information(

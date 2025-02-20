@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use candid::{Principal, CandidType, Nat};
-use serde::{Deserialize, Serialize};
-use super::{
-    config::Config,
-    balances::Balances,
-};
-use evm_logs_types::SubscriptionInfo;
+use super::{balances::Balances, config::Config};
 use crate::STATE;
+use candid::{CandidType, Nat, Principal};
+use evm_logs_types::SubscriptionInfo;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, CandidType, Serialize, Deserialize, Debug)]
 pub struct State {
@@ -22,7 +19,6 @@ pub struct State {
     pub test: u32,
 }
 
-
 pub fn init(config: Config) {
     STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -32,7 +28,6 @@ pub fn init(config: Config) {
         state.max_response_bytes = config.max_response_bytes;
     });
 }
-
 
 impl Default for State {
     fn default() -> Self {

@@ -1,8 +1,4 @@
-use crate::{
-    subscription_manager::queries,
-    utils::get_latest_block_number,
-    log,
-};
+use crate::{log, subscription_manager::queries, utils::get_latest_block_number};
 use ic_cdk;
 use ic_cdk_timers::set_timer_interval;
 use std::rc::Rc;
@@ -69,20 +65,13 @@ impl ChainService {
             from_block
         );
 
-        match fetch_logs(
-            &self.config,
-            from_block.clone(),
-            Some(addresses),
-            topics,
-        )
-        .await
-        {
+        match fetch_logs(&self.config, from_block.clone(), Some(addresses), topics).await {
             Ok(logs) => {
                 if !logs.is_empty() {
                     let max_block_number = logs
                         .iter()
                         .filter_map(|log| log.block_number.as_ref())
-                        .map(|bn| candid::Nat::from(bn.clone())) 
+                        .map(|bn| candid::Nat::from(bn.clone()))
                         .max()
                         .unwrap_or(last_processed_block);
 
@@ -93,9 +82,7 @@ impl ChainService {
                     );
 
                     process_and_publish_events(self, logs).await;
-
-                } 
-                else {
+                } else {
                     *self.last_processed_block.borrow_mut() = from_block.clone();
                     log!(
                         "{:?}: No new logs found. Advancing to block {}",

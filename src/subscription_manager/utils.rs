@@ -13,9 +13,14 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
             return false;
         }
 
-        return filter_topics.iter().enumerate().all(|(i, filter_topic_set)| {
-            event_topics.get(i).is_some_and(|event_topic| filter_topic_set.contains(event_topic))
-        });
+        return filter_topics
+            .iter()
+            .enumerate()
+            .all(|(i, filter_topic_set)| {
+                event_topics
+                    .get(i)
+                    .is_some_and(|event_topic| filter_topic_set.contains(event_topic))
+            });
     }
 
     true
@@ -27,9 +32,9 @@ mod tests {
 
     use super::*;
     use candid::Nat;
-    use evm_rpc_types::{Hex20, Hex32, Hex, LogEntry};
     use evm_logs_types::TopicsPosition;
-    
+    use evm_rpc_types::{Hex, Hex20, Hex32, LogEntry};
+
     fn create_event(address: &str, topics: Option<Vec<&str>>) -> Event {
         Event {
             id: Nat::from(1u8),
@@ -62,9 +67,12 @@ mod tests {
             address: Hex20::from_str(address).unwrap(),
             topics: topics.map(|ts| {
                 ts.into_iter()
-                    .map(|topic_set| topic_set.into_iter()
-                        .filter_map(|s| Hex32::from_str(s).ok())
-                        .collect::<TopicsPosition>())
+                    .map(|topic_set| {
+                        topic_set
+                            .into_iter()
+                            .filter_map(|s| Hex32::from_str(s).ok())
+                            .collect::<TopicsPosition>()
+                    })
                     .collect()
             }),
         }

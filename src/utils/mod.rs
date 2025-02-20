@@ -1,13 +1,15 @@
 pub mod log_metrics;
 
+use crate::chain_service::ChainConfig;
+use crate::constants::*;
 use candid::Nat;
+use evm_rpc_types::{
+    Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices,
+};
 use ic_cdk::api::call::call_with_payment128;
 use ic_cdk::api::time;
 use metrics::cycles_count;
 use std::cell::RefCell;
-use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
-use crate::chain_service::ChainConfig;
-use crate::constants::*;
 
 pub const EVM_EVENT_SIZE_BYTES: u32 = 800;
 
@@ -48,37 +50,33 @@ pub fn current_timestamp() -> u64 {
 }
 
 #[cycles_count]
-pub async fn get_latest_block_number(
-    rpc_providers: RpcServices,
-) -> Result<Nat, String> {
+pub async fn get_latest_block_number(rpc_providers: RpcServices) -> Result<Nat, String> {
     let cycles = 10_000_000_000; // TODO
 
     let block_tag = BlockTag::Latest;
 
     let rpc_config = RpcConfig {
         response_size_estimate: None,
-        response_consensus: Some(ConsensusStrategy::Threshold { 
-            total: Some(3), 
-            min: 1
+        response_consensus: Some(ConsensusStrategy::Threshold {
+            total: Some(3),
+            min: 1,
         }),
     };
     let evm_rpc_canister = get_state_value!(evm_rpc_canister);
     log!("calling eth_getBlockByNumber!");
-    let (result,): (MultiRpcResult<Block>,) = 
-        call_with_payment128(
-            evm_rpc_canister, 
-            "eth_getBlockByNumber", 
-            (rpc_providers, rpc_config, block_tag), 
-            cycles,
-        )
-        .await
-        .map_err(|e| format!("Call failed: {:?}", e))?;
+    let (result,): (MultiRpcResult<Block>,) = call_with_payment128(
+        evm_rpc_canister,
+        "eth_getBlockByNumber",
+        (rpc_providers, rpc_config, block_tag),
+        cycles,
+    )
+    .await
+    .map_err(|e| format!("Call failed: {:?}", e))?;
 
     match result {
         MultiRpcResult::Consistent(res) => match res {
             RpcResult::Ok(block) => {
-                let block_number = block
-                    .number;
+                let block_number = block.number;
                 let block_number: Nat = block_number.into();
                 Ok(block_number)
             }
@@ -91,7 +89,6 @@ pub async fn get_latest_block_number(
 }
 
 pub fn generate_chain_configs() -> Vec<ChainConfig> {
-    
     let evm_rpc_canister = get_state_value!(evm_rpc_canister);
     let estimate_events_num = get_state_value!(estimate_events_num);
     let response_size_estimate = (estimate_events_num * EVM_EVENT_SIZE_BYTES) as u64;
@@ -172,59 +169,46 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
     ]
 }
 
-
 pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
     match chain {
-        1 => {
-            RpcServices::EthMainnet(None)
-        }
-        8453 => {
-            RpcServices::BaseMainnet(None)
-        }
-        10 => {
-            RpcServices::OptimismMainnet(None)
-        }
-        42161 => {
-            RpcServices::ArbitrumOne(None)
+        1 => RpcServices::EthMainnet(None),
+        8453 => RpcServices::BaseMainnet(None),
+        10 => RpcServices::OptimismMainnet(None),
+        42161 => RpcServices::ArbitrumOne(None),
+        137 => RpcServices::Custom {
+            chain_id: 137,
+            services: vec![
+                RpcApi {
+                    url: "https://polygon-rpc.com".to_string(),
+                    headers: None,
+                },
+                RpcApi {
+                    url: "https://polygon.llamarpc.com".to_string(),
+                    headers: None,
+                },
+                RpcApi {
+                    url: "https://rpc.ankr.com/polygon".to_string(),
+                    headers: None,
+                },
+            ],
         },
-        137 => {
-            RpcServices::Custom {
-                chain_id: 137,
-                services: vec![
-                    RpcApi {
-                        url: "https://polygon-rpc.com".to_string(),
-                        headers: None,
-                    },
-                    RpcApi {
-                        url: "https://polygon.llamarpc.com".to_string(),
-                        headers: None,
-                    },
-                    RpcApi {
-                        url: "https://rpc.ankr.com/polygon".to_string(),
-                        headers: None,
-                    },
-                ],
-            }
+        56 => RpcServices::Custom {
+            chain_id: 56,
+            services: vec![
+                RpcApi {
+                    url: "https://binance.llamarpc.com".to_string(),
+                    headers: None,
+                },
+                RpcApi {
+                    url: "https://rpc.ankr.com/bsc".to_string(),
+                    headers: None,
+                },
+                RpcApi {
+                    url: "https://bscrpc.com".to_string(),
+                    headers: None,
+                },
+            ],
         },
-        56 => {
-            RpcServices::Custom {
-                chain_id: 56,
-                services: vec![
-                    RpcApi {
-                        url: "https://binance.llamarpc.com".to_string(),
-                        headers: None,
-                    },
-                    RpcApi {
-                        url: "https://rpc.ankr.com/bsc".to_string(),
-                        headers: None,
-                    },
-                    RpcApi {
-                        url: "https://bscrpc.com".to_string(),
-                        headers: None,
-                    },
-                ],
-            }
-        }
         _ => unreachable!(),
     }
 }

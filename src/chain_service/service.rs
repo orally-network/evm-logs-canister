@@ -1,9 +1,9 @@
 use super::config::ChainConfig;
 use super::monitoring::start_monitoring_internal;
+use candid::Nat;
 use ic_cdk_timers::TimerId;
 use std::cell::RefCell;
 use std::rc::Rc;
-use candid::Nat;
 
 pub struct ChainService {
     pub config: ChainConfig,

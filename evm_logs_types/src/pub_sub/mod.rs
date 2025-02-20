@@ -1,6 +1,6 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
+use evm_rpc_types::{Hex20, Hex32, LogEntry};
 use serde::Serialize;
-use evm_rpc_types::{LogEntry, Hex20, Hex32};
 
 // A note on specifying topic filters:
 
@@ -24,9 +24,8 @@ pub struct Event {
     pub id: Nat,
     pub timestamp: u64, // UTC Nanoseconds
     pub chain_id: u32,
-    pub log_entry: LogEntry
+    pub log_entry: LogEntry,
 }
-
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct EventNotification {
@@ -36,7 +35,7 @@ pub struct EventNotification {
     pub chain_id: u32,
     pub filter: Option<String>,
     pub source: Principal,
-    pub log_entry: LogEntry 
+    pub log_entry: LogEntry,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -47,8 +46,8 @@ pub enum SendNotificationResult {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum SendNotificationError {
-    FailedToSend,       // General failure to send notification
-    InvalidSubscriber,  // Invalid subscriber principal
+    FailedToSend,      // General failure to send notification
+    InvalidSubscriber, // Invalid subscriber principal
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -181,7 +180,7 @@ pub enum TopUpBalanceResult {
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub enum TopUpBalanceError {
-    GenericError
+    GenericError,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]

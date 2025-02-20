@@ -18,5 +18,4 @@ pub async fn process_and_publish_events(service: &ChainService, logs: Vec<LogEnt
         .collect();
 
     publish_events(events).await;
-
 }
