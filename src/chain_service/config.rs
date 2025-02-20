@@ -9,3 +9,17 @@ pub struct ChainConfig {
     pub evm_rpc_canister: Principal,
     pub rpc_config: Option<RpcConfig>, // for ConsensusStrategy
 }
+
+impl ChainConfig {
+    pub fn rpc_providers_len(&self) -> usize {
+        match &self.rpc_providers {
+            RpcServices::Custom { services, .. } => services.len(),
+            RpcServices::EthMainnet(Some(services)) => services.len(),
+            RpcServices::EthSepolia(Some(services)) => services.len(),
+            RpcServices::ArbitrumOne(Some(services)) => services.len(),
+            RpcServices::BaseMainnet(Some(services)) => services.len(),
+            RpcServices::OptimismMainnet(Some(services)) => services.len(),
+            _ => 0, // Covers None cases or variants without Vec fields
+        }
+    }
+}

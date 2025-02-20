@@ -1,4 +1,5 @@
 use super::{utils::*, ChainConfig};
+use crate::constants::*;
 use crate::types::balances::BalanceError;
 use crate::types::balances::Balances;
 use crate::{get_state_value, log};
@@ -10,26 +11,43 @@ use futures::future::join_all;
 use ic_cdk::api::call::call_with_payment128;
 use std::str::FromStr;
 
+fn estimate_cycles_used(
+    logs_received: usize,
+    addresses_count: usize,
+    topics: Option<&Vec<Vec<String>>>,
+    rpc_providers_count: usize,
+) -> u64 {
+    // Estimate request size
+    let request_size = 8 // Base struct size
+        + (ETH_ADDRESS_SIZE as usize * addresses_count) // Address bytes
+        + topics.map_or(0, |t| t.iter().map(|x| ETH_TOPIC_SIZE as usize * x.len()).sum()); // Topics bytes
+
+    // Estimate response size based on received logs
+    let response_size = logs_received as u64 * EVM_EVENT_SIZE_BYTES as u64; // Logs in bytes
+
+    // Compute cycles for sending request and receiving response
+    let cycles_for_request = request_size as u64 * CYCLES_PER_BYTE_SEND;
+    let cycles_for_response = response_size * CYCLES_PER_BYTE_RECEIVE;
+
+    // Total cycles usage including base call cost and multiple RPC queries
+    let total_cycles_used = BASE_CALL_CYCLES
+        + cycles_for_request
+        + cycles_for_response
+        + (cycles_for_request + cycles_for_response) * rpc_providers_count as u64; // Multiply by validator count
+
+    total_cycles_used
+}
+
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
-    log!("IN charge_subscribers");
     let subscriptions = get_state_value!(subscriptions);
 
     // charge subscribers accordingly to amount addresses in their filters
     let cycles_per_one_address = Nat::from(cycles_used / addresses_amound as u64);
 
-    ic_cdk::println!("cycles_used in batch requests: {}", cycles_used);
-    ic_cdk::println!("cycles_per_one_address: {}", cycles_per_one_address);
-
     for (_sub_id, sub_info) in subscriptions.iter() {
         let subscriber_principal = sub_info.subscriber_principal;
         match Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()) {
-            Ok(_) => {
-                ic_cdk::println!(
-                    "Balance successfully reduced for {:?} - charged {}",
-                    subscriber_principal,
-                    cycles_per_one_address
-                );
-            }
+            Ok(_) => {}
             Err(BalanceError::BalanceDoesNotExist) => {
                 ic_cdk::println!(
                     "Failed to reduce balance: Balance does not exist for {:?}",
@@ -53,7 +71,6 @@ pub async fn fetch_logs(
     topics: Option<Vec<Vec<String>>>,
 ) -> Result<Vec<LogEntry>, String> {
     let addresses = addresses.unwrap_or_default();
-    let balance_before = ic_cdk::api::canister_balance();
 
     if addresses.is_empty() {
         return eth_get_logs_call_with_retry(
@@ -98,19 +115,18 @@ pub async fn fetch_logs(
             Err(e) => return Err(e),
         }
     }
-    let balance_after = ic_cdk::api::canister_balance();
-
-    let cycles_used = balance_before - balance_after;
-
-    log!(
-        "Cost for logs fetching request: {}",
-        balance_before - balance_after
+    let logs_received = merged_logs.len();
+    let total_cycles_used = estimate_cycles_used(
+        logs_received,
+        addresses.len(),
+        topics.as_ref(),
+        chain_config.rpc_providers_len(),
     );
-
+    log!("cycles used in batch request: {}", total_cycles_used);
     // after sending request we need to charge cycles for each subscriber accordingly
     // to amount of their subscribtion addresses(filters)
     // note: later events_publisher will charge cycles accordingly to amount of logs received by each subscriber
-    charge_subscribers(addresses.len(), cycles_used);
+    charge_subscribers(addresses.len(), total_cycles_used);
 
     Ok(merged_logs)
 }

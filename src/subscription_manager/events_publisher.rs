@@ -1,4 +1,5 @@
 use super::utils::event_matches_filter;
+use crate::constants::*;
 use crate::types::balances::Balances;
 use crate::NEXT_NOTIFICATION_ID;
 use crate::{get_state_value, log, utils::current_timestamp};
@@ -6,6 +7,20 @@ use candid::Nat;
 use evm_logs_types::{Event, EventNotification, SendNotificationError, SendNotificationResult};
 use ic_cdk;
 use ic_cdk::api::call::call;
+
+fn estimate_cycles_for_event_notification(event_size: usize) -> u64 {
+    // Estimated request size (event notification structure)
+    let request_size = event_size as u64; // Size in bytes of the event notification payload
+
+    let response_size = 32; // Approximate size of a response payload(just Ok response)
+
+    // Compute cycles based on transmission costs
+    let cycles_for_request = request_size * CYCLES_PER_BYTE_SEND;
+    let cycles_for_response = response_size * CYCLES_PER_BYTE_RECEIVE;
+
+    // Total estimated cycles including the base call cost
+    BASE_CALL_CYCLES + cycles_for_request + cycles_for_response
+}
 
 pub async fn publish_events(events: Vec<Event>) {
     for event in events {
@@ -16,8 +31,6 @@ pub async fn publish_events(events: Vec<Event>) {
 
 // distibute event to corresponding subscribers and handle sending errors
 async fn distribute_event(event: Event) {
-    let balance_before = ic_cdk::api::canister_balance();
-
     // Get all subscriptions for the event's chain_id
     let subscriptions = crate::STATE.with(|state| {
         let subs = state.borrow();
@@ -28,7 +41,9 @@ async fn distribute_event(event: Event) {
             .collect::<Vec<_>>()
     });
     // this amount is a minimum required for subscriber to have, otherwise event won't be send
-    let estimate_cycles_for_event_send = Nat::from(1_000_000u32);
+    // Estimate the cycles required per event notification
+    let event_size = std::mem::size_of::<EventNotification>(); // Estimate the size of EventNotification in bytes
+    let estimated_cycles_for_event = estimate_cycles_for_event_notification(event_size);
 
     // Check each subscription and send a notification if the event matches the filter
     for sub in subscriptions {
@@ -55,11 +70,8 @@ async fn distribute_event(event: Event) {
             };
 
             // Check if the subscriber has sufficient balance
-            if !Balances::is_sufficient(
-                subscriber_principal,
-                estimate_cycles_for_event_send.clone(),
-            )
-            .unwrap()
+            if !Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event))
+                .unwrap()
             {
                 log!(
                     "Insufficient balance for subscriber: {}",
@@ -81,20 +93,24 @@ async fn distribute_event(event: Event) {
                 Ok((send_result,)) => match send_result {
                     SendNotificationResult::Ok => {
                         // if notification was succesfully sent - charge this subscriber
-                        let balance_after = ic_cdk::api::canister_balance();
-                        let cycles_spent = balance_before - balance_after;
 
-                        if Balances::is_sufficient(subscriber_principal, Nat::from(cycles_spent))
-                            .unwrap()
+                        if Balances::is_sufficient(
+                            subscriber_principal,
+                            Nat::from(estimated_cycles_for_event),
+                        )
+                        .unwrap()
                         {
-                            Balances::reduce(&subscriber_principal, Nat::from(cycles_spent))
-                                .unwrap();
+                            Balances::reduce(
+                                &subscriber_principal,
+                                Nat::from(estimated_cycles_for_event),
+                            )
+                            .unwrap();
                         }
 
                         log!(
                             "Notification sent successfully. ID: {}, Charged: {}",
                             notification_id,
-                            cycles_spent
+                            estimated_cycles_for_event
                         );
                     }
                     SendNotificationResult::Err(error) => {

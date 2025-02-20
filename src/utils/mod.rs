@@ -11,8 +11,6 @@ use ic_cdk::api::time;
 use metrics::cycles_count;
 use std::cell::RefCell;
 
-pub const EVM_EVENT_SIZE_BYTES: u32 = 800;
-
 #[macro_export]
 macro_rules! get_state_value {
     ($field:ident) => {{
@@ -63,7 +61,7 @@ pub async fn get_latest_block_number(rpc_providers: RpcServices) -> Result<Nat, 
         }),
     };
     let evm_rpc_canister = get_state_value!(evm_rpc_canister);
-    log!("calling eth_getBlockByNumber!");
+
     let (result,): (MultiRpcResult<Block>,) = call_with_payment128(
         evm_rpc_canister,
         "eth_getBlockByNumber",

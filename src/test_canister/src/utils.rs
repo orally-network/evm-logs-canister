@@ -21,7 +21,7 @@ pub async fn register_subscription_and_map_decoder(
     );
 
     let result: Result<(RegisterSubscriptionResult,), _> =
-        call_with_payment(canister_id, "subscribe", (subscription,), 10000000000).await;
+        call_with_payment(canister_id, "subscribe", (subscription,), 10_000_000_000).await;
 
     match result {
         Ok((response,)) => match response {
