@@ -1,13 +1,10 @@
-use candid::Nat;
-use candid::{candid_method, Principal};
+use candid::{Nat, Principal, candid_method};
 use evm_logs_types::*;
+use ic_cdk::caller;
 use ic_cdk_macros::*;
 use metrics::cycles_count;
 
-use crate::log;
-use crate::subscription_manager;
-use crate::types::balances::Balances;
-use ic_cdk::caller;
+use crate::{log, subscription_manager, types::balances::Balances};
 
 // register subscription by specified filter (addresses and topics)
 #[update(name = "subscribe")]
@@ -21,8 +18,7 @@ pub async fn subscribe(registration: SubscriptionRegistration) -> RegisterSubscr
         registration.canister_to_top_up.to_text()
     );
 
-    if let Err(err) = Balances::top_up(registration.canister_to_top_up, Nat::from(received_cycles))
-    {
+    if let Err(err) = Balances::top_up(registration.canister_to_top_up, Nat::from(received_cycles)) {
         log!("Failed to top up balance: {}", err);
         return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
     }

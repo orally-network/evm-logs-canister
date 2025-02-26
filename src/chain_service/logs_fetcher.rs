@@ -1,15 +1,16 @@
-use super::{utils::*, ChainConfig};
-use crate::constants::*;
-use crate::types::balances::BalanceError;
-use crate::types::balances::Balances;
-use crate::{get_state_value, log};
+use std::str::FromStr;
+
 use candid::Nat;
-use evm_rpc_types::{
-    BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, Nat256, RpcResult,
-};
+use evm_rpc_types::{BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, Nat256, RpcResult};
 use futures::future::join_all;
 use ic_cdk::api::call::call_with_payment128;
-use std::str::FromStr;
+
+use super::{ChainConfig, utils::*};
+use crate::{
+    constants::*,
+    get_state_value, log,
+    types::balances::{BalanceError, Balances},
+};
 
 fn estimate_cycles_used(
     logs_received: usize,
@@ -73,13 +74,7 @@ pub async fn fetch_logs(
     let addresses = addresses.unwrap_or_default();
 
     if addresses.is_empty() {
-        return eth_get_logs_call_with_retry(
-            chain_config,
-            from_block.clone(),
-            None,
-            topics.clone(),
-        )
-        .await;
+        return eth_get_logs_call_with_retry(chain_config, from_block.clone(), None, topics.clone()).await;
     }
 
     let events_per_interval = get_state_value!(estimate_events_num);
@@ -95,13 +90,7 @@ pub async fn fetch_logs(
         let from_block = from_block.clone();
 
         let fut = async move {
-            eth_get_logs_call_with_retry(
-                chain_config,
-                from_block.clone(),
-                Some(chunk_vec),
-                topics_clone,
-            )
-            .await
+            eth_get_logs_call_with_retry(chain_config, from_block.clone(), Some(chunk_vec), topics_clone).await
         };
         futures.push(fut);
     }
@@ -152,10 +141,7 @@ async fn eth_get_logs_call_with_retry(
                 .map(|inner| {
                     inner
                         .into_iter()
-                        .map(|topic| {
-                            Hex32::from_str(&topic)
-                                .map_err(|e| format!("Invalid topic {}: {}", topic, e))
-                        })
+                        .map(|topic| Hex32::from_str(&topic).map_err(|e| format!("Invalid topic {}: {}", topic, e)))
                         .collect::<Result<Vec<_>, _>>()
                 })
                 .collect::<Result<Vec<_>, _>>()
@@ -164,9 +150,7 @@ async fn eth_get_logs_call_with_retry(
 
     // Prepare arguments for the RPC call
     let get_logs_args = GetLogsArgs {
-        from_block: Some(BlockTag::Number(
-            Nat256::try_from(from_block.clone()).unwrap(),
-        )),
+        from_block: Some(BlockTag::Number(Nat256::try_from(from_block.clone()).unwrap())),
         to_block: Some(BlockTag::Latest),
         addresses,
         topics,

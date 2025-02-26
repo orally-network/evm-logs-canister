@@ -1,31 +1,21 @@
-use crate::TOPICS_MANAGER;
-use candid::Nat;
-use candid::Principal;
+use candid::{Nat, Principal};
 use evm_logs_types::{Filter, SubscriptionInfo};
+
+use crate::TOPICS_MANAGER;
 
 pub fn get_subscriptions_info(
     chain_id: Option<u32>,
     from_id: Option<Nat>,
     filters: Option<Vec<Filter>>,
 ) -> Vec<SubscriptionInfo> {
-    let mut subs_vec = crate::STATE.with(|state| {
-        state
-            .borrow()
-            .subscriptions
-            .values()
-            .cloned()
-            .collect::<Vec<_>>()
-    });
+    let mut subs_vec = crate::STATE.with(|state| state.borrow().subscriptions.values().cloned().collect::<Vec<_>>());
 
     if let Some(ns) = chain_id {
         subs_vec.retain(|sub| sub.chain_id == ns);
     }
 
     if let Some(prev_id) = from_id {
-        if let Some(pos) = subs_vec
-            .iter()
-            .position(|sub| sub.subscription_id == prev_id)
-        {
+        if let Some(pos) = subs_vec.iter().position(|sub| sub.subscription_id == prev_id) {
             if pos + 1 < subs_vec.len() {
                 subs_vec = subs_vec.split_off(pos + 1);
             } else {

@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
-use super::{balances::Balances, config::Config};
-use crate::STATE;
 use candid::{CandidType, Nat, Principal};
 use evm_logs_types::SubscriptionInfo;
 use serde::{Deserialize, Serialize};
+
+use super::{balances::Balances, config::Config};
+use crate::STATE;
 
 #[derive(Clone, CandidType, Serialize, Deserialize, Debug)]
 pub struct State {

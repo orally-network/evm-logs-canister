@@ -9,23 +9,20 @@ mod utils;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use candid::{Nat, Principal};
-use chain_service::{service::ChainService, ChainConfig};
+use chain_service::{ChainConfig, service::ChainService};
 use evm_logs_types::*;
 use ic_cdk::storage;
-use ic_cdk_macros::*;
-
-use crate::{
-    log_filters::filter_manager::FilterManager,
-    types::state::{init as init_state, State},
-    utils::generate_chain_configs,
-};
-
+use ic_cdk_macros::{query, *};
 use ic_utils::{
     api_type::{GetInformationRequest, GetInformationResponse, UpdateInformationRequest},
     get_information, update_information,
 };
 
-use ic_cdk_macros::query;
+use crate::{
+    log_filters::filter_manager::FilterManager,
+    types::state::{State, init as init_state},
+    utils::generate_chain_configs,
+};
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -136,9 +133,7 @@ fn post_upgrade() {
 }
 
 #[query(name = "getCanistergeekInformation")]
-pub async fn get_canistergeek_information(
-    request: GetInformationRequest,
-) -> GetInformationResponse<'static> {
+pub async fn get_canistergeek_information(request: GetInformationRequest) -> GetInformationResponse<'static> {
     get_information(request)
 }
 
