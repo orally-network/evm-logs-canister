@@ -8,9 +8,9 @@ name = "proxy_canister"
 crate-type = ["cdylib"]
 
 [dependencies]
-ic-cdk = "0.14.0"
-ic-cdk-macros = "0.9"
-candid = "0.10"
-serde = "1.0"
-serde_bytes = "0.11"
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+candid.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
 evm_logs_types = { path = "../../evm_logs_types" } 

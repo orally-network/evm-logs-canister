@@ -4,7 +4,7 @@ use ic_cdk::{self, api::call::call};
 
 use super::utils::event_matches_filter;
 use crate::{
-    NEXT_NOTIFICATION_ID, constants::*, get_state_value, log, types::balances::Balances, utils::current_timestamp,
+    constants::*, get_state_value, log, types::balances::Balances, utils::current_timestamp, NEXT_NOTIFICATION_ID, TOPICS_MANAGER
 };
 
 fn estimate_cycles_for_event_notification(event_size: usize) -> u64 {
@@ -68,9 +68,20 @@ async fn distribute_event(event: Event) {
                 log_entry: event.log_entry.clone(),
             };
 
-            // Check if the subscriber has sufficient balance
+            // Check if the subscriber has sufficient balance, otherwise - remove the subscription filter
             if !Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap() {
-                log!("Insufficient balance for subscriber: {}", subscriber_principal);
+                log!("Insufficient balance for subscriber, unsubscribe: {}", subscriber_principal);
+
+                // remove from subscriprions state
+                crate::STATE.with(|subs| {
+                    subs.borrow_mut().subscriptions.remove(&sub.subscription_id);
+                });
+                
+                TOPICS_MANAGER.with(|filter_manager| {
+                    let mut filter_manager = filter_manager.borrow_mut();
+                    filter_manager.remove_filter(sub.chain_id, &sub.filter);
+                });
+
                 continue;
             }
 
