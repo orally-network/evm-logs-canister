@@ -21,7 +21,6 @@ use ic_utils::{
 use crate::{
     log_filters::filter_manager::FilterManager,
     types::state::{State, init as init_state},
-    utils::generate_chain_configs,
 };
 
 thread_local! {
@@ -40,24 +39,7 @@ async fn init(config: types::config::Config) {
     subscription_manager::init();
     init_state(config);
 
-    let monitoring_interval = Duration::from_secs(15);
-
-    let chain_configs = generate_chain_configs();
-
-    let services: Vec<Rc<ChainService>> = chain_configs
-        .into_iter()
-        .map(|config| {
-            let service = Rc::new(ChainService::new(config));
-            service.clone().start_monitoring(monitoring_interval);
-            service
-        })
-        .collect();
-
-    CHAIN_SERVICES.with(|chain_services| {
-        *chain_services.borrow_mut() = services;
-    });
-
-    log!("EVM logs monitoring is started");
+    log!("EVM logs canister initialized.");
 }
 
 #[ic_cdk::pre_upgrade]

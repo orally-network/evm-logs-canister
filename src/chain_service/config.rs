@@ -8,6 +8,7 @@ pub struct ChainConfig {
     pub rpc_providers: RpcServices,
     pub evm_rpc_canister: Principal,
     pub rpc_config: Option<RpcConfig>, // for ConsensusStrategy
+    pub monitoring_interval: u64,      // in seconds
 }
 
 impl ChainConfig {

@@ -4,6 +4,7 @@ use candid::Nat;
 use ic_cdk_timers::TimerId;
 
 use super::{config::ChainConfig, monitoring::start_monitoring_internal};
+use crate::log;
 
 pub struct ChainService {
     pub config: ChainConfig,
@@ -24,6 +25,7 @@ impl ChainService {
     }
 
     pub fn start_monitoring(self: Rc<Self>, interval: std::time::Duration) {
+        log!("Starting monitoring for chain ID {}", self.config.chain_id);
         start_monitoring_internal(self, interval);
     }
 }

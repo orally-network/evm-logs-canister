@@ -10,7 +10,12 @@ pub mod events_publisher;
 pub mod queries;
 pub mod utils;
 
-use crate::{NEXT_SUBSCRIPTION_ID, TOPICS_MANAGER};
+use std::rc::Rc;
+
+use crate::{
+    CHAIN_SERVICES, NEXT_SUBSCRIPTION_ID, TOPICS_MANAGER, chain_service::service::ChainService,
+    utils::generate_chain_configs,
+};
 
 pub fn init() {
     log!("SubscriptionManager initialized");
@@ -84,6 +89,21 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
         registration.chain_id,
         filter,
     );
+
+    // start timer corresponding to the subscription
+    let chain_configs = generate_chain_configs();
+    let chain_config = chain_configs
+        .iter()
+        .find(|config| config.chain_id == chain_id)
+        .expect("Chain config not found. Add it to the chain configs generation");
+
+    let service = Rc::new(ChainService::new(chain_config.clone()));
+    let monitoring_interval = std::time::Duration::from_secs(chain_config.monitoring_interval);
+    service.clone().start_monitoring(monitoring_interval);
+
+    CHAIN_SERVICES.with(|chain_services| {
+        chain_services.borrow_mut().push(service);
+    });
 
     RegisterSubscriptionResult::Ok(sub_id)
 }

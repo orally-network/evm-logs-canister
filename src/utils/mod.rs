@@ -91,6 +91,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: Some(response_size_estimate),
                 response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: BASE_CHAIN_ID,
@@ -100,6 +101,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: Some(response_size_estimate),
                 response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: OPTIMISM_CHAIN_ID,
@@ -109,6 +111,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: Some(response_size_estimate),
                 response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: POLYGON_CHAIN_ID,
@@ -118,6 +121,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: Some(response_size_estimate),
                 response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: ARBITRUM_CHAIN_ID,
@@ -127,6 +131,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: Some(response_size_estimate),
                 response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: BSC_CHAIN_ID,
@@ -136,6 +141,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
                 response_size_estimate: Some(response_size_estimate),
                 response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
     ]
 }
