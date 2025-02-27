@@ -64,7 +64,7 @@ impl FilterManager {
             // Decrement address counter
             if let Some(addr_count) = chain_data.addresses.get_mut(&filter.address.to_string()) {
                 if *addr_count > 0u32 {
-                    *addr_count -= Nat::from(1u32);
+                    *addr_count -= 1u32;
                     if *addr_count == 0u32 {
                         chain_data.addresses.remove(&filter.address.to_string());
                     }
@@ -78,9 +78,9 @@ impl FilterManager {
                     for topic in first_position {
                         let topic_key = topic.to_string();
                         if let Some(topic_count) = chain_data.first_position_topics.get_mut(&topic_key) {
-                            if *topic_count > Nat::from(0u32) {
-                                *topic_count -= Nat::from(1u32);
-                                if *topic_count == Nat::from(0u32) {
+                            if *topic_count > 0u32 {
+                                *topic_count -= 1u32;
+                                if *topic_count == 0u32 {
                                     chain_data.first_position_topics.remove(&topic_key);
                                 }
                             }
