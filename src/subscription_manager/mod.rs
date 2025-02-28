@@ -134,6 +134,25 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
             }
         });
 
+        // sto timer for specific chain ID if there are no more subscriptions for it
+        let has_subscriptions = crate::STATE.with(|subs| {
+            subs.borrow()
+                .subscriptions
+                .values()
+                .any(|sub_info| sub_info.chain_id == chain_id)
+        });
+
+        if !has_subscriptions {
+            CHAIN_SERVICES.with(|chain_services| {
+                let chain_services = chain_services.borrow_mut();
+                // call stop_monitoring for the chain service, but dont remove it
+                chain_services
+                    .iter()
+                    .find(|service| service.config.chain_id == chain_id)
+                    .map(|service| service.stop_monitoring());
+            });
+        }
+        
         UnsubscribeResult::Ok()
     } else {
         UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))

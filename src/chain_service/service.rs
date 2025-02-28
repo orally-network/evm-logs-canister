@@ -28,4 +28,12 @@ impl ChainService {
         log!("Starting monitoring for chain ID {}", self.config.chain_id);
         start_monitoring_internal(self, interval);
     }
+
+    pub fn stop_monitoring(&self) {
+        log!("Stopping monitoring for chain ID {}", self.config.chain_id);
+        let timer_id = self.timer_id.borrow_mut().take();
+        if let Some(timer_id) = timer_id {
+            ic_cdk_timers::clear_timer(timer_id);
+        }
+    }
 }
