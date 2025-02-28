@@ -33,7 +33,7 @@ pub async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
     subscription_manager::unsubscribe(caller(), subscription_id)
 }
 
-// get all subscriptions assigned to the user
+// get all subscriptions assigned to the user (takes caller as a parameter implicitly)
 #[query(name = "get_user_subscriptions")]
 #[candid_method(query)]
 pub fn get_user_subscriptions() -> Vec<SubscriptionInfo> {

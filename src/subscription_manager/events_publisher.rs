@@ -4,7 +4,7 @@ use ic_cdk::{self, api::call::call};
 
 use super::utils::event_matches_filter;
 use crate::{
-    NEXT_NOTIFICATION_ID, TOPICS_MANAGER, constants::*, get_state_value, log, types::balances::Balances,
+    NEXT_NOTIFICATION_ID, FILTERS_MANAGER, constants::*, get_state_value, log, types::balances::Balances,
     utils::current_timestamp,
 };
 
@@ -81,7 +81,7 @@ async fn distribute_event(event: Event) {
                     subs.borrow_mut().subscriptions.remove(&sub.subscription_id);
                 });
 
-                TOPICS_MANAGER.with(|filter_manager| {
+                FILTERS_MANAGER.with(|filter_manager| {
                     let mut filter_manager = filter_manager.borrow_mut();
                     filter_manager.remove_filter(sub.chain_id, &sub.filter);
                 });

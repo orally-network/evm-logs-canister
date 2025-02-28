@@ -1,10 +1,9 @@
 use std::str::FromStr;
 
-use candid::Nat;
+use candid::{Encode, Nat};
 use evm_rpc_types::{BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, Nat256, RpcResult};
 use futures::future::join_all;
 use ic_cdk::api::call::call_with_payment128;
-use candid::Encode;
 
 use super::{ChainConfig, utils::*};
 use crate::{
@@ -17,38 +16,12 @@ fn estimate_log_entry_size(logs: &[LogEntry]) -> usize {
     logs.iter().map(|log| Encode!(log).unwrap().len()).sum()
 }
 
-fn theoretical_estimate_cycles_used(
-    logs_received: usize,
-    addresses_count: usize,
-    topics: Option<&Vec<Vec<String>>>,
-) -> u64 {
-    // Estimate request size
-    let request_size = 8 // Base struct size
-        + (ETH_ADDRESS_SIZE as usize * addresses_count) // Address bytes
-        + topics.map_or(0, |t| t.iter().map(|x| ETH_TOPIC_SIZE as usize * x.len()).sum()); // Topics bytes
-
-    // Estimate response size based on received logs
-    let response_size = logs_received as u64 * EVM_EVENT_SIZE_BYTES as u64; // Logs in bytes
-
-    // Compute cycles for sending request and receiving response
-    let cycles_for_request = request_size as u64 * CYCLES_PER_BYTE_SEND;
-    let cycles_for_response = response_size * CYCLES_PER_BYTE_RECEIVE;
-    log!("cycles_for_response theoretical: {}", cycles_for_response);
-
-    // Total cycles usage including base call cost and multiple RPC queries
-    let total_cycles_used = BASE_CALL_CYCLES
-        + cycles_for_request
-        + cycles_for_response
-        + (cycles_for_request + cycles_for_response); // Multiply by validator count?
-
-    total_cycles_used
-}
-
 fn estimate_cycles_used(
     logs_received: &[LogEntry],
     addresses_count: usize,
     topics_count: Option<&Vec<Vec<String>>>,
 ) -> u64 {
+    log!("calculating cycles used for logs: {}", logs_received.len());
     // Estimate request size
     let request_size_bytes = 8 // Base struct size
         + (ETH_ADDRESS_SIZE as usize * addresses_count) // Address bytes
@@ -64,10 +37,8 @@ fn estimate_cycles_used(
     // log!("cycles_for_response theoretical: {}", cycles_for_response);
 
     // Total cycles usage including base call cost and multiple RPC queries
-    let total_cycles_used = BASE_CALL_CYCLES
-        + cycles_for_request
-        + cycles_for_response
-        + (cycles_for_request + cycles_for_response);
+    let total_cycles_used =
+        BASE_CALL_CYCLES + cycles_for_request + cycles_for_response + (cycles_for_request + cycles_for_response);
 
     total_cycles_used
 }
@@ -138,24 +109,15 @@ pub async fn fetch_logs(
             Err(e) => return Err(e),
         }
     }
-    let logs_received = merged_logs.len();
-    let total_cycles_used1 = theoretical_estimate_cycles_used(
-        logs_received,
-        addresses.len(),
-        topics.as_ref(),
-    );
-    let total_cycles_used2 = estimate_cycles_used(
-        &merged_logs,
-        addresses.len(),
-        topics.as_ref(),
-    );
+
+    let total_cycles_used = estimate_cycles_used(&merged_logs, addresses.len(), topics.as_ref());
     // log!("cycles used in theoretical estimate: {}", total_cycles_used1);
     // log!("cycles_for_response actual {}", total_cycles_used2);
 
     // after sending request we need to charge cycles for each subscriber accordingly
     // to amount of their subscribtion addresses(filters)
     // note: later events_publisher will charge cycles accordingly to amount of logs received by each subscriber
-    charge_subscribers(addresses.len(), total_cycles_used1);
+    charge_subscribers(addresses.len(), total_cycles_used);
 
     Ok(merged_logs)
 }

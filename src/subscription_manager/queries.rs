@@ -1,7 +1,7 @@
 use candid::{Nat, Principal};
 use evm_logs_types::{Filter, SubscriptionInfo};
 
-use crate::TOPICS_MANAGER;
+use crate::FILTERS_MANAGER;
 
 pub fn get_subscriptions_info(
     chain_id: Option<u32>,
@@ -44,7 +44,7 @@ pub fn get_active_filters() -> Vec<Filter> {
 
 // Get unique addresses and topics to pass to eth_getLogs.
 pub fn get_active_addresses_and_topics(chain_id: u32) -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    TOPICS_MANAGER.with(|manager| {
+    FILTERS_MANAGER.with(|manager| {
         let manager = manager.borrow();
         manager.get_active_addresses_and_topics(chain_id)
     })
@@ -59,7 +59,6 @@ pub fn get_user_subscriptions(caller: Principal) -> Vec<SubscriptionInfo> {
             .cloned()
             .unwrap_or_else(Vec::new)
     });
-
     crate::STATE.with(|state| {
         subscription_ids
             .iter()

@@ -13,7 +13,7 @@ pub mod utils;
 use std::rc::Rc;
 
 use crate::{
-    CHAIN_SERVICES, NEXT_SUBSCRIPTION_ID, TOPICS_MANAGER, chain_service::service::ChainService,
+    CHAIN_SERVICES, NEXT_SUBSCRIPTION_ID, FILTERS_MANAGER, chain_service::service::ChainService,
     utils::generate_chain_configs,
 };
 
@@ -78,7 +78,7 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
             .push(sub_id.clone());
     });
 
-    TOPICS_MANAGER.with(|manager| {
+    FILTERS_MANAGER.with(|manager| {
         let mut manager = manager.borrow_mut();
         manager.add_filter(chain_id, &filter);
     });
@@ -90,20 +90,31 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
         filter,
     );
 
-    // start timer corresponding to the subscription
-    let chain_configs = generate_chain_configs();
-    let chain_config = chain_configs
-        .iter()
-        .find(|config| config.chain_id == chain_id)
-        .expect("Chain config not found. Add it to the chain configs generation");
-
-    let service = Rc::new(ChainService::new(chain_config.clone()));
-    let monitoring_interval = std::time::Duration::from_secs(chain_config.monitoring_interval);
-    service.clone().start_monitoring(monitoring_interval);
-
-    CHAIN_SERVICES.with(|chain_services| {
-        chain_services.borrow_mut().push(service);
+    // start timer corresponding to the subscription if it's the first subscription for the chain
+    // check if there are any subscriptions for the chain
+    let subscriptions_amount = crate::STATE.with(|subs| {
+        subs.borrow()
+            .subscriptions
+            .values()
+            .filter(|sub_info| sub_info.chain_id == chain_id)
+            .count()
     });
+
+    if subscriptions_amount == 1 {
+        let chain_configs = generate_chain_configs();
+        let chain_config = chain_configs
+            .iter()
+            .find(|config| config.chain_id == chain_id)
+            .expect("Chain config not found. Add it to the chain configs generation");
+
+        let service = Rc::new(ChainService::new(chain_config.clone()));
+        let monitoring_interval = std::time::Duration::from_secs(chain_config.monitoring_interval);
+        service.clone().start_monitoring(monitoring_interval);
+
+        CHAIN_SERVICES.with(|chain_services| {
+            chain_services.borrow_mut().push(service);
+        });
+    }
 
     RegisterSubscriptionResult::Ok(sub_id)
 }
@@ -118,7 +129,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
         let chain_id = subscription_info.chain_id;
 
         // remove subscription filter from the filter manager
-        TOPICS_MANAGER.with(|manager| {
+        FILTERS_MANAGER.with(|manager| {
             let mut manager = manager.borrow_mut();
             manager.remove_filter(chain_id, &filter);
         });
@@ -152,7 +163,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
                     .map(|service| service.stop_monitoring());
             });
         }
-        
+
         UnsubscribeResult::Ok()
     } else {
         UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))

@@ -29,7 +29,7 @@ thread_local! {
     pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
-    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
+    pub static FILTERS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
 
     pub static CHAIN_SERVICES: RefCell<Vec<Rc<ChainService>>> = const {RefCell::new(Vec::new())};
 }
@@ -47,7 +47,7 @@ fn pre_upgrade() {
     let state = STATE.with(|state| state.borrow().clone());
     let next_subscription_id = NEXT_SUBSCRIPTION_ID.with(|id| id.borrow().clone());
     let next_notification_id = NEXT_NOTIFICATION_ID.with(|id| id.borrow().clone());
-    let topics_manager = TOPICS_MANAGER.with(|manager| manager.borrow().clone());
+    let topics_manager = FILTERS_MANAGER.with(|manager| manager.borrow().clone());
 
     let chain_configs: Vec<ChainConfig> = CHAIN_SERVICES.with(|chain_services| {
         chain_services
@@ -92,7 +92,7 @@ fn post_upgrade() {
         *id.borrow_mut() = saved_next_notification_id;
     });
 
-    TOPICS_MANAGER.with(|manager| {
+    FILTERS_MANAGER.with(|manager| {
         *manager.borrow_mut() = saved_topics_manager;
     });
 
