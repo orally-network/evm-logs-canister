@@ -1,12 +1,11 @@
 mod common;
 
+use std::{collections::HashMap, time::Duration};
+
 use candid::{Nat, Principal};
 use common::*;
 use evm_logs_types::{EventNotification, Filter, SubscriptionInfo, SubscriptionRegistration};
-use pocket_ic::nonblocking::PocketIc;
-use pocket_ic::WasmResult;
-use std::collections::HashMap;
-use std::time::Duration;
+use pocket_ic::{WasmResult, nonblocking::PocketIc};
 
 #[tokio::test]
 async fn test_main_worflow_with_bunch_subscribers() {
@@ -21,17 +20,13 @@ async fn test_main_worflow_with_bunch_subscribers() {
 
     // initialize and install evm-rpc-mocked canister
     let evm_rpc_mocked_canister_id = pic.create_canister().await;
-    pic.add_cycles(evm_rpc_mocked_canister_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(evm_rpc_mocked_canister_id, 4_000_000_000_000).await;
 
     let evm_rpc_mocked_bytes = tokio::fs::read(std::env::var("EVM_RPC_MOCKED_WASM_PATH").unwrap())
         .await
         .unwrap();
 
-    let evm_rpc_mocked_init_args = candid::encode_args((EvmRpcMockedConfig {
-        evm_logs_canister_id,
-    },))
-    .unwrap();
+    let evm_rpc_mocked_init_args = candid::encode_args((EvmRpcMockedConfig { evm_logs_canister_id },)).unwrap();
     pic.install_canister(
         evm_rpc_mocked_canister_id,
         evm_rpc_mocked_bytes,
@@ -51,8 +46,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
         .await;
 
     // initialize and install evm-logs-canister
-    pic.add_cycles(evm_logs_canister_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(evm_logs_canister_id, 4_000_000_000_000).await;
 
     let evm_logs_wasm_bytes = tokio::fs::read(std::env::var("EVM_LOGS_CANISTER_PATH").unwrap())
         .await
@@ -73,10 +67,9 @@ async fn test_main_worflow_with_bunch_subscribers() {
     let cycles_wallet_id = pic.create_canister().await;
     pic.add_cycles(cycles_wallet_id, 4_000_000_000_000).await;
 
-    let cycles_wallet_wasm_bytes =
-        tokio::fs::read(std::env::var("CYCLES_WALLET_WASM_PATH").unwrap())
-            .await
-            .unwrap();
+    let cycles_wallet_wasm_bytes = tokio::fs::read(std::env::var("CYCLES_WALLET_WASM_PATH").unwrap())
+        .await
+        .unwrap();
     pic.install_canister(cycles_wallet_id, cycles_wallet_wasm_bytes, vec![], None)
         .await;
 
@@ -89,16 +82,10 @@ async fn test_main_worflow_with_bunch_subscribers() {
     // create subscribers caisters
     for _ in 0..num_subscribers {
         let subscriber_canister_id = pic.create_canister().await;
-        pic.add_cycles(subscriber_canister_id, 4_000_000_000_000)
-            .await;
+        pic.add_cycles(subscriber_canister_id, 4_000_000_000_000).await;
 
-        pic.install_canister(
-            subscriber_canister_id,
-            subscriber_wasm_bytes.clone(),
-            vec![],
-            None,
-        )
-        .await;
+        pic.install_canister(subscriber_canister_id, subscriber_wasm_bytes.clone(), vec![], None)
+            .await;
 
         subscriber_canisters.push(subscriber_canister_id);
     }
@@ -129,12 +116,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
         let bytes = candid::encode_args((call_args,)).unwrap();
 
         match pic
-            .update_call(
-                cycles_wallet_id,
-                Principal::anonymous(),
-                "wallet_call128",
-                bytes,
-            )
+            .update_call(cycles_wallet_id, Principal::anonymous(), "wallet_call128", bytes)
             .await
         {
             Ok(WasmResult::Reply(data)) => ic_cdk::println!("Subscription successful: {:?}", data),
@@ -160,11 +142,7 @@ async fn test_main_worflow_with_bunch_subscribers() {
     if let WasmResult::Reply(data) = sub_info_bytes {
         let subscriptions: Vec<SubscriptionInfo> = candid::decode_one(&data).unwrap();
 
-        assert_eq!(
-            subscriptions.len(),
-            num_subscribers,
-            "Subscription count mismatch"
-        );
+        assert_eq!(subscriptions.len(), num_subscribers, "Subscription count mismatch");
     } else {
         panic!("Failed to get subscriptions");
     }

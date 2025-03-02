@@ -9,23 +9,19 @@ mod utils;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use candid::{Nat, Principal};
-use chain_service::{service::ChainService, ChainConfig};
+use chain_service::{ChainConfig, service::ChainService};
 use evm_logs_types::*;
 use ic_cdk::storage;
-use ic_cdk_macros::*;
-
-use crate::{
-    log_filters::filter_manager::FilterManager,
-    types::state::{init as init_state, State},
-    utils::generate_chain_configs,
-};
-
+use ic_cdk_macros::{query, *};
 use ic_utils::{
     api_type::{GetInformationRequest, GetInformationResponse, UpdateInformationRequest},
     get_information, update_information,
 };
 
-use ic_cdk_macros::query;
+use crate::{
+    log_filters::filter_manager::FilterManager,
+    types::state::{State, init as init_state},
+};
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -33,7 +29,7 @@ thread_local! {
     pub static NEXT_SUBSCRIPTION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
     pub static NEXT_NOTIFICATION_ID: RefCell<Nat> = RefCell::new(Nat::from(1u32));
 
-    pub static TOPICS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
+    pub static FILTERS_MANAGER: RefCell<FilterManager> = RefCell::new(FilterManager::default());
 
     pub static CHAIN_SERVICES: RefCell<Vec<Rc<ChainService>>> = const {RefCell::new(Vec::new())};
 }
@@ -43,24 +39,7 @@ async fn init(config: types::config::Config) {
     subscription_manager::init();
     init_state(config);
 
-    let monitoring_interval = Duration::from_secs(15);
-
-    let chain_configs = generate_chain_configs();
-
-    let services: Vec<Rc<ChainService>> = chain_configs
-        .into_iter()
-        .map(|config| {
-            let service = Rc::new(ChainService::new(config));
-            service.clone().start_monitoring(monitoring_interval);
-            service
-        })
-        .collect();
-
-    CHAIN_SERVICES.with(|chain_services| {
-        *chain_services.borrow_mut() = services;
-    });
-
-    log!("EVM logs monitoring is started");
+    log!("EVM logs canister initialized.");
 }
 
 #[ic_cdk::pre_upgrade]
@@ -68,7 +47,7 @@ fn pre_upgrade() {
     let state = STATE.with(|state| state.borrow().clone());
     let next_subscription_id = NEXT_SUBSCRIPTION_ID.with(|id| id.borrow().clone());
     let next_notification_id = NEXT_NOTIFICATION_ID.with(|id| id.borrow().clone());
-    let topics_manager = TOPICS_MANAGER.with(|manager| manager.borrow().clone());
+    let topics_manager = FILTERS_MANAGER.with(|manager| manager.borrow().clone());
 
     let chain_configs: Vec<ChainConfig> = CHAIN_SERVICES.with(|chain_services| {
         chain_services
@@ -113,7 +92,7 @@ fn post_upgrade() {
         *id.borrow_mut() = saved_next_notification_id;
     });
 
-    TOPICS_MANAGER.with(|manager| {
+    FILTERS_MANAGER.with(|manager| {
         *manager.borrow_mut() = saved_topics_manager;
     });
 
@@ -136,9 +115,7 @@ fn post_upgrade() {
 }
 
 #[query(name = "getCanistergeekInformation")]
-pub async fn get_canistergeek_information(
-    request: GetInformationRequest,
-) -> GetInformationResponse<'static> {
+pub async fn get_canistergeek_information(request: GetInformationRequest) -> GetInformationResponse<'static> {
     get_information(request)
 }
 

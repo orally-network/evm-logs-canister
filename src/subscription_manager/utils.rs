@@ -13,14 +13,11 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
             return false;
         }
 
-        return filter_topics
-            .iter()
-            .enumerate()
-            .all(|(i, filter_topic_set)| {
-                event_topics
-                    .get(i)
-                    .is_some_and(|event_topic| filter_topic_set.contains(event_topic))
-            });
+        return filter_topics.iter().enumerate().all(|(i, filter_topic_set)| {
+            event_topics
+                .get(i)
+                .is_some_and(|event_topic| filter_topic_set.contains(event_topic))
+        });
     }
 
     true
@@ -30,10 +27,11 @@ pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool 
 mod tests {
     use std::str::FromStr;
 
-    use super::*;
     use candid::Nat;
     use evm_logs_types::TopicsPosition;
     use evm_rpc_types::{Hex, Hex20, Hex32, LogEntry};
+
+    use super::*;
 
     fn create_event(address: &str, topics: Option<Vec<&str>>) -> Event {
         Event {

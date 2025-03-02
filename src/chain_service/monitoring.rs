@@ -1,12 +1,10 @@
-use crate::{log, subscription_manager::queries, utils::get_latest_block_number};
+use std::{rc::Rc, time::Duration};
+
 use ic_cdk;
 use ic_cdk_timers::set_timer_interval;
-use std::rc::Rc;
 
-use super::events_processor::process_and_publish_events;
-use super::logs_fetcher::fetch_logs;
-use super::service::ChainService;
-use std::time::Duration;
+use super::{events_processor::process_and_publish_events, logs_fetcher::fetch_logs, service::ChainService};
+use crate::{log, subscription_manager::queries, utils::get_latest_block_number};
 
 pub fn start_monitoring_internal(service: Rc<ChainService>, interval: Duration) {
     let service_clone = Rc::clone(&service);
@@ -92,11 +90,7 @@ impl ChainService {
                 }
             }
             Err(e) => {
-                log!(
-                    "Error during logs extraction for {:?}: {}",
-                    self.config.chain_id,
-                    e
-                );
+                log!("Error during logs extraction for {:?}: {}", self.config.chain_id, e);
             }
         }
     }

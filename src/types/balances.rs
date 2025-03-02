@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
+use candid::{CandidType, Nat, Principal};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::STATE;
-
-use candid::{CandidType, Nat, Principal};
 
 #[derive(Error, Debug)]
 pub enum BalanceError {

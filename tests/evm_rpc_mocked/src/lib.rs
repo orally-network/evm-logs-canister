@@ -1,14 +1,12 @@
-use candid::Nat;
-use candid::{CandidType, Deserialize, Principal};
+use std::{cell::RefCell, str::FromStr};
+
+use candid::{CandidType, Deserialize, Nat, Principal};
 use evm_logs_types::{Filter, SubscriptionInfo};
 use evm_rpc_types::{
-    BlockTag, GetLogsArgs, Hex, Hex20, Hex256, Hex32, LogEntry, MultiRpcResult, Nat256, RpcConfig,
-    RpcServices,
+    BlockTag, GetLogsArgs, Hex, Hex20, Hex32, Hex256, LogEntry, MultiRpcResult, Nat256, RpcConfig, RpcServices,
 };
 use ic_cdk::api::call::call;
 use ic_cdk_macros::*;
-use std::cell::RefCell;
-use std::str::FromStr;
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct Config {
@@ -123,10 +121,7 @@ async fn get_same_logs_as_sub_filters() -> Vec<LogEntry> {
                 .flat_map(|topic_list| topic_list.iter().cloned())
                 .collect(),
             transaction_hash: Some(
-                Hex32::from_str(
-                    "0xd9cf780ea5308e53d5339512353367e9975e936c2fe94ac63b3da2d4b298b891",
-                )
-                .unwrap(),
+                Hex32::from_str("0xd9cf780ea5308e53d5339512353367e9975e936c2fe94ac63b3da2d4b298b891").unwrap(),
             ),
             block_number: None,
             data: Hex::from(vec![]),
