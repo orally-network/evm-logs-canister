@@ -35,12 +35,8 @@ impl From<Token> for SolidityToken {
             Token::FixedArray(tokens) => {
                 SolidityToken::FixedArray(tokens.into_iter().map(SolidityToken::from).collect())
             }
-            Token::Array(tokens) => {
-                SolidityToken::Array(tokens.into_iter().map(SolidityToken::from).collect())
-            }
-            Token::Tuple(tokens) => {
-                SolidityToken::Tuple(tokens.into_iter().map(SolidityToken::from).collect())
-            }
+            Token::Array(tokens) => SolidityToken::Array(tokens.into_iter().map(SolidityToken::from).collect()),
+            Token::Tuple(tokens) => SolidityToken::Tuple(tokens.into_iter().map(SolidityToken::from).collect()),
         }
     }
 }
@@ -55,15 +51,9 @@ impl From<SolidityToken> for Token {
             SolidityToken::Uint(uint) => Token::Uint(U256::from_str_radix(&uint, 10).unwrap()),
             SolidityToken::Bool(boolean) => Token::Bool(boolean),
             SolidityToken::String(string) => Token::String(string),
-            SolidityToken::FixedArray(tokens) => {
-                Token::FixedArray(tokens.into_iter().map(Token::from).collect())
-            }
-            SolidityToken::Array(tokens) => {
-                Token::Array(tokens.into_iter().map(Token::from).collect())
-            }
-            SolidityToken::Tuple(tokens) => {
-                Token::Tuple(tokens.into_iter().map(Token::from).collect())
-            }
+            SolidityToken::FixedArray(tokens) => Token::FixedArray(tokens.into_iter().map(Token::from).collect()),
+            SolidityToken::Array(tokens) => Token::Array(tokens.into_iter().map(Token::from).collect()),
+            SolidityToken::Tuple(tokens) => Token::Tuple(tokens.into_iter().map(Token::from).collect()),
         }
     }
 }

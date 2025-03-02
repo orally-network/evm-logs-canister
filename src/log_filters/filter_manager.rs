@@ -1,7 +1,8 @@
+use std::collections::HashMap;
+
 use candid::{CandidType, Nat};
 use evm_logs_types::Filter;
 use serde::Deserialize;
-use std::collections::HashMap;
 
 /// Data structure for a specific chain (chain_id).
 /// It stores:
@@ -63,7 +64,7 @@ impl FilterManager {
             // Decrement address counter
             if let Some(addr_count) = chain_data.addresses.get_mut(&filter.address.to_string()) {
                 if *addr_count > 0u32 {
-                    *addr_count -= Nat::from(1u32);
+                    *addr_count -= 1u32;
                     if *addr_count == 0u32 {
                         chain_data.addresses.remove(&filter.address.to_string());
                     }
@@ -76,12 +77,10 @@ impl FilterManager {
                     let first_position = &all_positions[0];
                     for topic in first_position {
                         let topic_key = topic.to_string();
-                        if let Some(topic_count) =
-                            chain_data.first_position_topics.get_mut(&topic_key)
-                        {
-                            if *topic_count > Nat::from(0u32) {
-                                *topic_count -= Nat::from(1u32);
-                                if *topic_count == Nat::from(0u32) {
+                        if let Some(topic_count) = chain_data.first_position_topics.get_mut(&topic_key) {
+                            if *topic_count > 0u32 {
+                                *topic_count -= 1u32;
+                                if *topic_count == 0u32 {
                                     chain_data.first_position_topics.remove(&topic_key);
                                 }
                             }
@@ -96,20 +95,13 @@ impl FilterManager {
     /// - `addresses`: all active addresses
     /// - `topics`: if the first_position_topics is empty => None
     ///             otherwise => Some([ list_of_topics ])
-    pub fn get_active_addresses_and_topics(
-        &self,
-        chain_id: u32,
-    ) -> (Vec<String>, Option<Vec<Vec<String>>>) {
+    pub fn get_active_addresses_and_topics(&self, chain_id: u32) -> (Vec<String>, Option<Vec<Vec<String>>>) {
         if let Some(chain_data) = self.get_chain_data(chain_id) {
             // Gather addresses
             let addresses = chain_data.addresses.keys().cloned().collect::<Vec<_>>();
 
             // Gather topics from the first position
-            let topics_collected = chain_data
-                .first_position_topics
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>();
+            let topics_collected = chain_data.first_position_topics.keys().cloned().collect::<Vec<_>>();
 
             // If we have no topics, return None; otherwise wrap them in a single Vec
             let topics = if topics_collected.is_empty() {
@@ -129,10 +121,10 @@ impl FilterManager {
 mod tests {
     use std::str::FromStr;
 
-    use super::*;
-    use evm_logs_types::Filter;
-    use evm_logs_types::TopicsPosition;
+    use evm_logs_types::{Filter, TopicsPosition};
     use evm_rpc_types::{Hex20, Hex32};
+
+    use super::*;
 
     /// Helper function to create a Filter with a given address and optional topics.
     /// We'll keep it simple: `topics` can be a Vec of Vec of &str, which we convert to String.
@@ -176,11 +168,7 @@ mod tests {
         // The second part is Some(...) because we do have first-position topics
         // specifically "TopicA" and "TopicB".
         let unwrapped = topics.expect("Should have some topics");
-        assert_eq!(
-            unwrapped.len(),
-            1,
-            "We only store first position in one vector"
-        );
+        assert_eq!(unwrapped.len(), 1, "We only store first position in one vector");
         // Inside that vector, we expect "TopicA" and "TopicB"
         // The order in a HashMap-based scenario is not guaranteed, so let's just check they exist
         let first_pos = &unwrapped[0];

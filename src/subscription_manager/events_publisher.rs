@@ -1,12 +1,12 @@
-use super::utils::event_matches_filter;
-use crate::constants::*;
-use crate::types::balances::Balances;
-use crate::NEXT_NOTIFICATION_ID;
-use crate::{get_state_value, log, utils::current_timestamp};
 use candid::Nat;
 use evm_logs_types::{Event, EventNotification, SendNotificationError, SendNotificationResult};
-use ic_cdk;
-use ic_cdk::api::call::call;
+use ic_cdk::{self, api::call::call};
+
+use super::utils::event_matches_filter;
+use crate::{
+    NEXT_NOTIFICATION_ID, FILTERS_MANAGER, constants::*, get_state_value, log, types::balances::Balances,
+    utils::current_timestamp,
+};
 
 fn estimate_cycles_for_event_notification(event_size: usize) -> u64 {
     // Estimated request size (event notification structure)
@@ -69,14 +69,23 @@ async fn distribute_event(event: Event) {
                 log_entry: event.log_entry.clone(),
             };
 
-            // Check if the subscriber has sufficient balance
-            if !Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event))
-                .unwrap()
-            {
+            // Check if the subscriber has sufficient balance, otherwise - remove the subscription filter
+            if !Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap() {
                 log!(
-                    "Insufficient balance for subscriber: {}",
+                    "Insufficient balance for subscriber, unsubscribe: {}",
                     subscriber_principal
                 );
+
+                // remove from subscriprions state
+                crate::STATE.with(|subs| {
+                    subs.borrow_mut().subscriptions.remove(&sub.subscription_id);
+                });
+
+                FILTERS_MANAGER.with(|filter_manager| {
+                    let mut filter_manager = filter_manager.borrow_mut();
+                    filter_manager.remove_filter(sub.chain_id, &sub.filter);
+                });
+
                 continue;
             }
 
@@ -94,17 +103,9 @@ async fn distribute_event(event: Event) {
                     SendNotificationResult::Ok => {
                         // if notification was succesfully sent - charge this subscriber
 
-                        if Balances::is_sufficient(
-                            subscriber_principal,
-                            Nat::from(estimated_cycles_for_event),
-                        )
-                        .unwrap()
+                        if Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap()
                         {
-                            Balances::reduce(
-                                &subscriber_principal,
-                                Nat::from(estimated_cycles_for_event),
-                            )
-                            .unwrap();
+                            Balances::reduce(&subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap();
                         }
 
                         log!(

@@ -21,10 +21,7 @@ pub struct Inner {
 #[allow(unused)]
 impl Inner {
     pub fn new(value: u128, label_values: Vec<String>) -> Self {
-        Self {
-            value,
-            label_values,
-        }
+        Self { value, label_values }
     }
 
     pub fn inc(&mut self) {

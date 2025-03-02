@@ -1,11 +1,11 @@
 pub mod common;
 
+use std::time::Duration;
+
 use candid::Principal;
 use common::*;
 use evm_logs_types::{EventNotification, SubscriptionRegistration};
-use pocket_ic::nonblocking::PocketIc;
-use pocket_ic::WasmResult;
-use std::time::Duration;
+use pocket_ic::{WasmResult, nonblocking::PocketIc};
 
 #[tokio::test]
 async fn batch_requests_test() {
@@ -20,17 +20,13 @@ async fn batch_requests_test() {
 
     // initialize and install evm-rpc-mocked canister
     let evm_rpc_mocked_canister_id = pic.create_canister().await;
-    pic.add_cycles(evm_rpc_mocked_canister_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(evm_rpc_mocked_canister_id, 4_000_000_000_000).await;
 
     let evm_rpc_mocked_bytes = tokio::fs::read(std::env::var("EVM_RPC_MOCKED_WASM_PATH").unwrap())
         .await
         .unwrap();
 
-    let evm_rpc_mocked_init_args = candid::encode_args((EvmRpcMockedConfig {
-        evm_logs_canister_id,
-    },))
-    .unwrap();
+    let evm_rpc_mocked_init_args = candid::encode_args((EvmRpcMockedConfig { evm_logs_canister_id },)).unwrap();
     pic.install_canister(
         evm_rpc_mocked_canister_id,
         evm_rpc_mocked_bytes,
@@ -50,8 +46,7 @@ async fn batch_requests_test() {
         .await;
 
     // initialize and install evm-logs-canister
-    pic.add_cycles(evm_logs_canister_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(evm_logs_canister_id, 4_000_000_000_000).await;
 
     let evm_logs_wasm_bytes = tokio::fs::read(std::env::var("EVM_LOGS_CANISTER_PATH").unwrap())
         .await
@@ -72,10 +67,9 @@ async fn batch_requests_test() {
     let cycles_wallet_id = pic.create_canister().await;
     pic.add_cycles(cycles_wallet_id, 4_000_000_000_000).await;
 
-    let cycles_wallet_wasm_bytes =
-        tokio::fs::read(std::env::var("CYCLES_WALLET_WASM_PATH").unwrap())
-            .await
-            .unwrap();
+    let cycles_wallet_wasm_bytes = tokio::fs::read(std::env::var("CYCLES_WALLET_WASM_PATH").unwrap())
+        .await
+        .unwrap();
     pic.install_canister(cycles_wallet_id, cycles_wallet_wasm_bytes, vec![], None)
         .await;
 
@@ -85,16 +79,10 @@ async fn batch_requests_test() {
 
     // create subscriber canister
     let subscriber_canister_id = pic.create_canister().await;
-    pic.add_cycles(subscriber_canister_id, 4_000_000_000_000)
-        .await;
+    pic.add_cycles(subscriber_canister_id, 4_000_000_000_000).await;
 
-    pic.install_canister(
-        subscriber_canister_id,
-        subscriber_wasm_bytes.clone(),
-        vec![],
-        None,
-    )
-    .await;
+    pic.install_canister(subscriber_canister_id, subscriber_wasm_bytes.clone(), vec![], None)
+        .await;
 
     // subscribe on evm-logs-canister many times with random filter to trigger batch request logic
     for _i in 0..num_filters {
@@ -122,12 +110,7 @@ async fn batch_requests_test() {
         let bytes = candid::encode_args((call_args,)).unwrap();
 
         match pic
-            .update_call(
-                cycles_wallet_id,
-                Principal::anonymous(),
-                "wallet_call128",
-                bytes,
-            )
+            .update_call(cycles_wallet_id, Principal::anonymous(), "wallet_call128", bytes)
             .await
         {
             Ok(WasmResult::Reply(data)) => ic_cdk::println!("Subscription successful: {:?}", data),
@@ -181,22 +164,15 @@ async fn batch_requests_test() {
 
         for notification in notifications.iter() {
             let matching_filter = subscriber_filters.iter().find(|filter| {
-                filter.address.to_string().to_lowercase()
-                    == notification.log_entry.address.to_string().to_lowercase()
+                filter.address.to_string().to_lowercase() == notification.log_entry.address.to_string().to_lowercase()
                     && filter.topics.as_ref().map_or(true, |topics| {
-                        notification
-                            .log_entry
-                            .topics
-                            .iter()
-                            .enumerate()
-                            .all(|(i, topic)| {
-                                topics.get(i).map_or(true, |filter_topic_set| {
-                                    filter_topic_set.iter().any(|filter_topic| {
-                                        filter_topic.to_string().to_lowercase()
-                                            == topic.to_string().to_lowercase()
-                                    })
+                        notification.log_entry.topics.iter().enumerate().all(|(i, topic)| {
+                            topics.get(i).map_or(true, |filter_topic_set| {
+                                filter_topic_set.iter().any(|filter_topic| {
+                                    filter_topic.to_string().to_lowercase() == topic.to_string().to_lowercase()
                                 })
                             })
+                        })
                     })
             });
 

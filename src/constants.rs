@@ -16,4 +16,3 @@ pub const CYCLES_PER_BYTE_RECEIVE: u64 = 1000; // Cycles per byte received
 pub const EVM_EVENT_SIZE_BYTES: u32 = 800; // Bytes for one received EVM event
 pub const ETH_ADDRESS_SIZE: u32 = 20; // Size of one Ethereum address
 pub const ETH_TOPIC_SIZE: u32 = 32; // Size of one Ethereum topic
-pub const BLOCK_TAG_SIZE: u32 = 8; // Block tag size (from_block, to_block)

@@ -1,21 +1,17 @@
 pub mod log_metrics;
 
-use crate::chain_service::ChainConfig;
-use crate::constants::*;
-use candid::Nat;
-use evm_rpc_types::{
-    Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices,
-};
-use ic_cdk::api::call::call_with_payment128;
-use ic_cdk::api::time;
-use metrics::cycles_count;
 use std::cell::RefCell;
+
+use candid::Nat;
+use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
+use ic_cdk::api::{call::call_with_payment128, time};
+use metrics::cycles_count;
+
+use crate::{chain_service::ChainConfig, constants::*};
 
 #[macro_export]
 macro_rules! get_state_value {
-    ($field:ident) => {{
-        $crate::STATE.with(|state| state.borrow().$field.clone())
-    }};
+    ($field:ident) => {{ $crate::STATE.with(|state| state.borrow().$field.clone()) }};
 }
 
 #[macro_export]
@@ -55,10 +51,7 @@ pub async fn get_latest_block_number(rpc_providers: RpcServices) -> Result<Nat, 
 
     let rpc_config = RpcConfig {
         response_size_estimate: None,
-        response_consensus: Some(ConsensusStrategy::Threshold {
-            total: Some(3),
-            min: 1,
-        }),
+        response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
     };
     let evm_rpc_canister = get_state_value!(evm_rpc_canister);
 
@@ -80,9 +73,7 @@ pub async fn get_latest_block_number(rpc_providers: RpcServices) -> Result<Nat, 
             }
             RpcResult::Err(err) => Err(format!("RPC error: {:?}", err)),
         },
-        MultiRpcResult::Inconsistent(_) => {
-            Err("RPC providers gave inconsistent results".to_string())
-        }
+        MultiRpcResult::Inconsistent(_) => Err("RPC providers gave inconsistent results".to_string()),
     }
 }
 
@@ -98,11 +89,9 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
             evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: Some(response_size_estimate),
-                response_consensus: Some(ConsensusStrategy::Threshold {
-                    total: Some(4),
-                    min: 1,
-                }),
+                response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: BASE_CHAIN_ID,
@@ -110,11 +99,9 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
             evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: Some(response_size_estimate),
-                response_consensus: Some(ConsensusStrategy::Threshold {
-                    total: Some(4),
-                    min: 1,
-                }),
+                response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: OPTIMISM_CHAIN_ID,
@@ -122,11 +109,9 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
             evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: Some(response_size_estimate),
-                response_consensus: Some(ConsensusStrategy::Threshold {
-                    total: Some(4),
-                    min: 1,
-                }),
+                response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: POLYGON_CHAIN_ID,
@@ -134,11 +119,9 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
             evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: Some(response_size_estimate),
-                response_consensus: Some(ConsensusStrategy::Threshold {
-                    total: Some(3),
-                    min: 1,
-                }),
+                response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: ARBITRUM_CHAIN_ID,
@@ -146,11 +129,9 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
             evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: Some(response_size_estimate),
-                response_consensus: Some(ConsensusStrategy::Threshold {
-                    total: Some(3),
-                    min: 1,
-                }),
+                response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
         ChainConfig {
             chain_id: BSC_CHAIN_ID,
@@ -158,11 +139,9 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
             evm_rpc_canister,
             rpc_config: Some(RpcConfig {
                 response_size_estimate: Some(response_size_estimate),
-                response_consensus: Some(ConsensusStrategy::Threshold {
-                    total: Some(3),
-                    min: 1,
-                }),
+                response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
             }),
+            monitoring_interval: 15,
         },
     ]
 }

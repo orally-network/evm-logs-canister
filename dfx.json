@@ -37,7 +37,7 @@
     "proxy_canister": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/proxy_canister.wasm",
-      "candid": "src/proxy/proxy_canister.did",
+      "candid": "src/proxy_canister/proxy_canister.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package proxy_canister",
       "metadata": [
         {
