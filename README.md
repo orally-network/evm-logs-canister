@@ -35,8 +35,8 @@ Our solution introduces a publish-subscribe (pub/sub) proxy model that allows de
 
 Notes: 
 - To avoid [DoS issues](https://internetcomputer.org/docs/current/developer-docs/security/security-best-practices/inter-canister-calls#be-aware-of-the-risks-involved-in-calling-untrustworthy-canisters) with callback mechanics (publish to subscriber), you need to use a proxy canister.
-- Future improvement (when it will be in mainnet) use (best-effort messages)[https://forum.dfinity.org/t/scalable-messaging-model/26920] for callbacks.
-- Careful cycles calculation (link)[https://internetcomputer.org/docs/current/developer-docs/gas-cost], (link)[https://internetcomputer.org/docs/current/developer-docs/cost-estimations-and-examples] 
+- Future improvement (when it will be in mainnet) use [best-effort messages](https://forum.dfinity.org/t/scalable-messaging-model/26920) for callbacks.
+- Careful cycles calculation [gas-cost](https://internetcomputer.org/docs/current/developer-docs/gas-cost), [cost-estimations-and-examples](https://internetcomputer.org/docs/current/developer-docs/cost-estimations-and-examples). 
 
 ### Sequence Diagram
 ![evm-logs-canister-sequence](https://github.com/user-attachments/assets/5e1460ba-e8ff-4416-831c-4e0eb2b57617)
