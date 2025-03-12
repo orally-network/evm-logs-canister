@@ -7,16 +7,16 @@ use super::service::ChainService;
 use crate::subscription_manager::events_publisher::publish_events;
 
 pub async fn process_and_publish_events(service: &ChainService, logs: Vec<LogEntry>) {
-    let events: Vec<Event> = logs
-        .iter()
-        .enumerate()
-        .map(|(index, log)| Event {
-            id: Nat::from(index as u64 + 1),
-            timestamp: time() / 1_000_000,
-            chain_id: service.config.chain_id,
-            log_entry: log.clone(),
-        })
-        .collect();
+  let events: Vec<Event> = logs
+    .iter()
+    .enumerate()
+    .map(|(index, log)| Event {
+      id: Nat::from(index as u64 + 1),
+      timestamp: time() / 1_000_000,
+      chain_id: service.config.chain_id,
+      log_entry: log.clone(),
+    })
+    .collect();
 
-    publish_events(events).await;
+  publish_events(events).await;
 }

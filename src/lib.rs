@@ -14,13 +14,13 @@ use evm_logs_types::*;
 use ic_cdk::storage;
 use ic_cdk_macros::{query, *};
 use ic_utils::{
-    api_type::{GetInformationRequest, GetInformationResponse, UpdateInformationRequest},
-    get_information, update_information,
+  api_type::{GetInformationRequest, GetInformationResponse, UpdateInformationRequest},
+  get_information, update_information,
 };
 
 use crate::{
-    log_filters::filter_manager::FilterManager,
-    types::state::{State, init as init_state},
+  log_filters::filter_manager::FilterManager,
+  types::state::{State, init as init_state},
 };
 
 thread_local! {
@@ -36,42 +36,42 @@ thread_local! {
 
 #[init]
 async fn init(config: types::config::Config) {
-    subscription_manager::init();
-    init_state(config);
+  subscription_manager::init();
+  init_state(config);
 
-    log!("EVM logs canister initialized.");
+  log!("EVM logs canister initialized.");
 }
 
 #[ic_cdk::pre_upgrade]
 fn pre_upgrade() {
-    let state = STATE.with(|state| state.borrow().clone());
-    let next_subscription_id = NEXT_SUBSCRIPTION_ID.with(|id| id.borrow().clone());
-    let next_notification_id = NEXT_NOTIFICATION_ID.with(|id| id.borrow().clone());
-    let topics_manager = FILTERS_MANAGER.with(|manager| manager.borrow().clone());
+  let state = STATE.with(|state| state.borrow().clone());
+  let next_subscription_id = NEXT_SUBSCRIPTION_ID.with(|id| id.borrow().clone());
+  let next_notification_id = NEXT_NOTIFICATION_ID.with(|id| id.borrow().clone());
+  let topics_manager = FILTERS_MANAGER.with(|manager| manager.borrow().clone());
 
-    let chain_configs: Vec<ChainConfig> = CHAIN_SERVICES.with(|chain_services| {
-        chain_services
-            .borrow()
-            .iter()
-            .map(|service| service.config.clone())
-            .collect()
-    });
+  let chain_configs: Vec<ChainConfig> = CHAIN_SERVICES.with(|chain_services| {
+    chain_services
+      .borrow()
+      .iter()
+      .map(|service| service.config.clone())
+      .collect()
+  });
 
-    storage::stable_save((
-        state,
-        next_subscription_id,
-        next_notification_id,
-        topics_manager,
-        chain_configs,
-    ))
-    .expect("error during pre_upgrade state saving");
+  storage::stable_save((
+    state,
+    next_subscription_id,
+    next_notification_id,
+    topics_manager,
+    chain_configs,
+  ))
+  .expect("error during pre_upgrade state saving");
 
-    ic_cdk::println!("pre_upgrade: State saved successfully.");
+  ic_cdk::println!("pre_upgrade: State saved successfully.");
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    let (
+  let (
         saved_state,
         saved_next_subscription_id,
         saved_next_notification_id,
@@ -80,53 +80,53 @@ fn post_upgrade() {
     ): (State, Nat, Nat, FilterManager, Vec<ChainConfig>) =
         storage::stable_restore().expect("Failed to restore state after upgrade");
 
-    STATE.with(|state| {
-        *state.borrow_mut() = saved_state;
-    });
+  STATE.with(|state| {
+    *state.borrow_mut() = saved_state;
+  });
 
-    NEXT_SUBSCRIPTION_ID.with(|id| {
-        *id.borrow_mut() = saved_next_subscription_id;
-    });
+  NEXT_SUBSCRIPTION_ID.with(|id| {
+    *id.borrow_mut() = saved_next_subscription_id;
+  });
 
-    NEXT_NOTIFICATION_ID.with(|id| {
-        *id.borrow_mut() = saved_next_notification_id;
-    });
+  NEXT_NOTIFICATION_ID.with(|id| {
+    *id.borrow_mut() = saved_next_notification_id;
+  });
 
-    FILTERS_MANAGER.with(|manager| {
-        *manager.borrow_mut() = saved_topics_manager;
-    });
+  FILTERS_MANAGER.with(|manager| {
+    *manager.borrow_mut() = saved_topics_manager;
+  });
 
-    let monitoring_interval = Duration::from_secs(15); // TODO
+  let monitoring_interval = Duration::from_secs(15); // TODO
 
-    let restored_services: Vec<Rc<ChainService>> = saved_chain_configs
-        .into_iter()
-        .map(|config| {
-            let service = Rc::new(ChainService::new(config));
-            service.clone().start_monitoring(monitoring_interval);
-            service
-        })
-        .collect();
+  let restored_services: Vec<Rc<ChainService>> = saved_chain_configs
+    .into_iter()
+    .map(|config| {
+      let service = Rc::new(ChainService::new(config));
+      service.clone().start_monitoring(monitoring_interval);
+      service
+    })
+    .collect();
 
-    CHAIN_SERVICES.with(|chain_services| {
-        *chain_services.borrow_mut() = restored_services;
-    });
+  CHAIN_SERVICES.with(|chain_services| {
+    *chain_services.borrow_mut() = restored_services;
+  });
 
-    ic_cdk::println!("post_upgrade: State restored successfully.");
+  ic_cdk::println!("post_upgrade: State restored successfully.");
 }
 
 #[query(name = "getCanistergeekInformation")]
 pub async fn get_canistergeek_information(request: GetInformationRequest) -> GetInformationResponse<'static> {
-    get_information(request)
+  get_information(request)
 }
 
 #[update(name = "updateCanistergeekInformation")]
 pub async fn update_canistergeek_information(request: UpdateInformationRequest) {
-    update_information(request);
+  update_information(request);
 }
 
 #[query]
 fn get_candid_pointer() -> String {
-    __export_service()
+  __export_service()
 }
 
 candid::export_service!();
