@@ -1,12 +1,26 @@
 #!/usr/bin/make
 POCKET_IC_BIN := ./pocket-ic
-EVM_LOGS_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/evm_logs_canister.wasm
-TEST_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/test_canister.wasm
-PROXY_CANISTER_WASM := ./target/wasm32-unknown-unknown/release/proxy_canister.wasm
-CYCLES_WALLET_WASM := ./target/wasm32-unknown-unknown/release/wallet.wasm
-EVM_RPC_MOCKED_WASM := ./target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm
+POCKET_IC_BIN_TESTING_PATH := ./../pocket-ic
+POCKET_IC_NAME := pocket-ic
+EVM_LOGS_CANISTER_WASM := ./../target/wasm32-unknown-unknown/release/evm_logs_canister.wasm
+TEST_CANISTER_WASM := ./../target/wasm32-unknown-unknown/release/test_canister.wasm
+PROXY_CANISTER_WASM := ./../target/wasm32-unknown-unknown/release/proxy_canister.wasm
+CYCLES_WALLET_WASM := ./../target/wasm32-unknown-unknown/release/wallet.wasm
+EVM_RPC_MOCKED_WASM := ./../target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm
+FETCH_POCKET_IC_BIN_PATH := ./scripts/fetch-pocket-ic
+WALLET_WASM_URL := https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.wasm
+WALLET_WASM_PATH := ./../target/wasm32-unknown-unknown/release/wallet.wasm
+DFX_PATH := .dfx
 
 .DEFAULT_GOAL: help
+
+.PHONY: test
+.PHONY: help
+.PHONY: build
+.PHONY: fetch-pocket-ic
+.PHONY: fetch-wallet-wasm
+
+
 
 local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
 	$(eval EVM_RPC_CANISTER := $(shell dfx canister id evm_rpc))
@@ -84,20 +98,12 @@ local_upgrade:
 	gzip -f -1 ./.dfx/local/canisters/test_canister/test_canister.wasm
 	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/test_canister/test_canister.wasm.gz test_canister
 
-.PHONY: help
-help: ## Show this help
-	@printf "\033[33m%s:\033[0m\n" 'Available commands'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
-
-
-.PHONY: build
 build: ## Build all canisters
 	cargo build --release --target wasm32-unknown-unknown --package evm_logs_canister
 	cargo build --release --target wasm32-unknown-unknown --package test_canister
 	cargo build --release --target wasm32-unknown-unknown --package evm_rpc_mocked
 	cargo build --release --target wasm32-unknown-unknown --package proxy_canister
 
-.PHONY: test
 test: build ## Run tests
 	@echo "Running tests..."
 	@if [ ! -f "$(POCKET_IC_BIN)" ]; then \
@@ -109,10 +115,35 @@ test: build ## Run tests
 	   CYCLES_WALLET_WASM_PATH=$(CYCLES_WALLET_WASM) \
 	   PROXY_CANISTER_WASM_PATH=$(PROXY_CANISTER_WASM) \
 	   EVM_RPC_MOCKED_WASM_PATH=$(EVM_RPC_MOCKED_WASM) \
-	   POCKET_IC_BIN=$(POCKET_IC_BIN) \
+	   POCKET_IC_BIN=$(POCKET_IC_BIN_TESTING_PATH) \
 	   cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture	
 
+help:
+	@printf "Available targets:\n\n"
+	@awk '/^[a-zA-Z\-\_0-9%:\\]+/ { \
+          helpMessage = match(lastLine, /^## (.*)/); \
+          if (helpMessage) { \
+            helpCommand = $$1; \
+            helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
+      gsub("\\\\", "", helpCommand); \
+      gsub(":+$$", "", helpCommand); \
+            printf "  \x1b[32;01m%-35s\x1b[0m %s\n", helpCommand, helpMessage; \
+          } \
+        } \
+        { lastLine = $$0 }' $(MAKEFILE_LIST) | sort -u
+	@printf "\n"
 
-.PHONY: fetch-pocket-ic
 fetch-pocket-ic: ## Fetch the pocket-ic binary for tests if not already present
-	./scripts/fetch-pocket-ic
+	chmod +x $(FETCH_POCKET_IC_BIN_PATH)
+	$(FETCH_POCKET_IC_BIN_PATH)
+
+fetch-wallet-wasm: ## Fetch the wallet.wasm file
+	@mkdir -p $(dir $(WALLET_WASM_PATH))
+	curl -sL -o $(WALLET_WASM_PATH) $(WALLET_WASM_URL)
+	@echo "wallet.wasm downloaded to $(WALLET_WASM_PATH)"
+
+## Cleans whole directory from temporary files
+clean:
+	cargo clean
+	rm -rf $(DFX_PATH)
+	rm -f $(POCKET_IC_BIN_NAME)
