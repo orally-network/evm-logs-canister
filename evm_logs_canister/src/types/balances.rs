@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use candid::{CandidType, Nat, Principal};
+use canister_utils::debug_log;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -84,7 +85,7 @@ impl Balances {
 impl std::fmt::Debug for Balances {
   fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     for it in &self.balances {
-      ic_cdk::println!("{:?} : {:?}", it.0.to_text(), it.1);
+      debug_log!("{:?} : {:?}", it.0.to_text(), it.1);
     }
     Ok(())
   }

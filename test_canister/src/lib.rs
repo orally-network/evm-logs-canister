@@ -1,10 +1,10 @@
 pub mod decoders;
-pub mod macros;
 pub mod read_contract;
 pub mod state;
 pub mod utils;
 
 use candid::{CandidType, Deserialize, Principal};
+use canister_utils::debug_log;
 use decoders::{chainfusion_deposit_decoder, ethereum_sync_decoder, primex_deposit_decoder, swap_event_data_decoder};
 use evm_logs_types::{EventNotification, UnsubscribeResult};
 use ic_cdk::api::call::call;
@@ -22,13 +22,13 @@ struct DecodedNotification {
 
 #[init]
 async fn init() {
-  log!("Test Canister Initialized!");
+  debug_log!("Test Canister Initialized!");
 }
 
 // Candid update methods
 #[update]
 async fn subscribe(evm_logs_canister: Principal) {
-  log!("Starting subscription registration");
+  debug_log!("Starting subscription registration");
 
   let base_swaps_filter = create_base_swaps_config();
   let eth_sync_filter = create_ethereum_sync_config();
@@ -55,7 +55,7 @@ async fn subscribe(evm_logs_canister: Principal) {
 
 #[update]
 async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
-  log!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
+  debug_log!("Calling unsubscribe for subscription ID: {:?}", subscription_id);
 
   let result: Result<(evm_logs_types::UnsubscribeResult,), _> =
     call(canister_id, "unsubscribe", (subscription_id.clone(),)).await;
@@ -63,20 +63,20 @@ async fn unsubscribe(canister_id: Principal, subscription_id: candid::Nat) {
   match result {
     Ok((response,)) => match response {
       UnsubscribeResult::Ok() => {
-        log!("Successfully unsubscribed from {:?}", subscription_id)
+        debug_log!("Successfully unsubscribed from {:?}", subscription_id)
       }
-      UnsubscribeResult::Err(err) => log!("Error unsubscribing: {:?}", err),
+      UnsubscribeResult::Err(err) => debug_log!("Error unsubscribing: {:?}", err),
     },
     Err(e) => {
-      log!("Error calling canister: {:?}", e);
+      debug_log!("Error calling canister: {:?}", e);
     }
   }
 }
 
 #[update]
 async fn handle_notification(notification: EventNotification) {
-  log!("Received notification for event ID: {:?}", notification.event_id);
-  log!("Notification details: {:?}", notification);
+  debug_log!("Received notification for event ID: {:?}", notification.event_id);
+  debug_log!("Notification details: {:?}", notification);
 
   NOTIFICATIONS.with(|notifs| {
     notifs.borrow_mut().push(notification.clone());
@@ -92,11 +92,11 @@ async fn handle_notification(notification: EventNotification) {
           });
         }
         Err(e) => {
-          log!("Error decoding event data: {:?}", e);
+          debug_log!("Error decoding event data: {:?}", e);
         }
       }
     } else {
-      log!("No decoder found for subscription_id: {:?}", notification.sub_id);
+      debug_log!("No decoder found for subscription_id: {:?}", notification.sub_id);
     }
   });
 }
@@ -137,18 +137,18 @@ fn get_notifications() -> Vec<EventNotification> {
 
 #[update]
 async fn get_subscriptions(canister_id: Principal) -> Vec<evm_logs_types::SubscriptionInfo> {
-  log!("Calling get_subscriptions");
+  debug_log!("Calling get_subscriptions");
 
   let result: Result<(Vec<evm_logs_types::SubscriptionInfo>,), _> =
     call(canister_id, "get_user_subscriptions", ()).await;
 
   match result {
     Ok((subscriptions,)) => {
-      log!("Successfully fetched subscriptions: {:?}", subscriptions);
+      debug_log!("Successfully fetched subscriptions: {:?}", subscriptions);
       subscriptions
     }
     Err(e) => {
-      log!("Error fetching subscriptions: {:?}", e);
+      debug_log!("Error fetching subscriptions: {:?}", e);
       vec![]
     }
   }
@@ -162,9 +162,4 @@ async fn subscribe_test(evm_logs_canister: Principal) {
   register_subscription_and_map_decoder(evm_logs_canister, base_swaps_filter, swap_event_data_decoder).await;
 }
 
-#[query]
-fn get_candid_pointer() -> String {
-  __export_service()
-}
-
-candid::export_service!();
+ic_cdk::export_candid!();

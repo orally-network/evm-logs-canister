@@ -1,17 +1,7 @@
-type ConfirmationResult = variant {
-  AllAccepted : null;
-  SomeRejected : vec nat;
+type DecodedNotification = record {
+  notification : EventNotification;
+  tokens : vec SolidityToken;
 };
-
-type Event = record {
-  id : nat;
-  prev_id : opt nat;
-  timestamp : nat64;
-  chain_id : nat32;
-  data : Value;
-  headers : opt vec Map;
-};
-
 type EventNotification = record {
   source : principal;
   filter : opt text;
@@ -21,7 +11,7 @@ type EventNotification = record {
   event_id : nat;
   log_entry : LogEntry;
 };
-
+type Filter = record { topics : opt vec vec text; address : text };
 type LogEntry = record {
   transactionHash : opt text;
   blockNumber : opt nat;
@@ -33,116 +23,76 @@ type LogEntry = record {
   logIndex : opt nat;
   removed : bool;
 };
-
-type GenericError = record {
-  error_code : nat;
-  message : text;
-};
-
-type Map = record {
-  key : Value;
-  value : Value;
-};
-
-type Property = record {
-  name : text;
-  value : Value;
-  immutable : bool;
-};
-
-type Value = variant {
-  Array : vec Value;
-  Blob : vec nat8;
+type Map = record { key : Value; value : Value };
+type SolidityToken = variant {
+  Int : text;
+  FixedArray : Vec;
   Bool : bool;
-  Bytes : vec nat8;
-  Class : vec Property;
-  Float : float64;
-  Floats : vec float64;
-  Int : int;
-  Int16 : int16;
-  Int32 : int32;
-  Int64 : int64;
-  Int8 : int8;
-  Map : vec Map;
-  ValueMap : vec ValueMap;
-  Nat : nat;
-  Nat16 : nat16;
-  Nat32 : nat32;
-  Nat64 : nat64;
-  Nat8 : nat8;
-  Nats : vec nat;
-  Option : Value;
-  Principal : principal;
-  Set : vec Value;
-  Text : text;
+  Uint : text;
+  String : text;
+  Bytes : blob;
+  Address : text;
+  FixedBytes : blob;
+  Tuple : Vec;
+  Array : Vec;
 };
-
-type ValueMap = record {
-  key : Value;
-  value : Value;
-};
-
-type RegisterSubscriptionError = variant {
-  Unauthorized : null;
-  UnauthorizedSubscriber : record { namespace : text };
-  ImproperConfig : text;
-  GenericError : GenericError;
-};
-
-type RegisterSubscriptionResult = variant {
-  Ok : nat;
-  Err : RegisterSubscriptionError;
-};
-
-
 type SubscriptionInfo = record {
   subscription_id : nat;
-  subscriber_principal : principal;
-  chain_id : nat32;
-  filter : Filter;
   stats : vec Map;
-};
-
-type SubscriptionRegistration = record {
-  namespace : text;
   filter : Filter;
-  memo : opt vec nat8;
+  chain_id : nat32;
+  subscriber_principal : principal;
 };
-
-type Filter = record {
-    address: text;
-    topics: opt vec vec text;
+type Value = variant {
+  Map : Vec_1;
+  Nat : nat;
+  Bool : bool;
+  Text : text;
+  Bytes : blob;
+  Float : float64;
+  Principal : principal;
 };
-
-type UnsubscribeResult = variant {
-    Ok : null;
-    Err : text;
+type Vec = vec variant {
+  Int : text;
+  FixedArray : Vec;
+  Bool : bool;
+  Uint : text;
+  String : text;
+  Bytes : blob;
+  Address : text;
+  FixedBytes : blob;
+  Tuple : Vec;
+  Array : Vec;
 };
-
-type SolidityToken = variant {
-    Address: text;
-    FixedBytes: vec nat8;
-    Bytes: vec nat8;
-    Int: text;
-    Uint: text;
-    Bool: bool;
-    String: text;
-    FixedArray: vec SolidityToken;
-    Array: vec SolidityToken;
-    Tuple: vec SolidityToken;
+type Vec_1 = vec record {
+  key : variant {
+    Map : Vec_1;
+    Nat : nat;
+    Bool : bool;
+    Text : text;
+    Bytes : blob;
+    Float : float64;
+    Principal : principal;
+  };
+  value : variant {
+    Map : Vec_1;
+    Nat : nat;
+    Bool : bool;
+    Text : text;
+    Bytes : blob;
+    Float : float64;
+    Principal : principal;
+  };
 };
-
-type DecodedNotification = record {
-  notification: EventNotification;
-  tokens: vec SolidityToken;
-};
-
-service : {
-  subscribe: (principal) -> ();
-  unsubscribe: (principal, nat) -> ();
-  handle_notification: (EventNotification) -> ();
-  get_notifications: () -> (vec EventNotification) query;
-  get_subscriptions: (principal) -> (vec SubscriptionInfo);
-  get_decoded_notifications: () -> (vec DecodedNotification) query;
-  get_decoded_notifications_by_subscription: (nat) -> (vec DecodedNotification) query;
+service : () -> {
+  get_decoded_notifications : () -> (vec DecodedNotification) query;
+  get_decoded_notifications_by_subscription : (nat) -> (
+      vec DecodedNotification,
+    ) query;
+  get_notifications : () -> (vec EventNotification) query;
+  get_subscriptions : (principal) -> (vec SubscriptionInfo);
+  handle_notification : (EventNotification) -> ();
+  subscribe : (principal) -> ();
+  subscribe_test : (principal) -> ();
+  unsubscribe : (principal, nat) -> ();
 }

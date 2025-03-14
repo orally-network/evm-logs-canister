@@ -8,8 +8,10 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid.workspace = true
+canister_utils.workspace = true
 evm_logs_types.workspace = true
 evm_rpc_types.workspace = true
 ic-cdk-macros.workspace = true
 ic-cdk.workspace = true
 serde.workspace = true
+

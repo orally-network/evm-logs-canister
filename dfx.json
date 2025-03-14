@@ -4,7 +4,7 @@
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/evm_logs_canister.wasm",
       "candid": "evm_logs_canister/evm_logs_canister.did",
-      "build": "cargo build --target wasm32-unknown-unknown --release evm_logs_canister",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package evm_logs_canister",
       "metadata": [
         {
           "name": "candid:service",

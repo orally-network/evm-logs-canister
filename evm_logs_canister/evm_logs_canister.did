@@ -1,36 +1,115 @@
+type CanisterLogFeature = variant {
+  filterMessageByContains;
+  filterMessageByRegex;
+};
+type CanisterLogMessages = record {
+  data : vec LogMessageData;
+  lastAnalyzedMessageTimeNanos : opt nat64;
+};
+type CanisterLogMessagesInfo = record {
+  features : vec opt CanisterLogFeature;
+  lastTimeNanos : opt nat64;
+  count : nat32;
+  firstTimeNanos : opt nat64;
+};
+type CanisterLogRequest = variant {
+  getMessagesInfo;
+  getMessages : GetLogMessagesParameters;
+  getLatestMessages : GetLatestLogMessagesParameters;
+};
+type CanisterLogResponse = variant {
+  messagesInfo : CanisterLogMessagesInfo;
+  messages : CanisterLogMessages;
+};
+type CanisterMetrics = record { data : CanisterMetricsData };
+type CanisterMetricsData = variant {
+  hourly : vec HourlyMetricsData;
+  daily : vec DailyMetricsData;
+};
+type CollectMetricsRequestType = variant { force; normal };
 type Config = record {
+  max_response_bytes : nat32;
   estimate_events_num : nat32;
   proxy_canister : principal;
   evm_rpc_canister : principal;
 };
-
+type DailyMetricsData = record {
+  updateCalls : nat64;
+  canisterHeapMemorySize : NumericEntity;
+  canisterCycles : NumericEntity;
+  canisterMemorySize : NumericEntity;
+  timeMillis : int;
+};
 type Event = record {
   id : nat;
-  prev_id : opt nat;
-  data : Value;
-  headers : opt vec Map;
   chain_id : nat32;
-  topics : opt vec text;
-  address : text;
   timestamp : nat64;
-  tx_hash : text;
+  log_entry : LogEntry;
 };
-
-type Filter = record {
-  topics : opt vec vec text;
+type Filter = record { topics : opt vec vec text; address : text };
+type GenericError = record { message : text; error_code : nat };
+type GetInformationRequest = record {
+  status : opt StatusRequest;
+  metrics : opt MetricsRequest;
+  logs : opt CanisterLogRequest;
+  version : bool;
+};
+type GetInformationResponse = record {
+  status : opt StatusResponse;
+  metrics : opt MetricsResponse;
+  logs : opt CanisterLogResponse;
+  version : opt nat;
+};
+type GetLatestLogMessagesParameters = record {
+  upToTimeNanos : opt nat64;
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+};
+type GetLogMessagesFilter = record {
+  analyzeCount : nat32;
+  messageRegex : opt text;
+  messageContains : opt text;
+};
+type GetLogMessagesParameters = record {
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+  fromTimeNanos : opt nat64;
+};
+type GetMetricsParameters = record {
+  dateToMillis : nat;
+  granularity : MetricsGranularity;
+  dateFromMillis : nat;
+};
+type HourlyMetricsData = record {
+  updateCalls : vec nat64;
+  canisterHeapMemorySize : vec nat64;
+  canisterCycles : vec nat64;
+  canisterMemorySize : vec nat64;
+  timeMillis : int;
+};
+type LogEntry = record {
+  transactionHash : opt text;
+  blockNumber : opt nat;
+  data : text;
+  blockHash : opt text;
+  transactionIndex : opt nat;
+  topics : vec text;
   address : text;
+  logIndex : opt nat;
+  removed : bool;
 };
-
-type GenericError = record {
-  message : text;
-  error_code : nat;
+type LogMessageData = record { timeNanos : nat64; message : text };
+type Map = record { key : Value; value : Value };
+type MetricsGranularity = variant { hourly; daily };
+type MetricsRequest = record { parameters : GetMetricsParameters };
+type MetricsResponse = record { metrics : opt CanisterMetrics };
+type NumericEntity = record {
+  avg : nat64;
+  max : nat64;
+  min : nat64;
+  first : nat64;
+  last : nat64;
 };
-
-type Map = record {
-  key : Value;
-  value : Value;
-};
-
 type RegisterSubscriptionError = variant {
   SameFilterExists;
   GenericError : GenericError;
@@ -40,12 +119,20 @@ type RegisterSubscriptionError = variant {
   Unauthorized;
   InsufficientFunds;
 };
-
 type RegisterSubscriptionResult = variant {
   Ok : nat;
   Err : RegisterSubscriptionError;
 };
-
+type StatusRequest = record {
+  memory_size : bool;
+  cycles : bool;
+  heap_memory_size : bool;
+};
+type StatusResponse = record {
+  memory_size : opt nat64;
+  cycles : opt nat64;
+  heap_memory_size : opt nat64;
+};
 type SubscriptionInfo = record {
   subscription_id : nat;
   stats : vec Map;
@@ -53,26 +140,18 @@ type SubscriptionInfo = record {
   chain_id : nat32;
   subscriber_principal : principal;
 };
-
 type SubscriptionRegistration = record {
   memo : opt blob;
   filter : Filter;
   chain_id : nat32;
   canister_to_top_up : principal;
 };
-
 type TopUpBalanceError = variant { GenericError };
-
-type TopUpBalanceResult = variant { 
-  Ok; 
-  Err : TopUpBalanceError;
+type TopUpBalanceResult = variant { Ok; Err : TopUpBalanceError };
+type UnsubscribeResult = variant { Ok : record {}; Err : text };
+type UpdateInformationRequest = record {
+  metrics : opt CollectMetricsRequestType;
 };
-
-type UnsubscribeResult = variant { 
-  Ok : record {}; 
-  Err : text;
-};
-
 type Value = variant {
   Map : Vec;
   Nat : nat;
@@ -82,7 +161,6 @@ type Value = variant {
   Float : float64;
   Principal : principal;
 };
-
 type Vec = vec record {
   key : variant {
     Map : Vec;
@@ -103,16 +181,20 @@ type Vec = vec record {
     Principal : principal;
   };
 };
-
 service : (Config) -> {
+  getCanistergeekInformation : (GetInformationRequest) -> (
+      GetInformationResponse,
+    ) query;
   get_active_filters : () -> (vec Filter) query;
   get_balance : (principal) -> (nat) query;
-  get_candid_pointer : () -> (text) query;
-  get_subscriptions : (opt nat32, opt nat, opt vec Filter) -> (vec SubscriptionInfo) query;
+  get_subscriptions : (opt nat32, opt nat, opt vec Filter) -> (
+      vec SubscriptionInfo,
+    ) query;
   get_user_subscriptions : () -> (vec SubscriptionInfo) query;
   icrc72_publish : (vec Event) -> ();
   publish_events : (vec Event) -> ();
   subscribe : (SubscriptionRegistration) -> (RegisterSubscriptionResult);
   top_up_balance : (principal) -> (TopUpBalanceResult);
   unsubscribe : (nat) -> (UnsubscribeResult);
-};
+  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
+}

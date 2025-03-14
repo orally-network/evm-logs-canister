@@ -5,7 +5,6 @@ use std::cell::RefCell;
 use candid::Nat;
 use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
 use ic_cdk::api::{call::call_with_payment128, time};
-use metrics::cycles_count;
 
 use crate::{chain_service::ChainConfig, constants::*};
 
@@ -24,7 +23,7 @@ macro_rules! update_state {
 }
 
 #[macro_export]
-macro_rules! log {
+macro_rules! log_with_metrics {
     ($($arg:tt)*) => {{
         use $crate::metrics;
         ic_cdk::println!($($arg)*);
@@ -43,7 +42,6 @@ pub fn current_timestamp() -> u64 {
   time()
 }
 
-#[cycles_count]
 pub async fn get_latest_block_number(rpc_providers: RpcServices) -> Result<Nat, String> {
   let cycles = 10_000_000_000; // TODO
 

@@ -6,7 +6,7 @@ use evm_rpc_types::{Hex20, Hex32};
 use ic_cdk::api::call::call_with_payment;
 
 use super::state::DECODERS;
-use crate::{log, read_contract::SolidityToken};
+use crate::{debug_log, read_contract::SolidityToken};
 
 // Helper to register a subscription and store the decoder
 pub async fn register_subscription_and_map_decoder(
@@ -14,7 +14,7 @@ pub async fn register_subscription_and_map_decoder(
   subscription: SubscriptionRegistration,
   decoder: fn(&EventNotification) -> Result<Vec<SolidityToken>, String>,
 ) {
-  log!("Registering subscription with filter: {:?}", subscription.filter);
+  debug_log!("Registering subscription with filter: {:?}", subscription.filter);
 
   let result: Result<(RegisterSubscriptionResult,), _> =
     call_with_payment(canister_id, "subscribe", (subscription,), 10_000_000_000).await;
@@ -22,16 +22,16 @@ pub async fn register_subscription_and_map_decoder(
   match result {
     Ok((response,)) => match response {
       RegisterSubscriptionResult::Ok(sub_id) => {
-        log!("Subscription registered successfully with sub_id: {:?}", sub_id);
+        debug_log!("Subscription registered successfully with sub_id: {:?}", sub_id);
         DECODERS.with(|decoders| {
           decoders.borrow_mut().insert(sub_id.clone(), Box::new(decoder));
         });
       }
       RegisterSubscriptionResult::Err(err) => {
-        log!("Error registering subscription: {:?}", err);
+        debug_log!("Error registering subscription: {:?}", err);
       }
     },
-    Err(e) => log!("Error calling canister: {:?}", e),
+    Err(e) => debug_log!("Error calling canister: {:?}", e),
   }
 }
 

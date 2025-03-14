@@ -2,15 +2,15 @@ use candid::{CandidType, Deserialize, Nat, Principal};
 use evm_rpc_types::{Hex20, Hex32, LogEntry};
 use serde::Serialize;
 
-// A note on specifying topic filters:
-
-// A transaction with a log with topics [A, B] will be matched by the following topic filters:
-
-// [] “anything”
-// [A] “A in first position (and anything after)”
-// [null, B] “anything in first position AND B in second position (and anything after)”
-// [A, B] “A in first position AND B in second position (and anything after)”
-// [[A, B], [A, B]] “(A OR B) in first position AND (A OR B) in second position (and anything after)”
+/// A note on specifying topic filters:
+///
+/// A transaction with a log with topics [A, B] will be matched by the following topic filters:
+///
+/// * [] “anything”
+/// * [A] “A in first position (and anything after)”
+/// * [null, B] “anything in first position AND B in second position (and anything after)”
+/// * [A, B] “A in first position AND B in second position (and anything after)”
+/// * [[A, B], [A, B]] “(A OR B) in first position AND (A OR B) in second position (and anything after)”
 pub type TopicsPosition = Vec<Hex32>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]

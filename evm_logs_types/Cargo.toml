@@ -9,6 +9,4 @@ path = "src/lib.rs"
 [dependencies]
 candid.workspace = true
 evm_rpc_types.workspace = true
-ic-cdk.workspace = true
 serde.workspace = true
-serde_json.workspace = true

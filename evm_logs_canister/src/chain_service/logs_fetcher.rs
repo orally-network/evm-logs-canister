@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use candid::{Encode, Nat};
+use canister_utils::debug_log;
 use evm_rpc_types::{BlockTag, GetLogsArgs, Hex20, Hex32, LogEntry, MultiRpcResult, Nat256, RpcResult};
 use futures::future::join_all;
 use ic_cdk::api::call::call_with_payment128;
@@ -8,7 +9,7 @@ use ic_cdk::api::call::call_with_payment128;
 use super::{ChainConfig, utils::*};
 use crate::{
   constants::*,
-  get_state_value, log,
+  get_state_value, log_with_metrics,
   types::balances::{BalanceError, Balances},
 };
 
@@ -21,7 +22,7 @@ fn estimate_cycles_used(
   addresses_count: usize,
   topics_count: Option<&Vec<Vec<String>>>,
 ) -> u64 {
-  log!("calculating cycles used for logs: {}", logs_received.len());
+  log_with_metrics!("calculating cycles used for logs: {}", logs_received.len());
   // Estimate request size
   let request_size_bytes = 8 // Base struct size
         + (ETH_ADDRESS_SIZE as usize * addresses_count) // Address bytes
@@ -33,7 +34,7 @@ fn estimate_cycles_used(
   // Compute cycles for sending request and receiving response
   let cycles_for_request = request_size_bytes as u64 * CYCLES_PER_BYTE_SEND;
   let cycles_for_response = response_size_bytes * CYCLES_PER_BYTE_RECEIVE;
-  log!("cycles_for_response actual: {}", cycles_for_response);
+  log_with_metrics!("cycles_for_response actual: {}", cycles_for_response);
   // log!("cycles_for_response theoretical: {}", cycles_for_response);
 
   // Total cycles usage including base call cost and multiple RPC queries
@@ -54,13 +55,13 @@ fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
     match Balances::reduce(&subscriber_principal, cycles_per_one_address.clone()) {
       Ok(_) => {}
       Err(BalanceError::BalanceDoesNotExist) => {
-        ic_cdk::println!(
+        debug_log!(
           "Failed to reduce balance: Balance does not exist for {:?}",
           subscriber_principal.to_text()
         );
       }
       Err(BalanceError::InsufficientBalance) => {
-        ic_cdk::println!(
+        debug_log!(
           "Failed to reduce balance: Insufficient balance for {:?}",
           subscriber_principal.to_text()
         );
@@ -165,7 +166,7 @@ async fn eth_get_logs_call_with_retry(
 
   // Retry logic
   for attempt in 1..=max_retries {
-    log!("calling eth_getLogs, attempt {}", attempt);
+    log_with_metrics!("calling eth_getLogs, attempt {}", attempt);
     let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
       chain_config.evm_rpc_canister,
       "eth_getLogs",
@@ -197,7 +198,7 @@ async fn eth_get_logs_call_with_retry(
       }
     }
 
-    log!("Retrying... attempt {}/{}", attempt, max_retries);
+    log_with_metrics!("Retrying... attempt {}/{}", attempt, max_retries);
   }
 
   Err("Failed to get logs after retries.".to_string())

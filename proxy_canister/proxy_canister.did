@@ -7,7 +7,6 @@ type EventNotification = record {
   event_id : nat;
   log_entry : LogEntry;
 };
-
 type LogEntry = record {
   transactionHash : opt text;
   blockNumber : opt nat;
@@ -19,18 +18,10 @@ type LogEntry = record {
   logIndex : opt nat;
   removed : bool;
 };
-
-type SendNotificationError = variant { 
-  FailedToSend; 
-  InvalidSubscriber 
-};
-
-type SendNotificationResult = variant { 
-  Ok; 
-  Err : SendNotificationError 
-};
-
-service : {
-  get_candid_pointer : () -> (text) query;
-  send_notification : (principal, EventNotification) -> (SendNotificationResult);
+type SendNotificationError = variant { FailedToSend; InvalidSubscriber };
+type SendNotificationResult = variant { Ok; Err : SendNotificationError };
+service : () -> {
+  send_notification : (principal, EventNotification) -> (
+      SendNotificationResult,
+    );
 }

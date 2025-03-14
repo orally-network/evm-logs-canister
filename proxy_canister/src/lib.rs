@@ -1,15 +1,14 @@
 use std::vec::Vec;
 
 use candid::{Principal, candid_method};
+use canister_utils::debug_log;
 use evm_logs_types::{EventNotification, SendNotificationError, SendNotificationResult};
 use ic_cdk::api::call::call;
 use ic_cdk_macros::{init, query, update};
 
-pub mod utils;
-
 #[init]
 async fn init() {
-  log!("Proxy canister initialized");
+  debug_log!("Proxy canister initialized");
 }
 
 #[update(name = "send_notification")]
@@ -23,15 +22,10 @@ async fn send_notification(subscriber: Principal, notification: EventNotificatio
   match call_result {
     Ok(_) => SendNotificationResult::Ok,
     Err(err_msg) => {
-      log!("Error sending notification: {}", err_msg);
+      debug_log!("Error sending notification: {}", err_msg);
       SendNotificationResult::Err(SendNotificationError::FailedToSend)
     }
   }
 }
 
-#[query]
-fn get_candid_pointer() -> String {
-  __export_service()
-}
-
-candid::export_service!();
+ic_cdk::export_candid!();

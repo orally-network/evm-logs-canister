@@ -2,9 +2,8 @@ use candid::{Nat, Principal, candid_method};
 use evm_logs_types::*;
 use ic_cdk::caller;
 use ic_cdk_macros::*;
-use metrics::cycles_count;
 
-use crate::{log, subscription_manager, types::balances::Balances};
+use crate::{log_with_metrics, subscription_manager, types::balances::Balances};
 
 // register subscription by specified filter (addresses and topics)
 #[update(name = "subscribe")]
@@ -12,14 +11,14 @@ use crate::{log, subscription_manager, types::balances::Balances};
 pub async fn subscribe(registration: SubscriptionRegistration) -> RegisterSubscriptionResult {
   let received_cycles = ic_cdk::api::call::msg_cycles_available();
 
-  log!(
+  log_with_metrics!(
     "Received cycles: {:?}, for principal: {:?}",
     received_cycles,
     registration.canister_to_top_up.to_text()
   );
 
   if let Err(err) = Balances::top_up(registration.canister_to_top_up, Nat::from(received_cycles)) {
-    log!("Failed to top up balance: {}", err);
+    log_with_metrics!("Failed to top up balance: {}", err);
     return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
   }
 
@@ -52,7 +51,6 @@ pub fn get_active_filters() -> Vec<evm_logs_types::Filter> {
 // get all evm-logs-canister subscriptions info
 #[query(name = "get_subscriptions")]
 #[candid_method(query)]
-#[cycles_count]
 pub fn get_subscriptions(
   namespace: Option<u32>,
   from_id: Option<Nat>,
@@ -66,7 +64,7 @@ pub fn get_subscriptions(
 pub fn top_up_balance(canister_to_top_up: Principal) -> TopUpBalanceResult {
   let received_cycles = ic_cdk::api::call::msg_cycles_available();
 
-  log!(
+  log_with_metrics!(
     "Received cycles: {:?}, for principal: {:?}",
     received_cycles,
     canister_to_top_up.to_text()
@@ -75,7 +73,7 @@ pub fn top_up_balance(canister_to_top_up: Principal) -> TopUpBalanceResult {
   match Balances::top_up(canister_to_top_up, Nat::from(received_cycles)) {
     Ok(_) => TopUpBalanceResult::Ok,
     Err(err) => {
-      log!("Failed to top up balance: {}", err);
+      log_with_metrics!("Failed to top up balance: {}", err);
       TopUpBalanceResult::Err(TopUpBalanceError::GenericError)
     }
   }
@@ -83,9 +81,8 @@ pub fn top_up_balance(canister_to_top_up: Principal) -> TopUpBalanceResult {
 
 #[query(name = "get_balance")]
 #[candid_method(query)]
-#[cycles_count]
 pub fn get_balance(canister_id: Principal) -> Nat {
-  log!("get balance for canister: {:?}", canister_id.to_text());
+  log_with_metrics!("get balance for canister: {:?}", canister_id.to_text());
   Balances::get_balance(&canister_id).unwrap()
 }
 

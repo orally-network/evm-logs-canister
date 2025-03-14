@@ -1,6 +1,7 @@
 use std::{cell::RefCell, str::FromStr};
 
 use candid::{CandidType, Deserialize, Nat, Principal};
+use canister_utils::debug_log;
 use evm_logs_types::{Filter, SubscriptionInfo};
 use evm_rpc_types::{
   BlockTag, GetLogsArgs, Hex, Hex20, Hex32, Hex256, LogEntry, MultiRpcResult, Nat256, RpcConfig, RpcServices,
@@ -30,13 +31,6 @@ fn get_eth_get_logs_count() -> u64 {
   ETH_GET_LOGS_COUNTER.with(|counter| *counter.borrow())
 }
 
-#[query]
-fn get_candid_pointer() -> String {
-  __export_service()
-}
-
-candid::export_service!();
-
 #[update(name = "eth_getLogs")]
 pub async fn eth_get_logs(
   _source: RpcServices,
@@ -57,7 +51,7 @@ pub async fn eth_get_block_by_number(
   _config: Option<RpcConfig>,
   _args: BlockTag,
 ) -> MultiRpcResult<evm_rpc_types::Block> {
-  ic_cdk::println!("CALLING eth_getBlockByNumber");
+  debug_log!("CALLING eth_getBlockByNumber");
 
   let block = evm_rpc_types::Block {
     base_fee_per_gas: Some(Nat256::from(10u32)),
@@ -136,3 +130,5 @@ async fn get_same_logs_as_sub_filters() -> Vec<LogEntry> {
 
   log_entries
 }
+
+ic_cdk::export_candid!();

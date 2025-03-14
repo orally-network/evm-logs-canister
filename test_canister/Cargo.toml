@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 candid.workspace = true
+canister_utils.workspace = true
 evm_logs_types.workspace = true
 evm_rpc_types.workspace = true
 hex.workspace = true
@@ -12,6 +13,7 @@ ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
 ic-web3-rs.workspace = true
 serde.workspace = true
+
 
 [lib]
 crate-type = ["cdylib"]

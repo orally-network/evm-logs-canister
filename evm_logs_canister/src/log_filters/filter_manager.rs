@@ -144,16 +144,25 @@ mod tests {
     }
   }
 
+  const ADDR1_HEX20: &str = "0xd42AcA6E135D1dae6317e776F7EB96Eb91b8eb91";
+  const ADDR2_HEX20: &str = "0xDA2efffa45cf5D960209aA0921Cf42a4a2a085cf";
+  const ADDR3_HEX20: &str = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
+  const ADDR4_HEX20: &str = "0xa2DA709980Effc0fA9413efEc7f5F86a849eCb93";
+  const TOPIC1_HEX32: &str = "0x895950522ad88866c40789c503f088b8d88beb8de46cbb2c2329b3e968460492";
+  const TOPIC2_HEX32: &str = "0xa213165f23ed89a7627d7a82973d251d654614d33104f7aabd1ed4d40ecebbea";
+  const TOPIC3_HEX32: &str = "0xf8bbdcc71146cb4ca500980f5a60a18d7ce1860f1d22f08a2d25f3dbb202e42e";
+  const TOPIC4_HEX32: &str = "0x13b2fce0c601a939e04b82c993f795d4df1335747782cacdaff2d3b71b576002";
+
   #[test]
   fn test_add_single_filter_with_first_position_topics() {
     let mut manager = FilterManager::default();
 
     // Create a filter with one address and some topics in the first position
     let filter = create_filter(
-      "0xAddress1",
+      ADDR1_HEX20,
       Some(vec![
-        vec!["TopicA", "TopicB"], // first position
-        vec!["TopicC"],           // second position (ignored)
+        vec![TOPIC1_HEX32, TOPIC2_HEX32], // first position
+        vec![TOPIC3_HEX32],               // second position (ignored)
       ]),
     );
 
@@ -164,7 +173,7 @@ mod tests {
     let (addresses, topics) = manager.get_active_addresses_and_topics(1);
 
     // We expect to see "0xAddress1" in addresses
-    assert_eq!(addresses, vec!["0xAddress1".to_string()]);
+    assert_eq!(addresses, vec![ADDR1_HEX20.to_lowercase()]);
     // The second part is Some(...) because we do have first-position topics
     // specifically "TopicA" and "TopicB".
     let unwrapped = topics.expect("Should have some topics");
@@ -172,8 +181,8 @@ mod tests {
     // Inside that vector, we expect "TopicA" and "TopicB"
     // The order in a HashMap-based scenario is not guaranteed, so let's just check they exist
     let first_pos = &unwrapped[0];
-    assert!(first_pos.contains(&"TopicA".to_string()));
-    assert!(first_pos.contains(&"TopicB".to_string()));
+    assert!(first_pos.contains(&TOPIC1_HEX32.to_lowercase()));
+    assert!(first_pos.contains(&TOPIC2_HEX32.to_lowercase()));
   }
 
   #[test]
@@ -181,13 +190,13 @@ mod tests {
     let mut manager = FilterManager::default();
 
     // Create a filter with a single address and a single topic in the first position
-    let filter = create_filter("0xAddress2", Some(vec![vec!["TopicX"]]));
+    let filter = create_filter(ADDR2_HEX20, Some(vec![vec![TOPIC1_HEX32]]));
 
     // Add the filter
     manager.add_filter(1, &filter);
     // Check that addresses and topics are present
     let (addresses, topics) = manager.get_active_addresses_and_topics(1);
-    assert_eq!(addresses, vec!["0xAddress2".to_string()]);
+    assert_eq!(addresses, vec![ADDR2_HEX20.to_lowercase()]);
     assert!(topics.is_some());
 
     // Now remove the filter
@@ -203,10 +212,10 @@ mod tests {
   fn test_add_multiple_filters_different_addresses() {
     let mut manager = FilterManager::default();
 
-    let filter1 = create_filter("0xAddrA", Some(vec![vec!["T1", "T2"]]));
-    let filter2 = create_filter("0xAddrB", Some(vec![vec!["T2", "T3"]]));
+    let filter1 = create_filter(ADDR1_HEX20, Some(vec![vec![TOPIC1_HEX32, TOPIC2_HEX32]]));
+    let filter2 = create_filter(ADDR2_HEX20, Some(vec![vec![TOPIC2_HEX32, TOPIC3_HEX32]]));
     // Filter with no topics => it won't contribute to first_position_topics
-    let filter3 = create_filter("0xAddrC", None);
+    let filter3 = create_filter(ADDR3_HEX20, None);
 
     // Add them for chain_id=1
     manager.add_filter(1, &filter1);
@@ -218,9 +227,9 @@ mod tests {
 
     // We expect addresses: 0xAddrA, 0xAddrB, 0xAddrC
     assert_eq!(addresses.len(), 3);
-    assert!(addresses.contains(&"0xAddrA".to_string()));
-    assert!(addresses.contains(&"0xAddrB".to_string()));
-    assert!(addresses.contains(&"0xAddrC".to_string()));
+    assert!(addresses.contains(&ADDR1_HEX20.to_lowercase()));
+    assert!(addresses.contains(&ADDR2_HEX20.to_lowercase()));
+    assert!(addresses.contains(&ADDR3_HEX20.to_lowercase()));
 
     // For topics, from the first position:
     // - filter1 contributed T1, T2
@@ -230,18 +239,18 @@ mod tests {
     let some_topics = topics.expect("We should have topics from filter1 & filter2");
     assert_eq!(some_topics.len(), 1); // one vector
     let tvec = &some_topics[0];
-    assert!(tvec.contains(&"T1".to_string()));
-    assert!(tvec.contains(&"T2".to_string()));
-    assert!(tvec.contains(&"T3".to_string()));
+    assert!(tvec.contains(&TOPIC1_HEX32.to_lowercase()));
+    assert!(tvec.contains(&TOPIC2_HEX32.to_lowercase()));
+    assert!(tvec.contains(&TOPIC3_HEX32.to_lowercase()));
   }
 
   #[test]
   fn test_add_and_remove_interleaved() {
     let mut manager = FilterManager::default();
 
-    let filter1 = create_filter("0xAddrA", Some(vec![vec!["X"]]));
-    let filter2 = create_filter("0xAddrB", Some(vec![vec!["Y"]]));
-    let filter3 = create_filter("0xAddrA", Some(vec![vec!["Z"]]));
+    let filter1 = create_filter(ADDR1_HEX20, Some(vec![vec![TOPIC1_HEX32]]));
+    let filter2 = create_filter(ADDR2_HEX20, Some(vec![vec![TOPIC2_HEX32]]));
+    let filter3 = create_filter(ADDR1_HEX20, Some(vec![vec![TOPIC3_HEX32]]));
 
     // Add filter1 and filter2 on chain 5
     manager.add_filter(5, &filter1);
@@ -258,9 +267,9 @@ mod tests {
 
     // addresses => [0xAddrB], topics => Y only
     let (addr_2, topics_2) = manager.get_active_addresses_and_topics(5);
-    assert_eq!(addr_2, vec!["0xAddrB".to_string()]);
+    assert_eq!(addr_2, vec![ADDR2_HEX20.to_lowercase()]);
     let unwrapped_2 = topics_2.unwrap();
-    assert_eq!(unwrapped_2[0], vec!["Y".to_string()]);
+    assert_eq!(unwrapped_2[0], vec![TOPIC2_HEX32.to_lowercase()]);
 
     // Add filter3, which is also 0xAddrA but with topic Z
     manager.add_filter(5, &filter3);
@@ -268,14 +277,14 @@ mod tests {
     // addresses => [0xAddrB, 0xAddrA], topics => Y, Z
     let (addr_3, topics_3) = manager.get_active_addresses_and_topics(5);
     assert_eq!(addr_3.len(), 2);
-    assert!(addr_3.contains(&"0xAddrB".to_string()));
-    assert!(addr_3.contains(&"0xAddrA".to_string()));
+    assert!(addr_3.contains(&ADDR2_HEX20.to_lowercase()));
+    assert!(addr_3.contains(&ADDR1_HEX20.to_lowercase()));
     let unwrapped_3 = topics_3.unwrap();
     // We expect Y, Z in some order
     let t3 = &unwrapped_3[0];
     assert_eq!(t3.len(), 2);
-    assert!(t3.contains(&"Y".to_string()));
-    assert!(t3.contains(&"Z".to_string()));
+    assert!(t3.contains(&TOPIC2_HEX32.to_lowercase()));
+    assert!(t3.contains(&TOPIC3_HEX32.to_lowercase()));
   }
 
   #[test]

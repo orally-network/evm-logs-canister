@@ -9,6 +9,7 @@ mod utils;
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use candid::{Nat, Principal};
+use canister_utils::debug_log;
 use chain_service::{ChainConfig, service::ChainService};
 use evm_logs_types::*;
 use ic_cdk::storage;
@@ -39,7 +40,7 @@ async fn init(config: types::config::Config) {
   subscription_manager::init();
   init_state(config);
 
-  log!("EVM logs canister initialized.");
+  log_with_metrics!("EVM logs canister initialized.");
 }
 
 #[ic_cdk::pre_upgrade]
@@ -66,7 +67,7 @@ fn pre_upgrade() {
   ))
   .expect("error during pre_upgrade state saving");
 
-  ic_cdk::println!("pre_upgrade: State saved successfully.");
+  debug_log!("pre_upgrade: State saved successfully.");
 }
 
 #[ic_cdk::post_upgrade]
@@ -111,7 +112,7 @@ fn post_upgrade() {
     *chain_services.borrow_mut() = restored_services;
   });
 
-  ic_cdk::println!("post_upgrade: State restored successfully.");
+  debug_log!("post_upgrade: State restored successfully.");
 }
 
 #[query(name = "getCanistergeekInformation")]
@@ -124,9 +125,4 @@ pub async fn update_canistergeek_information(request: UpdateInformationRequest) 
   update_information(request);
 }
 
-#[query]
-fn get_candid_pointer() -> String {
-  __export_service()
-}
-
-candid::export_service!();
+ic_cdk::export_candid!();

@@ -84,7 +84,6 @@ local_deploy_test_canister:
 local_deploy_cycles_wallet:
 	dfx deploy cycles_wallet
 
-
 local_test_canister_subscribe:
 	$(eval EVM_LOGS_CANISTER := $(shell dfx canister id evm_logs_canister))
 	dfx canister call test_canister subscribe '(principal "${EVM_LOGS_CANISTER}")'
@@ -97,6 +96,45 @@ local_upgrade:
 	dfx build test_canister
 	gzip -f -1 ./.dfx/local/canisters/test_canister/test_canister.wasm
 	dfx canister install --mode upgrade --wasm ./.dfx/local/canisters/test_canister/test_canister.wasm.gz test_canister
+
+## Builds 'evm_logs_canister' canister
+evm_logs_canister/build:
+	dfx build evm_logs_canister
+
+## Builds 'test_canister' canister
+test_canister/build:
+	dfx build test_canister
+
+## Builds 'evm_rpc_mocked' canister
+evm_rpc_mocked/build:
+	dfx build evm_rpc_mocked
+
+## Builds 'proxy_canister' canister
+proxy_canister/build:
+	dfx build proxy_canister
+
+## Updates candid interface file for 'staking_protocol' (has to be installed before https://internetcomputer.org/docs/current/developer-docs/backend/rust/generating-candid)
+evm_logs_canister/update_candid: evm_logs_canister/build
+	$(eval EVM_LOGS_CAN_NAME := "evm_logs_canister")
+	candid-extractor ./target/wasm32-unknown-unknown/release/$(EVM_LOGS_CAN_NAME).wasm > ./evm_logs_canister/$(EVM_LOGS_CAN_NAME).did
+
+## Updates candid interface file for 'staking_protocol' (has to be installed before https://internetcomputer.org/docs/current/developer-docs/backend/rust/generating-candid)
+test_canister/update_candid: test_canister/build
+	$(eval TEST_CAN_NAME := "test_canister")
+	candid-extractor ./target/wasm32-unknown-unknown/release/$(TEST_CAN_NAME).wasm > ./test_canister/$(TEST_CAN_NAME).did
+
+## Updates candid interface file for 'staking_protocol' (has to be installed before https://internetcomputer.org/docs/current/developer-docs/backend/rust/generating-candid)
+evm_rpc_mocked/update_candid:  evm_rpc_mocked/build
+	$(eval EVM_RPC_CAN_NAME := "evm_rpc_mocked")
+	candid-extractor ./target/wasm32-unknown-unknown/release/$(EVM_RPC_CAN_NAME).wasm > ./evm_rpc_mocked/$(EVM_RPC_CAN_NAME).did
+
+## Updates candid interface file for 'staking_protocol' (has to be installed before https://internetcomputer.org/docs/current/developer-docs/backend/rust/generating-candid)
+proxy_canister/update_candid: proxy_canister/build
+	$(eval PROXY_CAN_NAME := "proxy_canister")
+	candid-extractor ./target/wasm32-unknown-unknown/release/$(PROXY_CAN_NAME).wasm > ./proxy_canister/$(PROXY_CAN_NAME).did
+
+## Updates did files for all canisters
+local_update_candid: evm_logs_canister/update_candid test_canister/update_candid proxy_canister/update_candid
 
 build: ## Build all canisters
 	cargo build --release --target wasm32-unknown-unknown --package evm_logs_canister

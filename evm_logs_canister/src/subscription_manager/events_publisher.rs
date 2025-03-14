@@ -4,7 +4,7 @@ use ic_cdk::{self, api::call::call};
 
 use super::utils::event_matches_filter;
 use crate::{
-  FILTERS_MANAGER, NEXT_NOTIFICATION_ID, constants::*, get_state_value, log, types::balances::Balances,
+  FILTERS_MANAGER, NEXT_NOTIFICATION_ID, constants::*, get_state_value, log_with_metrics, types::balances::Balances,
   utils::current_timestamp,
 };
 
@@ -72,7 +72,7 @@ async fn distribute_event(event: Event) {
 
       // Check if the subscriber has sufficient balance, otherwise - remove the subscription filter
       if !Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap() {
-        log!(
+        log_with_metrics!(
           "Insufficient balance for subscriber, unsubscribe: {}",
           subscriber_principal
         );
@@ -108,7 +108,7 @@ async fn distribute_event(event: Event) {
               Balances::reduce(&subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap();
             }
 
-            log!(
+            log_with_metrics!(
               "Notification sent successfully. ID: {}, Charged: {}",
               notification_id,
               estimated_cycles_for_event
@@ -118,17 +118,17 @@ async fn distribute_event(event: Event) {
             // Handle application-level error
             match error {
               SendNotificationError::FailedToSend => {
-                log!("Failed to send notification to subscriber.");
+                log_with_metrics!("Failed to send notification to subscriber.");
               }
               SendNotificationError::InvalidSubscriber => {
-                log!("Invalid subscriber principal provided.");
+                log_with_metrics!("Invalid subscriber principal provided.");
               }
             }
           }
         },
         Err(transport_error) => {
           // Handle transport or call-level error
-          log!("Error calling send_notification: {}", transport_error);
+          log_with_metrics!("Error calling send_notification: {}", transport_error);
         }
       }
     }

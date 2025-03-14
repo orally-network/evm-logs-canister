@@ -3,7 +3,7 @@ use evm_logs_types::{
   RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo, SubscriptionRegistration, UnsubscribeResult,
 };
 
-use crate::{get_state_value, log};
+use crate::{get_state_value, log_with_metrics};
 
 pub mod events_publisher;
 pub mod queries;
@@ -17,7 +17,7 @@ use crate::{
 };
 
 pub fn init() {
-  log!("SubscriptionManager initialized");
+  log_with_metrics!("SubscriptionManager initialized");
 }
 
 pub async fn register_subscription(registration: SubscriptionRegistration) -> RegisterSubscriptionResult {
@@ -37,7 +37,7 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
   });
 
   if is_subscription_exist.is_some() {
-    log!(
+    log_with_metrics!(
       "Subscription already exists for caller {} with the same filter",
       subscriber_principal
     );
@@ -84,7 +84,7 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
     manager.add_filter(chain_id, &filter);
   });
 
-  log!(
+  log_with_metrics!(
     "Subscription registered: ID={}, Namespace={}, Filter = {:?}",
     sub_id,
     registration.chain_id,

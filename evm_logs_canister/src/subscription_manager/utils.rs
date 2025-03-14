@@ -76,66 +76,83 @@ mod tests {
     }
   }
 
+  const ADDR1_HEX20: &str = "0xd42AcA6E135D1dae6317e776F7EB96Eb91b8eb91";
+  const ADDR2_HEX20: &str = "0xDA2efffa45cf5D960209aA0921Cf42a4a2a085cf";
+  const ADDR3_HEX20: &str = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
+  const ADDR4_HEX20: &str = "0xa2DA709980Effc0fA9413efEc7f5F86a849eCb93";
+  const TOPIC1_HEX32: &str = "0x895950522ad88866c40789c503f088b8d88beb8de46cbb2c2329b3e968460492";
+  const TOPIC2_HEX32: &str = "0xa213165f23ed89a7627d7a82973d251d654614d33104f7aabd1ed4d40ecebbea";
+  const TOPIC3_HEX32: &str = "0xf8bbdcc71146cb4ca500980f5a60a18d7ce1860f1d22f08a2d25f3dbb202e42e";
+  const TOPIC4_HEX32: &str = "0x13b2fce0c601a939e04b82c993f795d4df1335747782cacdaff2d3b71b576002";
+  const ADDR1_HEX20_LOWER: &str = "0xd42aca6e135d1dae6317e776f7eb96eb91b8eb91";
+  const ADDR2_HEX20_LOWER: &str = "0xda2efffa45cf5d960209aa0921cf42a4a2a085cf";
+  const ADDR3_HEX20_LOWER: &str = "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97";
+  const ADDR4_HEX20_LOWER: &str = "0xa2da709980effc0fa9413efec7f5f86a849ecb93";
+  const TOPIC1_HEX32_LOWER: &str = "0x895950522ad88866c40789c503f088b8d88beb8de46cbb2c2329b3e968460492";
+  const TOPIC2_HEX32_LOWER: &str = "0xa213165f23ed89a7627d7a82973d251d654614d33104f7aabd1ed4d40ecebbea";
+  const TOPIC3_HEX32_LOWER: &str = "0xf8bbdcc71146cb4ca500980f5a60a18d7ce1860f1d22f08a2d25f3dbb202e42e";
+  const TOPIC4_HEX32_LOWER: &str = "0x13b2fce0c601a939e04b82c993f795d4df1335747782cacdaff2d3b71b576002";
+
   #[test]
   fn test_event_matches_filter_address_only_match() {
-    let event = create_event("0xabc", None);
-    let filter = create_filter("0xABC", None);
+    let event = create_event(ADDR1_HEX20, None);
+    let filter = create_filter(ADDR1_HEX20_LOWER, None);
 
     assert!(event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_address_only_no_match() {
-    let event = create_event("0xdef", None);
-    let filter = create_filter("0xABC", None);
+    let event = create_event(ADDR2_HEX20, None);
+    let filter = create_filter(ADDR1_HEX20_LOWER, None);
 
     assert!(!event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_topics_match() {
-    let event = create_event("0xabc", Some(vec!["topic1", "topic2"]));
-    let filter = create_filter("0xABC", Some(vec![vec!["topic1"], vec!["topic2"]]));
+    let event = create_event(ADDR1_HEX20, Some(vec![TOPIC1_HEX32, TOPIC2_HEX32]));
+    let filter = create_filter(ADDR1_HEX20_LOWER, Some(vec![vec![TOPIC1_HEX32], vec![TOPIC2_HEX32]]));
 
     assert!(event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_topics_no_match() {
-    let event = create_event("0xabc", Some(vec!["topic1", "topic3"]));
-    let filter = create_filter("0xABC", Some(vec![vec!["topic1"], vec!["topic2"]]));
+    let event = create_event(ADDR1_HEX20, Some(vec![TOPIC1_HEX32, TOPIC3_HEX32]));
+    let filter = create_filter(ADDR1_HEX20_LOWER, Some(vec![vec![TOPIC1_HEX32], vec![TOPIC2_HEX32]]));
 
     assert!(!event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_topics_partial_match() {
-    let event = create_event("0xabc", Some(vec!["topic1"]));
-    let filter = create_filter("0xABC", Some(vec![vec!["topic1", "topic2"]]));
+    let event = create_event(ADDR1_HEX20, Some(vec![TOPIC1_HEX32]));
+    let filter = create_filter(ADDR1_HEX20_LOWER, Some(vec![vec![TOPIC1_HEX32, TOPIC2_HEX32]]));
 
     assert!(event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_too_few_event_topics() {
-    let event = create_event("0xabc", Some(vec!["topic1"]));
-    let filter = create_filter("0xABC", Some(vec![vec!["topic1"], vec!["topic2"]]));
+    let event = create_event(ADDR1_HEX20, Some(vec![TOPIC1_HEX32]));
+    let filter = create_filter(ADDR1_HEX20_LOWER, Some(vec![vec![TOPIC1_HEX32], vec![TOPIC2_HEX32]]));
 
     assert!(!event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_no_filter_topics() {
-    let event = create_event("0xabc", Some(vec!["topic1", "topic2"]));
-    let filter = create_filter("0xABC", None);
+    let event = create_event(ADDR1_HEX20, Some(vec![TOPIC1_HEX32, TOPIC2_HEX32]));
+    let filter = create_filter(ADDR1_HEX20_LOWER, None);
 
     assert!(event_matches_filter(&event, &filter));
   }
 
   #[test]
   fn test_event_matches_filter_no_event_topics() {
-    let event = create_event("0xabc", None);
-    let filter = create_filter("0xABC", Some(vec![vec!["topic1"], vec!["topic2"]]));
+    let event = create_event(ADDR1_HEX20, None);
+    let filter = create_filter(ADDR1_HEX20_LOWER, Some(vec![vec![TOPIC1_HEX32], vec![TOPIC2_HEX32]]));
 
     assert!(!event_matches_filter(&event, &filter));
   }
