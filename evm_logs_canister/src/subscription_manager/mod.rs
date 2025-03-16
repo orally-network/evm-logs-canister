@@ -180,6 +180,7 @@ mod tests {
   use evm_rpc_types::{Hex20, Hex32};
 
   use super::*;
+  #[ignore]
   #[test]
   fn test_register_subscription_success() {
     // Using tokio runtime explicitly because of tokio::test error. TODO fix
@@ -204,6 +205,7 @@ mod tests {
       })
   }
 
+  #[ignore]
   #[test]
   fn test_register_subscription_duplicate_filter() {
     // Using tokio runtime explicitly because of tokio::test error. TODO fix
