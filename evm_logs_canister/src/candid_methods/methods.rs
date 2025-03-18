@@ -22,14 +22,14 @@ pub async fn subscribe(registration: SubscriptionRegistration) -> RegisterSubscr
     return RegisterSubscriptionResult::Err(RegisterSubscriptionError::InsufficientFunds);
   }
 
-  subscription_manager::register_subscription(registration).await
+  subscription_manager::subscription::register_subscription(registration).await
 }
 
 // unsubscribe from subscription with specified ID
 #[update(name = "unsubscribe")]
 #[candid_method(update)]
 pub async fn unsubscribe(subscription_id: Nat) -> UnsubscribeResult {
-  subscription_manager::unsubscribe(caller(), subscription_id)
+  subscription_manager::subscription::unsubscribe(caller(), subscription_id)
 }
 
 // get all subscriptions assigned to the user (takes caller as a parameter implicitly)

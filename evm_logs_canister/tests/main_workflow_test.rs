@@ -1,10 +1,9 @@
-mod common;
-
+mod internals;
 use std::{collections::HashMap, time::Duration};
 
 use candid::{Nat, Principal};
-use common::*;
 use evm_logs_types::{EventNotification, Filter, SubscriptionInfo, SubscriptionRegistration};
+use internals::*;
 use pocket_ic::{WasmResult, nonblocking::PocketIc};
 
 #[tokio::test]

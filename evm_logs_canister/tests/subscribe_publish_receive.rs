@@ -1,11 +1,10 @@
-mod common;
-
+mod internals;
 use std::{str::FromStr, time::Duration};
 
 use candid::{self, Nat, Principal};
-use common::*;
 use evm_logs_types::{Event, EventNotification, Filter, SubscriptionRegistration};
 use evm_rpc_types::{Hex, Hex20, Hex32, LogEntry};
+use internals::*;
 use pocket_ic::{WasmResult, nonblocking::PocketIc};
 use tokio::time::sleep;
 

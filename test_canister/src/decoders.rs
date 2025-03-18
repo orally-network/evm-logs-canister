@@ -61,6 +61,40 @@ pub fn chainfusion_deposit_decoder(notification: &EventNotification) -> Result<V
   Ok(result)
 }
 
+pub fn mainnet_uniswap_exchange_1(notification: &EventNotification) -> Result<Vec<SolidityToken>, String> {
+  let data = extract_data_bytes(notification)?;
+
+  let param_types = vec![
+    ParamType::Address,  //index_topic_1
+    ParamType::Address,  // index_topic_2
+    ParamType::Int(256), // amount0
+    ParamType::Int(256), // amount1
+    ParamType::Int(160), // sqrtPriceX96
+    ParamType::Int(128), // liquidity
+    ParamType::Int(24),  // tick
+  ];
+
+  let decoded_tokens = decode(&param_types, &data).map_err(|e| format!("Decoding error: {:?}", e))?;
+
+  let result = decoded_tokens.into_iter().map(SolidityToken::from).collect();
+  Ok(result)
+}
+
+pub fn mainnet_fantom_token(notification: &EventNotification) -> Result<Vec<SolidityToken>, String> {
+  let data = extract_data_bytes(notification)?;
+
+  let param_types = vec![
+    ParamType::Address,  // index_topic_1
+    ParamType::Address,  // index_topic_2
+    ParamType::Int(256), // value
+  ];
+
+  let decoded_tokens = decode(&param_types, &data).map_err(|e| format!("Decoding error: {:?}", e))?;
+
+  let result = decoded_tokens.into_iter().map(SolidityToken::from).collect();
+  Ok(result)
+}
+
 pub fn curve_token_exchange_decoder(notification: &EventNotification) -> Result<Vec<SolidityToken>, String> {
   let data = extract_data_bytes(notification)?;
 

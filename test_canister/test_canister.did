@@ -1,3 +1,39 @@
+type CanisterLogFeature = variant {
+  filterMessageByContains;
+  filterMessageByRegex;
+};
+type CanisterLogMessages = record {
+  data : vec LogMessageData;
+  lastAnalyzedMessageTimeNanos : opt nat64;
+};
+type CanisterLogMessagesInfo = record {
+  features : vec opt CanisterLogFeature;
+  lastTimeNanos : opt nat64;
+  count : nat32;
+  firstTimeNanos : opt nat64;
+};
+type CanisterLogRequest = variant {
+  getMessagesInfo;
+  getMessages : GetLogMessagesParameters;
+  getLatestMessages : GetLatestLogMessagesParameters;
+};
+type CanisterLogResponse = variant {
+  messagesInfo : CanisterLogMessagesInfo;
+  messages : CanisterLogMessages;
+};
+type CanisterMetrics = record { data : CanisterMetricsData };
+type CanisterMetricsData = variant {
+  hourly : vec HourlyMetricsData;
+  daily : vec DailyMetricsData;
+};
+type CollectMetricsRequestType = variant { force; normal };
+type DailyMetricsData = record {
+  updateCalls : nat64;
+  canisterHeapMemorySize : NumericEntity;
+  canisterCycles : NumericEntity;
+  canisterMemorySize : NumericEntity;
+  timeMillis : int;
+};
 type DecodedNotification = record {
   notification : EventNotification;
   tokens : vec SolidityToken;
@@ -12,6 +48,45 @@ type EventNotification = record {
   log_entry : LogEntry;
 };
 type Filter = record { topics : opt vec vec text; address : text };
+type GetInformationRequest = record {
+  status : opt StatusRequest;
+  metrics : opt MetricsRequest;
+  logs : opt CanisterLogRequest;
+  version : bool;
+};
+type GetInformationResponse = record {
+  status : opt StatusResponse;
+  metrics : opt MetricsResponse;
+  logs : opt CanisterLogResponse;
+  version : opt nat;
+};
+type GetLatestLogMessagesParameters = record {
+  upToTimeNanos : opt nat64;
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+};
+type GetLogMessagesFilter = record {
+  analyzeCount : nat32;
+  messageRegex : opt text;
+  messageContains : opt text;
+};
+type GetLogMessagesParameters = record {
+  count : nat32;
+  filter : opt GetLogMessagesFilter;
+  fromTimeNanos : opt nat64;
+};
+type GetMetricsParameters = record {
+  dateToMillis : nat;
+  granularity : MetricsGranularity;
+  dateFromMillis : nat;
+};
+type HourlyMetricsData = record {
+  updateCalls : vec nat64;
+  canisterHeapMemorySize : vec nat64;
+  canisterCycles : vec nat64;
+  canisterMemorySize : vec nat64;
+  timeMillis : int;
+};
 type LogEntry = record {
   transactionHash : opt text;
   blockNumber : opt nat;
@@ -23,7 +98,18 @@ type LogEntry = record {
   logIndex : opt nat;
   removed : bool;
 };
+type LogMessageData = record { timeNanos : nat64; message : text };
 type Map = record { key : Value; value : Value };
+type MetricsGranularity = variant { hourly; daily };
+type MetricsRequest = record { parameters : GetMetricsParameters };
+type MetricsResponse = record { metrics : opt CanisterMetrics };
+type NumericEntity = record {
+  avg : nat64;
+  max : nat64;
+  min : nat64;
+  first : nat64;
+  last : nat64;
+};
 type SolidityToken = variant {
   Int : text;
   FixedArray : Vec;
@@ -36,12 +122,25 @@ type SolidityToken = variant {
   Tuple : Vec;
   Array : Vec;
 };
+type StatusRequest = record {
+  memory_size : bool;
+  cycles : bool;
+  heap_memory_size : bool;
+};
+type StatusResponse = record {
+  memory_size : opt nat64;
+  cycles : opt nat64;
+  heap_memory_size : opt nat64;
+};
 type SubscriptionInfo = record {
   subscription_id : nat;
   stats : vec Map;
   filter : Filter;
   chain_id : nat32;
   subscriber_principal : principal;
+};
+type UpdateInformationRequest = record {
+  metrics : opt CollectMetricsRequestType;
 };
 type Value = variant {
   Map : Vec_1;
@@ -85,6 +184,10 @@ type Vec_1 = vec record {
   };
 };
 service : () -> {
+  getCanistergeekInformation : (GetInformationRequest) -> (
+      GetInformationResponse,
+    ) query;
+  get_current_balance : () -> (nat) query;
   get_decoded_notifications : () -> (vec DecodedNotification) query;
   get_decoded_notifications_by_subscription : (nat) -> (
       vec DecodedNotification,
@@ -93,6 +196,15 @@ service : () -> {
   get_subscriptions : (principal) -> (vec SubscriptionInfo);
   handle_notification : (EventNotification) -> ();
   subscribe : (principal) -> ();
+  subscribe_base_swaps : (principal) -> ();
+  subscribe_chainfusion : (principal) -> ();
+  subscribe_etherum_sync : (principal) -> ();
+  subscribe_fantom_token : (principal) -> ();
+  subscribe_primex : (principal) -> ();
   subscribe_test : (principal) -> ();
+  subscribe_token_exchange : (principal) -> ();
+  subscribe_uniswap_exchange_1 : (principal) -> ();
+  top_up_evm_logs_canister : (principal, nat) -> ();
   unsubscribe : (principal, nat) -> ();
+  updateCanistergeekInformation : (UpdateInformationRequest) -> ();
 }

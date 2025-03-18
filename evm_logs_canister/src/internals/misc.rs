@@ -1,38 +1,17 @@
-pub mod log_metrics;
-
 use std::cell::RefCell;
 
 use candid::Nat;
 use evm_rpc_types::{Block, BlockTag, ConsensusStrategy, MultiRpcResult, RpcApi, RpcConfig, RpcResult, RpcServices};
 use ic_cdk::api::{call::call_with_payment128, time};
 
-use crate::{chain_service::ChainConfig, constants::*};
-
-#[macro_export]
-macro_rules! get_state_value {
-  ($field:ident) => {{ $crate::STATE.with(|state| state.borrow().$field.clone()) }};
-}
-
-#[macro_export]
-macro_rules! update_state {
-  ($field:ident, $value:expr) => {{
-    $crate::STATE.with(|state| {
-      state.borrow_mut().$field = $value;
-    })
-  }};
-}
-
-#[macro_export]
-macro_rules! log_with_metrics {
-    ($($arg:tt)*) => {{
-        use $crate::metrics;
-        ic_cdk::println!($($arg)*);
-        ic_utils::logger::log_message(format!($($arg)*));
-        ic_utils::monitor::collect_metrics();
-
-        metrics!(set CYCLES, ic_cdk::api::canister_balance() as u128);
-    }};
-}
+use crate::{
+  chain_service::ChainConfig,
+  constants::{
+    ARBITRUM_CHAIN_ID, BASE_CHAIN_ID, BSC_CHAIN_ID, ETHEREUM_CHAIN_ID, EVM_EVENT_SIZE_BYTES, OPTIMISM_CHAIN_ID,
+    POLYGON_CHAIN_ID,
+  },
+  get_state_value,
+};
 
 thread_local! {
     static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));

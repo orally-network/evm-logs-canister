@@ -261,57 +261,57 @@ thread_local! {
 #[macro_export]
 macro_rules! metrics {
     ( inc $metric:ident ) => {
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.inc());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.inc());
     };
 
     ( inc_by $metric:ident, $val:ident ) => {
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.inc_by($val as u128));
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.inc_by($val as u128));
     };
 
     ( inc $metric:ident, $($labels:expr),+) => {{
         let lbls: Vec<String> = vec![$(format!("{}", $labels)),+];
 
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).inc());
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).inc());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).inc());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).inc());
     }};
 
 
     ( dec $metric:ident ) => {
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.dec());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.dec());
     };
 
     ( dec_by $metric:ident, $val:ident ) => {
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.dec_by($val as u128));
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.dec_by($val as u128));
     };
 
     ( dec $metric:ident, $($labels:expr),+) => {
         let lbls: Vec<String> = vec![$(format!("{}", $labels)),+];
 
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).dec());
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).dec());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).dec());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).dec());
     };
 
 
     ( get $metric:ident ) => {
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.get())
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.get())
     };
 
     ( get $metric:ident, $($labels:expr),+) => {
         {
             let lbls: Vec<String> = vec![$(format!("{}", $labels)),+];
 
-            $crate::utils::log_metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).get())
+            $crate::internals::log_metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).get())
         }
     };
 
     ( timer $metric:ident, $($labels:expr),+) => {
         let lbls: Vec<String> = vec![$(format!("{}", $labels)),+];
 
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).start_timer());
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).start_timer());
     };
 
     ( timer $metric:ident) => {
-        $crate::utils::log_metrics::METRICS.with(|m| m.borrow_mut().$metric.start_timer())
+        $crate::internals::log_metrics::METRICS.with(|m| m.borrow_mut().$metric.start_timer())
     };
 
     ( timer observe $timer:ident) => {
@@ -323,22 +323,22 @@ macro_rules! metrics {
     };
 
     ( set $metric:ident, $val:expr ) => {
-        $crate::utils::log_metrics::METRICS.with(|m| m.borrow_mut().$metric.set($val as u128));
+        $crate::internals::log_metrics::METRICS.with(|m| m.borrow_mut().$metric.set($val as u128));
     };
 
     ( set $metric:ident, $val:expr, $($labels:expr),+) => {
         let lbls: Vec<String> = vec![$(format!("{}", $labels)),+];
 
-        let prev_val = $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls.clone()).get());
+        let prev_val = $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls.clone()).get());
 
         let diff = $val as i128 - prev_val as i128;
 
 
-        $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).set($val as u128));
+        $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(lbls).set($val as u128));
         if diff < prev_val as i128 {
-            $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).dec_by(diff as u128));
+            $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).dec_by(diff as u128));
         } else {
-            $crate::utils::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).inc_by(diff as u128));
+            $crate::internals::metrics::METRICS.with(|m| m.borrow_mut().$metric.with_label_values(vec!["all".to_string()]).inc_by(diff as u128));
         }
     };
 }

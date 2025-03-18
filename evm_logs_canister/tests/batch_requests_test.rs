@@ -1,10 +1,10 @@
-pub mod common;
+mod internals;
 
 use std::time::Duration;
 
 use candid::Principal;
-use common::*;
 use evm_logs_types::{EventNotification, SubscriptionRegistration};
+use internals::*;
 use pocket_ic::{WasmResult, nonblocking::PocketIc};
 
 #[tokio::test]

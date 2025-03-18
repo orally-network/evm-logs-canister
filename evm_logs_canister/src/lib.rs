@@ -1,10 +1,10 @@
 mod candid_methods;
 mod chain_service;
 mod constants;
+mod internals;
 mod log_filters;
 mod subscription_manager;
 mod types;
-mod utils;
 
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
@@ -37,7 +37,7 @@ thread_local! {
 
 #[init]
 async fn init(config: types::config::Config) {
-  subscription_manager::init();
+  subscription_manager::subscription::init();
   init_state(config);
 
   log_with_metrics!("EVM logs canister initialized.");

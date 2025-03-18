@@ -40,7 +40,6 @@ fn estimate_cycles_used(
   // Total cycles usage including base call cost and multiple RPC queries
   let total_cycles_used =
     BASE_CALL_CYCLES + cycles_for_request + cycles_for_response + (cycles_for_request + cycles_for_response);
-
   total_cycles_used
 }
 

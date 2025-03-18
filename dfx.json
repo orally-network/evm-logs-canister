@@ -34,6 +34,30 @@
         }
       ]
     },
+    "test_canister2": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
+      "candid": "test_canister/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "test_canister/test_canister.did"
+        }
+      ]
+    },
+    "test_canister3": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
+      "candid": "test_canister/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "test_canister/test_canister.did"
+        }
+      ]
+    },
     "proxy_canister": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/proxy_canister.wasm",

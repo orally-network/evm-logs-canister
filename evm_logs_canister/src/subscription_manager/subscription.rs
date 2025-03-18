@@ -1,19 +1,13 @@
+use std::rc::Rc;
+
 use candid::{Nat, Principal};
 use evm_logs_types::{
   RegisterSubscriptionError, RegisterSubscriptionResult, SubscriptionInfo, SubscriptionRegistration, UnsubscribeResult,
 };
 
-use crate::{get_state_value, log_with_metrics};
-
-pub mod events_publisher;
-pub mod queries;
-pub mod utils;
-
-use std::rc::Rc;
-
 use crate::{
-  CHAIN_SERVICES, FILTERS_MANAGER, NEXT_SUBSCRIPTION_ID, chain_service::service::ChainService,
-  utils::generate_chain_configs,
+  CHAIN_SERVICES, FILTERS_MANAGER, NEXT_SUBSCRIPTION_ID, chain_service::service::ChainService, get_state_value,
+  internals::misc::generate_chain_configs, log_with_metrics,
 };
 
 pub fn init() {
@@ -160,10 +154,12 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
       CHAIN_SERVICES.with(|chain_services| {
         let chain_services = chain_services.borrow_mut();
         // call stop_monitoring for the chain service, but dont remove it
-        chain_services
+        if let Some(service) = chain_services
           .iter()
           .find(|service| service.config.chain_id == chain_id)
-          .map(|service| service.stop_monitoring());
+        {
+          service.stop_monitoring()
+        }
       });
     }
 
@@ -172,11 +168,12 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
     UnsubscribeResult::Err(format!("Subscription with ID {} not found", subscription_id))
   }
 }
+
 #[cfg(test)]
 mod tests {
   use std::str::FromStr;
 
-  use evm_logs_types::Filter;
+  use evm_logs_types::{Filter, RegisterSubscriptionResult, SubscriptionRegistration};
   use evm_rpc_types::{Hex20, Hex32};
 
   use super::*;

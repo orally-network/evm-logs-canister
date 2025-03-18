@@ -4,8 +4,8 @@ use ic_cdk::{self, api::call::call};
 
 use super::utils::event_matches_filter;
 use crate::{
-  FILTERS_MANAGER, NEXT_NOTIFICATION_ID, constants::*, get_state_value, log_with_metrics, types::balances::Balances,
-  utils::current_timestamp,
+  FILTERS_MANAGER, NEXT_NOTIFICATION_ID, constants::*, get_state_value, internals::misc::current_timestamp,
+  log_with_metrics, types::balances::Balances,
 };
 
 fn estimate_cycles_for_event_notification(event_size: usize) -> u64 {
