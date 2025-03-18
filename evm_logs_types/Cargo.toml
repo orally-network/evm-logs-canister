@@ -1,14 +1,12 @@
 [package]
 name = "evm_logs_types"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies]
 candid.workspace = true
-ic-cdk.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 evm_rpc_types.workspace = true
+serde.workspace = true

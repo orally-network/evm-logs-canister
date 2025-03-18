@@ -1,0 +1,23 @@
+[package]
+name = "test_canister"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+candid.workspace = true
+canister_utils.workspace = true
+evm_logs_types.workspace = true
+evm_rpc_types.workspace = true
+hex.workspace = true
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+ic-web3-rs.workspace = true
+serde.workspace = true
+ic-utils.workspace = true
+
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.candid]
+generate = true

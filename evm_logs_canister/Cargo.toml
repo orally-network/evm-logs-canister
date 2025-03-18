@@ -1,0 +1,30 @@
+[package]
+name = "evm_logs_canister"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+candid.workspace = true
+canister_utils.workspace = true
+evm_logs_types.workspace = true
+evm_rpc_types.workspace = true
+futures.workspace = true
+getrandom.workspace = true
+hex.workspace = true
+ic-cdk-macros.workspace = true
+ic-cdk-timers.workspace = true
+ic-cdk.workspace = true
+ic-utils.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+pocket-ic.workspace = true
+
+[package.metadata.candid]
+generate = true
