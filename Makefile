@@ -9,7 +9,7 @@ CYCLES_WALLET_WASM := ./../target/wasm32-unknown-unknown/release/wallet.wasm
 EVM_RPC_MOCKED_WASM := ./../target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm
 FETCH_POCKET_IC_BIN_PATH := ./scripts/fetch-pocket-ic
 WALLET_WASM_URL := https://github.com/dfinity/cycles-wallet/releases/download/20240410/wallet.wasm
-WALLET_WASM_PATH := ./../target/wasm32-unknown-unknown/release/wallet.wasm
+WALLET_WASM_PATH := ./target/wasm32-unknown-unknown/release/wallet.wasm
 DFX_PATH := .dfx
 
 .DEFAULT_GOAL: help
@@ -136,24 +136,21 @@ proxy_canister/update_candid: proxy_canister/build
 ## Updates did files for all canisters
 local_update_candid: evm_logs_canister/update_candid test_canister/update_candid proxy_canister/update_candid
 
-build: ## Build all canisters
+## Build all canisters
+build:
 	cargo build --release --target wasm32-unknown-unknown --package evm_logs_canister
 	cargo build --release --target wasm32-unknown-unknown --package test_canister
 	cargo build --release --target wasm32-unknown-unknown --package evm_rpc_mocked
 	cargo build --release --target wasm32-unknown-unknown --package proxy_canister
 
-test: build ## Run tests
+## Run tests
+test: build fetch-wallet-wasm
 	@echo "Running tests..."
 	@if [ ! -f "$(POCKET_IC_BIN)" ]; then \
 		echo "Pocket IC binary not found. Fetching..."; \
 		$(MAKE) fetch-pocket-ic; \
 	fi
-	@EVM_LOGS_CANISTER_PATH=$(EVM_LOGS_CANISTER_WASM) \
-	   TEST_CANISTER_WASM_PATH=$(TEST_CANISTER_WASM) \
-	   CYCLES_WALLET_WASM_PATH=$(CYCLES_WALLET_WASM) \
-	   PROXY_CANISTER_WASM_PATH=$(PROXY_CANISTER_WASM) \
-	   EVM_RPC_MOCKED_WASM_PATH=$(EVM_RPC_MOCKED_WASM) \
-	   POCKET_IC_BIN=$(POCKET_IC_BIN_TESTING_PATH) \
+	@POCKET_IC_BIN=$(POCKET_IC_BIN_TESTING_PATH) \
 	   cargo test $(TEST) --no-fail-fast -- $(if $(TEST_NAME),$(TEST_NAME),) --nocapture	
 
 help:
@@ -171,11 +168,13 @@ help:
         { lastLine = $$0 }' $(MAKEFILE_LIST) | sort -u
 	@printf "\n"
 
-fetch-pocket-ic: ## Fetch the pocket-ic binary for tests if not already present
+## Fetch the pocket-ic binary for tests if not already present
+fetch-pocket-ic:
 	chmod +x $(FETCH_POCKET_IC_BIN_PATH)
 	$(FETCH_POCKET_IC_BIN_PATH)
 
-fetch-wallet-wasm: ## Fetch the wallet.wasm file
+## Fetch the wallet.wasm file
+fetch-wallet-wasm:
 	@mkdir -p $(dir $(WALLET_WASM_PATH))
 	curl -sL -o $(WALLET_WASM_PATH) $(WALLET_WASM_URL)
 	@echo "wallet.wasm downloaded to $(WALLET_WASM_PATH)"

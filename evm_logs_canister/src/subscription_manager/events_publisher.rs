@@ -4,7 +4,7 @@ use ic_cdk::{self, api::call::call};
 
 use super::utils::event_matches_filter;
 use crate::{
-  FILTERS_MANAGER, NEXT_NOTIFICATION_ID, constants::*, get_state_value, internals::misc::current_timestamp,
+  FILTERS_MANAGER, NEXT_NOTIFICATION_ID, constants::*, get_state_value, internals::misc::timestamp_nanos,
   log_with_metrics, types::balances::Balances,
 };
 
@@ -63,7 +63,7 @@ async fn distribute_event(event: Event) {
       let notification = EventNotification {
         sub_id: sub.subscription_id.clone(),
         event_id: notification_id.clone(),
-        timestamp: current_timestamp(),
+        timestamp: timestamp_nanos(),
         chain_id: event.chain_id,
         source: ic_cdk::api::id(),
         filter: None,

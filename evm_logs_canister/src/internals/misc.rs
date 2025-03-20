@@ -17,8 +17,14 @@ thread_local! {
     static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));
 }
 
-pub fn current_timestamp() -> u64 {
+pub const DEFAULT_MONITORING_TIME: u64 = 15;
+
+pub fn timestamp_nanos() -> u64 {
   time()
+}
+
+pub fn timestamp_millis() -> u64 {
+  timestamp_nanos() / 1_000_000
 }
 
 pub async fn get_latest_block_number(rpc_providers: RpcServices) -> Result<Nat, String> {
@@ -68,7 +74,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
       }),
-      monitoring_interval: 15,
+      monitoring_interval: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: BASE_CHAIN_ID,
@@ -78,7 +84,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
       }),
-      monitoring_interval: 15,
+      monitoring_interval: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: OPTIMISM_CHAIN_ID,
@@ -88,7 +94,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
       }),
-      monitoring_interval: 15,
+      monitoring_interval: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: POLYGON_CHAIN_ID,
@@ -98,7 +104,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
       }),
-      monitoring_interval: 15,
+      monitoring_interval: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: ARBITRUM_CHAIN_ID,
@@ -108,7 +114,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
       }),
-      monitoring_interval: 15,
+      monitoring_interval: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: BSC_CHAIN_ID,
@@ -118,19 +124,19 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
       }),
-      monitoring_interval: 15,
+      monitoring_interval: DEFAULT_MONITORING_TIME,
     },
   ]
 }
 
 pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
   match chain {
-    1 => RpcServices::EthMainnet(None),
-    8453 => RpcServices::BaseMainnet(None),
-    10 => RpcServices::OptimismMainnet(None),
-    42161 => RpcServices::ArbitrumOne(None),
-    137 => RpcServices::Custom {
-      chain_id: 137,
+    ETHEREUM_CHAIN_ID => RpcServices::EthMainnet(None),
+    BASE_CHAIN_ID => RpcServices::BaseMainnet(None),
+    OPTIMISM_CHAIN_ID => RpcServices::OptimismMainnet(None),
+    ARBITRUM_CHAIN_ID => RpcServices::ArbitrumOne(None),
+    POLYGON_CHAIN_ID => RpcServices::Custom {
+      chain_id: POLYGON_CHAIN_ID as u64,
       services: vec![
         RpcApi {
           url: "https://polygon-rpc.com".to_string(),
@@ -146,8 +152,8 @@ pub fn get_rpc_providers_for_chain(chain: u32) -> RpcServices {
         },
       ],
     },
-    56 => RpcServices::Custom {
-      chain_id: 56,
+    BSC_CHAIN_ID => RpcServices::Custom {
+      chain_id: BSC_CHAIN_ID as u64,
       services: vec![
         RpcApi {
           url: "https://binance.llamarpc.com".to_string(),

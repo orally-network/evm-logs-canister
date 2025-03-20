@@ -100,7 +100,6 @@ pub async fn fetch_logs(
   }
 
   let results = join_all(futures).await;
-  // TODO here we need to get amount of bytes received and calculate cycles used
 
   let mut merged_logs = Vec::new();
   for res in results {

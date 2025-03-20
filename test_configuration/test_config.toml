@@ -1,0 +1,5 @@
+evm_logs_canister_wasm_path = "../target/wasm32-unknown-unknown/release/evm_logs_canister.wasm"
+test_canister_wasm_path = "../target/wasm32-unknown-unknown/release/test_canister.wasm"
+cycles_wallet_wasm_path = "../target/wasm32-unknown-unknown/release/wallet.wasm"
+proxy_canister_wasm_path = "../target/wasm32-unknown-unknown/release/proxy_canister.wasm"
+evm_rpc_mocked_wasm_path = "../target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm"

@@ -4,7 +4,10 @@ use evm_rpc_types::LogEntry;
 use ic_cdk::api::time;
 
 use super::service::ChainService;
-use crate::subscription_manager::events_publisher::publish_events;
+use crate::{
+  internals::misc::{timestamp_millis, timestamp_nanos},
+  subscription_manager::events_publisher::publish_events,
+};
 
 pub async fn process_and_publish_events(service: &ChainService, logs: Vec<LogEntry>) {
   let events: Vec<Event> = logs
@@ -12,7 +15,7 @@ pub async fn process_and_publish_events(service: &ChainService, logs: Vec<LogEnt
     .enumerate()
     .map(|(index, log)| Event {
       id: Nat::from(index as u64 + 1),
-      timestamp: time() / 1_000_000,
+      timestamp: timestamp_millis(),
       chain_id: service.config.chain_id,
       log_entry: log.clone(),
     })

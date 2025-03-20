@@ -25,6 +25,8 @@ tokio.workspace = true
 
 [dev-dependencies]
 pocket-ic.workspace = true
+anyhow.workspace = true
+config.workspace = true
 
 [package.metadata.candid]
 generate = true

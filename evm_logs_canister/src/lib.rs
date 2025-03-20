@@ -23,6 +23,7 @@ use crate::{
   log_filters::filter_manager::FilterManager,
   types::state::{State, init as init_state},
 };
+use crate::internals::misc::DEFAULT_MONITORING_TIME;
 
 thread_local! {
     pub static STATE: RefCell<State> = RefCell::default();
@@ -97,7 +98,7 @@ fn post_upgrade() {
     *manager.borrow_mut() = saved_topics_manager;
   });
 
-  let monitoring_interval = Duration::from_secs(15); // TODO
+  let monitoring_interval = Duration::from_secs(DEFAULT_MONITORING_TIME); // TODO
 
   let restored_services: Vec<Rc<ChainService>> = saved_chain_configs
     .into_iter()
