@@ -104,7 +104,7 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
       .expect("Chain config not found. Add it to the chain configs generation");
 
     let service = Rc::new(ChainService::new(chain_config.clone()));
-    let monitoring_interval = std::time::Duration::from_secs(chain_config.monitoring_interval);
+    let monitoring_interval = std::time::Duration::from_secs(chain_config.monitoring_interval_sec);
     service.clone().start_monitoring(monitoring_interval);
 
     CHAIN_SERVICES.with(|chain_services| {
@@ -121,7 +121,6 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
 
   if let Some(subscription_info) = removed_subscription {
     let filter = subscription_info.filter;
-
     let chain_id = subscription_info.chain_id;
 
     // remove subscription filter from the filter manager
@@ -141,7 +140,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
       }
     });
 
-    // sto timer for specific chain ID if there are no more subscriptions for it
+    // Stop timer for specific chain ID if there are no more subscriptions for it
     let has_subscriptions = crate::STATE.with(|subs| {
       subs
         .borrow()
@@ -153,7 +152,7 @@ pub fn unsubscribe(caller: Principal, subscription_id: Nat) -> UnsubscribeResult
     if !has_subscriptions {
       CHAIN_SERVICES.with(|chain_services| {
         let chain_services = chain_services.borrow_mut();
-        // call stop_monitoring for the chain service, but dont remove it
+        // call stop_monitoring for the chain service, but don't remove it
         if let Some(service) = chain_services
           .iter()
           .find(|service| service.config.chain_id == chain_id)

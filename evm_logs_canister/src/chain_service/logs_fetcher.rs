@@ -13,6 +13,9 @@ use crate::{
   types::balances::{BalanceError, Balances},
 };
 
+const BASE_STRUCT_SIZE: usize = 8;
+const MAX_RETRIES: usize = 2;
+
 fn estimate_log_entry_size(logs: &[LogEntry]) -> usize {
   logs.iter().map(|log| Encode!(log).unwrap().len()).sum()
 }
@@ -24,7 +27,7 @@ fn estimate_cycles_used(
 ) -> u64 {
   log_with_metrics!("calculating cycles used for logs: {}", logs_received.len());
   // Estimate request size
-  let request_size_bytes = 8 // Base struct size
+  let request_size_bytes = BASE_STRUCT_SIZE
         + (ETH_ADDRESS_SIZE as usize * addresses_count) // Address bytes
         + topics_count.map_or(0, |t| t.iter().map(|x| ETH_TOPIC_SIZE as usize * x.len()).sum()); // Topics bytes
 
@@ -35,12 +38,9 @@ fn estimate_cycles_used(
   let cycles_for_request = request_size_bytes as u64 * CYCLES_PER_BYTE_SEND;
   let cycles_for_response = response_size_bytes * CYCLES_PER_BYTE_RECEIVE;
   log_with_metrics!("cycles_for_response actual: {}", cycles_for_response);
-  // log!("cycles_for_response theoretical: {}", cycles_for_response);
 
   // Total cycles usage including base call cost and multiple RPC queries
-  let total_cycles_used =
-    BASE_CALL_CYCLES + cycles_for_request + cycles_for_response + (cycles_for_request + cycles_for_response);
-  total_cycles_used
+  BASE_CALL_CYCLES + cycles_for_request + cycles_for_response + (cycles_for_request + cycles_for_response)
 }
 
 fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
@@ -83,9 +83,7 @@ pub async fn fetch_logs(
 
   let events_per_interval = get_state_value!(estimate_events_num);
   let chunk_size = calculate_request_chunk_size(events_per_interval, addresses.len() as u32);
-
   let chunks_iter = addresses.chunks(chunk_size);
-
   let mut futures = vec![];
 
   for chunk in chunks_iter {
@@ -110,12 +108,11 @@ pub async fn fetch_logs(
   }
 
   let total_cycles_used = estimate_cycles_used(&merged_logs, addresses.len(), topics.as_ref());
-  // log!("cycles used in theoretical estimate: {}", total_cycles_used1);
-  // log!("cycles_for_response actual {}", total_cycles_used2);
 
-  // after sending request we need to charge cycles for each subscriber accordingly
-  // to amount of their subscribtion addresses(filters)
-  // note: later events_publisher will charge cycles accordingly to amount of logs received by each subscriber
+  // After sending request we need to charge cycles for each subscriber accordingly
+  //  to amount of their subscription addresses(filters)
+  // Note: later events_publisher will charge cycles accordingly to amount
+  //  of logs received by each subscriber
   charge_subscribers(addresses.len(), total_cycles_used);
 
   Ok(merged_logs)
@@ -151,7 +148,7 @@ async fn eth_get_logs_call_with_retry(
 
   // Prepare arguments for the RPC call
   let get_logs_args = GetLogsArgs {
-    from_block: Some(BlockTag::Number(Nat256::try_from(from_block.clone()).unwrap())),
+    from_block: Some(BlockTag::Number(Nat256::try_from(from_block.clone())?)),
     to_block: Some(BlockTag::Latest),
     addresses,
     topics,
@@ -160,10 +157,9 @@ async fn eth_get_logs_call_with_retry(
   let rpc_config = chain_config.rpc_config.clone();
 
   let cycles = 10_000_000_000; // TODO
-  let max_retries = 2; // Set the maximum number of retries
 
   // Retry logic
-  for attempt in 1..=max_retries {
+  for attempt in 1..=MAX_RETRIES {
     log_with_metrics!("calling eth_getLogs, attempt {}", attempt);
     let result: Result<(MultiRpcResult<Vec<LogEntry>>,), _> = call_with_payment128(
       chain_config.evm_rpc_canister,
@@ -179,25 +175,25 @@ async fn eth_get_logs_call_with_retry(
 
     match result {
       Ok((result,)) => match result {
-        MultiRpcResult::Consistent(r) => match r {
-          RpcResult::Ok(logs) => return Ok(logs),
-          RpcResult::Err(err) => return Err(format!("GetLogsResult error: {:?}", err)),
-        },
+        MultiRpcResult::Consistent(r) => {
+          return match r {
+            RpcResult::Ok(logs) => Ok(logs),
+            RpcResult::Err(err) => Err(format!("GetLogsResult error: {:?}", err)),
+          };
+        }
         MultiRpcResult::Inconsistent(_) => {
-          if attempt == max_retries {
+          if attempt == MAX_RETRIES {
             return Err("RPC providers gave inconsistent results".to_string());
           }
         }
       },
       Err(e) => {
-        if attempt == max_retries {
+        if attempt == MAX_RETRIES {
           return Err(format!("Call failed after {} attempts: {:?}", attempt, e));
         }
       }
     }
-
-    log_with_metrics!("Retrying... attempt {}/{}", attempt, max_retries);
+    log_with_metrics!("Retrying... attempt {}/{}", attempt, MAX_RETRIES);
   }
-
   Err("Failed to get logs after retries.".to_string())
 }

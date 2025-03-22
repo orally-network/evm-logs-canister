@@ -14,7 +14,7 @@ use crate::{
 };
 
 thread_local! {
-    static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0u32));
+    static SUB_ID_COUNTER: RefCell<Nat> = RefCell::new(Nat::from(0_u32));
 }
 
 pub const DEFAULT_MONITORING_TIME: u64 = 15;
@@ -74,7 +74,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
       }),
-      monitoring_interval: DEFAULT_MONITORING_TIME,
+      monitoring_interval_sec: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: BASE_CHAIN_ID,
@@ -84,7 +84,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
       }),
-      monitoring_interval: DEFAULT_MONITORING_TIME,
+      monitoring_interval_sec: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: OPTIMISM_CHAIN_ID,
@@ -94,7 +94,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(4), min: 1 }),
       }),
-      monitoring_interval: DEFAULT_MONITORING_TIME,
+      monitoring_interval_sec: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: POLYGON_CHAIN_ID,
@@ -104,7 +104,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
       }),
-      monitoring_interval: DEFAULT_MONITORING_TIME,
+      monitoring_interval_sec: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: ARBITRUM_CHAIN_ID,
@@ -114,7 +114,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
       }),
-      monitoring_interval: DEFAULT_MONITORING_TIME,
+      monitoring_interval_sec: DEFAULT_MONITORING_TIME,
     },
     ChainConfig {
       chain_id: BSC_CHAIN_ID,
@@ -124,7 +124,7 @@ pub fn generate_chain_configs() -> Vec<ChainConfig> {
         response_size_estimate: Some(response_size_estimate),
         response_consensus: Some(ConsensusStrategy::Threshold { total: Some(3), min: 1 }),
       }),
-      monitoring_interval: DEFAULT_MONITORING_TIME,
+      monitoring_interval_sec: DEFAULT_MONITORING_TIME,
     },
   ]
 }

@@ -94,7 +94,7 @@ impl FilterManager {
   /// Returns a tuple of `(addresses, topics)`.
   /// - `addresses`: all active addresses
   /// - `topics`: if the first_position_topics is empty => None
-  ///             otherwise => Some([ list_of_topics ])
+  ///   otherwise => Some([ list_of_topics ])
   pub fn get_active_addresses_and_topics(&self, chain_id: u32) -> (Vec<String>, Option<Vec<Vec<String>>>) {
     if let Some(chain_data) = self.get_chain_data(chain_id) {
       // Gather addresses

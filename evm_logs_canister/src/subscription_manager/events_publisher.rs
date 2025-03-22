@@ -8,11 +8,13 @@ use crate::{
   log_with_metrics, types::balances::Balances,
 };
 
+/// Approximate size of a response payload(just Ok response)
+const OK_RESP_SIZE: u64 = 32;
+
 fn estimate_cycles_for_event_notification(event_size: usize) -> u64 {
   // Estimated request size (event notification structure)
   let request_size = event_size as u64; // Size in bytes of the event notification payload
-
-  let response_size = 32; // Approximate size of a response payload(just Ok response)
+  let response_size = OK_RESP_SIZE;
 
   // Compute cycles based on transmission costs
   let cycles_for_request = request_size * CYCLES_PER_BYTE_SEND;
@@ -29,7 +31,7 @@ pub async fn publish_events(events: Vec<Event>) {
   }
 }
 
-// distibute event to corresponding subscribers and handle sending errors
+/// Distribute event to corresponding subscribers and handle sending errors
 async fn distribute_event(event: Event) {
   // Get all subscriptions for the event's chain_id
   let subscriptions = crate::STATE.with(|state| {
@@ -41,7 +43,7 @@ async fn distribute_event(event: Event) {
       .cloned()
       .collect::<Vec<_>>()
   });
-  // this amount is a minimum required for subscriber to have, otherwise event won't be send
+  // This amount is a minimum required for subscriber to have, otherwise event won't be sent
   // Estimate the cycles required per event notification
   let event_size = std::mem::size_of::<EventNotification>(); // Estimate the size of EventNotification in bytes
   let estimated_cycles_for_event = estimate_cycles_for_event_notification(event_size);
@@ -77,7 +79,7 @@ async fn distribute_event(event: Event) {
           subscriber_principal
         );
 
-        // remove from subscriprions state
+        // remove from subscriptions state
         crate::STATE.with(|subs| {
           subs.borrow_mut().subscriptions.remove(&sub.subscription_id);
         });
@@ -102,7 +104,7 @@ async fn distribute_event(event: Event) {
       match call_result {
         Ok((send_result,)) => match send_result {
           SendNotificationResult::Ok => {
-            // if notification was succesfully sent - charge this subscriber
+            // if notification was successfully sent - charge this subscriber
 
             if Balances::is_sufficient(subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap() {
               Balances::reduce(&subscriber_principal, Nat::from(estimated_cycles_for_event)).unwrap();

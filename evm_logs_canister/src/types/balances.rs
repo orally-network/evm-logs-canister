@@ -31,7 +31,6 @@ impl Balances {
       let mut state = state.borrow_mut();
       let balances = &mut state.user_balances.balances;
       let entry = balances.entry(caller).or_insert_with(|| Nat::from(0u32));
-
       *entry += amount.clone();
       Ok(())
     })
@@ -76,7 +75,6 @@ impl Balances {
     STATE.with(|state| {
       let state = state.borrow();
       let balance_entry = state.user_balances.balances.get(principal);
-
       Ok(balance_entry.map_or_else(|| Nat::from(0u32), |entry| entry.clone()))
     })
   }
