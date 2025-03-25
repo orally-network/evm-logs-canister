@@ -1,5 +1,6 @@
 use candid::{Nat, Principal};
 use evm_logs_types::{Filter, SubscriptionInfo};
+use evm_rpc_types::{Hex20, Hex32};
 
 use crate::FILTERS_MANAGER;
 
@@ -43,7 +44,7 @@ pub fn get_active_filters() -> Vec<Filter> {
 }
 
 // Get unique addresses and topics to pass to eth_getLogs.
-pub fn get_active_addresses_and_topics(chain_id: u32) -> (Vec<String>, Option<Vec<Vec<String>>>) {
+pub fn get_active_addresses_and_topics(chain_id: u32) -> (Vec<Hex20>, Option<Vec<Vec<Hex32>>>) {
   FILTERS_MANAGER.with(|manager| {
     let manager = manager.borrow();
     manager.get_active_addresses_and_topics(chain_id)

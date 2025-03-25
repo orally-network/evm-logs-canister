@@ -16,7 +16,7 @@ pub fn init() {
 
 pub async fn register_subscription(registration: SubscriptionRegistration) -> RegisterSubscriptionResult {
   let subscriber_principal = registration.canister_to_top_up;
-  let filter = registration.filter.clone();
+  let filter = &registration.filter;
 
   let subscribers = get_state_value!(subscribers);
   let subscriptions = get_state_value!(subscriptions);
@@ -25,7 +25,7 @@ pub async fn register_subscription(registration: SubscriptionRegistration) -> Re
     sub_ids.iter().find_map(|sub_id| {
       subscriptions
         .get(sub_id)
-        .filter(|sub_info| sub_info.filter == filter)
+        .filter(|sub_info| sub_info.filter == *filter)
         .cloned()
     })
   });

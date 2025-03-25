@@ -15,6 +15,7 @@ use crate::{
 
 const BASE_STRUCT_SIZE: usize = 8;
 const MAX_RETRIES: usize = 2;
+const CYCLES_TO_RECEIVE_LOGS: u128 = 10_000_000_000;
 
 fn estimate_log_entry_size(logs: &[LogEntry]) -> usize {
   logs.iter().map(|log| Encode!(log).unwrap().len()).sum()
@@ -23,7 +24,7 @@ fn estimate_log_entry_size(logs: &[LogEntry]) -> usize {
 fn estimate_cycles_used(
   logs_received: &[LogEntry],
   addresses_count: usize,
-  topics_count: Option<&Vec<Vec<String>>>,
+  topics_count: Option<&Vec<Vec<Hex32>>>,
 ) -> u64 {
   log_with_metrics!("calculating cycles used for logs: {}", logs_received.len());
   // Estimate request size
@@ -72,8 +73,8 @@ fn charge_subscribers(addresses_amound: usize, cycles_used: u64) {
 pub async fn fetch_logs(
   chain_config: &ChainConfig,
   from_block: Nat,
-  addresses: Option<Vec<String>>,
-  topics: Option<Vec<Vec<String>>>,
+  addresses: Option<Vec<Hex20>>,
+  topics: Option<Vec<Vec<Hex32>>>,
 ) -> Result<Vec<LogEntry>, String> {
   let addresses = addresses.unwrap_or_default();
 
@@ -121,30 +122,10 @@ pub async fn fetch_logs(
 async fn eth_get_logs_call_with_retry(
   chain_config: &ChainConfig,
   from_block: Nat,
-  addresses: Option<Vec<String>>,
-  topics: Option<Vec<Vec<String>>>,
+  addresses: Option<Vec<Hex20>>,
+  topics: Option<Vec<Vec<Hex32>>>,
 ) -> Result<Vec<LogEntry>, String> {
-  // Convert addresses to Hex
-  let addresses: Vec<Hex20> = addresses
-    .unwrap_or_default()
-    .into_iter()
-    .map(|addr| Hex20::from_str(&addr).map_err(|e| format!("Invalid address {}: {}", addr, e)))
-    .collect::<Result<_, _>>()?;
-
-  // Convert topics to Hex
-  let topics: Option<Vec<Vec<Hex32>>> = topics
-    .map(|outer| {
-      outer
-        .into_iter()
-        .map(|inner| {
-          inner
-            .into_iter()
-            .map(|topic| Hex32::from_str(&topic).map_err(|e| format!("Invalid topic {}: {}", topic, e)))
-            .collect::<Result<Vec<_>, _>>()
-        })
-        .collect::<Result<Vec<_>, _>>()
-    })
-    .transpose()?;
+  let addresses = addresses.unwrap_or_default();
 
   // Prepare arguments for the RPC call
   let get_logs_args = GetLogsArgs {
@@ -155,8 +136,6 @@ async fn eth_get_logs_call_with_retry(
   };
 
   let rpc_config = chain_config.rpc_config.clone();
-
-  let cycles = 10_000_000_000; // TODO
 
   // Retry logic
   for attempt in 1..=MAX_RETRIES {
@@ -169,7 +148,7 @@ async fn eth_get_logs_call_with_retry(
         rpc_config.clone(),
         get_logs_args.clone(),
       ),
-      cycles,
+      CYCLES_TO_RECEIVE_LOGS,
     )
     .await;
 
