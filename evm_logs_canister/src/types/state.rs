@@ -34,7 +34,7 @@ impl Default for State {
     Self {
       evm_rpc_canister: Principal::from_str("aaaaa-aa").expect("Invalid principal"),
       proxy_canister: Principal::from_str("aaaaa-aa").expect("Invalid principal"),
-      estimate_events_num: 5,
+      estimate_events_num: 30,
       subscriptions: HashMap::new(),
       subscribers: HashMap::new(),
       user_balances: Balances::default(),
