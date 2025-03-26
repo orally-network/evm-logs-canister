@@ -3,8 +3,8 @@
     "evm_logs_canister": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/evm_logs_canister.wasm",
-      "candid": "src/evm_logs_canister.did",
-      "build": "cargo build --target wasm32-unknown-unknown --release",
+      "candid": "evm_logs_canister/evm_logs_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package evm_logs_canister",
       "metadata": [
         {
           "name": "candid:service",
@@ -25,19 +25,43 @@
     "test_canister": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
-      "candid": "src/test_canister/test_canister.did",
+      "candid": "test_canister/test_canister.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
       "metadata": [
         {
           "name": "candid:service",
-          "value": "src/test_canister/test_canister.did"
+          "value": "test_canister/test_canister.did"
+        }
+      ]
+    },
+    "test_canister2": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
+      "candid": "test_canister/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "test_canister/test_canister.did"
+        }
+      ]
+    },
+    "test_canister3": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/test_canister.wasm",
+      "candid": "test_canister/test_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package test_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "test_canister/test_canister.did"
         }
       ]
     },
     "proxy_canister": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/proxy_canister.wasm",
-      "candid": "src/proxy_canister/proxy_canister.did",
+      "candid": "proxy_canister/proxy_canister.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package proxy_canister",
       "metadata": [
         {
@@ -54,12 +78,12 @@
     "evm_rpc_mocked": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/evm_rpc_mocked.wasm",
-      "candid": "tests/evm_rpc_mocked/evm_rpc_mocked.did",
+      "candid": "evm_rpc_mocked/evm_rpc_mocked.did",
       "build": "cargo build --target wasm32-unknown-unknown --release --package evm_rpc_mocked",
       "metadata": [
         {
           "name": "candid:service",
-          "value": "tests/evm_rpc_mocked.did"
+          "value": "evm_rpc_mocked/evm_rpc_mocked.did"
         }
       ]
     }
