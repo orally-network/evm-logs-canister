@@ -34,7 +34,7 @@ local_deploy: local_deploy_evm_rpc local_deploy_proxy local_deploy_test_canister
 		"(record { \
 			evm_rpc_canister=principal\"${EVM_RPC_CANISTER}\"; \
 			proxy_canister=principal\"${PROXY_CANISTER}\"; \
-			estimate_events_num = 5:nat32; \
+			estimate_events_num = 30 : nat32; \
 			max_response_bytes = 1000000:nat32 \
 		})" evm_logs_canister \
 
@@ -63,7 +63,7 @@ ic_deploy:
 		"(record { \
 			evm_rpc_canister = principal \"${EVM_RPC_CANISTER}\"; \
 			proxy_canister = principal \"${PROXY_CANISTER}\"; \
-			estimate_events_num = 5 : nat32; \
+			estimate_events_num = 30 : nat32; \
 			max_response_bytes = 1000000 : nat32 \
 		})"
 
