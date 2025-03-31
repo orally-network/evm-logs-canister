@@ -8,12 +8,12 @@ members = [
     "evm_rpc_mocked",
 ]
 resolver = "2"
-description = "EVM logs canister for monitoring events"
+description = "EVM logs canister for monitoring EVM events on the IC canister"
 readme = "README.md"
 rust-version = "1.85.0"
-authors = ["Oreally"]
-repository = "https://github.com/BoostyLabs/tricorn-staking"
-categories = ["blockchain"]
+authors = ["OrallyNetwork"]
+repository = "https://github.com/orally-network/evm-logs-canister"
+categories = ["blockchain", "ethereum", "ic", "canister"]
 
 [workspace.dependencies]
 anyhow = { version = "1.0.97" }
