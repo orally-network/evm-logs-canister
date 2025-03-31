@@ -1,65 +1,39 @@
 [workspace]
 members = [
-    ".",
-    "evm_logs_types", 
-    "metrics", 
-    "src/test_canister",
-    "src/proxy_canister",
-    "tests/evm_rpc_mocked",
+    "evm_logs_canister",
+    "evm_logs_types",
+    "canister_utils",
+    "test_canister",
+    "proxy_canister",
+    "evm_rpc_mocked",
 ]
-
-[package]
-name = "evm_logs_canister"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib"]
-path = "src/lib.rs"
-
-[dependencies]
-candid.workspace = true
-ic-cdk.workspace = true
-ic-cdk-timers.workspace = true
-ic-cdk-macros.workspace = true
-serde = { version = "1.0", features = ["derive"] }
-serde_json.workspace = true
-evm_logs_types = {path = "evm_logs_types"}
-metrics = { path = "metrics" }
-tokio.workspace = true
-num-traits.workspace = true
-futures.workspace = true
-thiserror.workspace = true
-quote.workspace = true
-syn.workspace = true
-evm_rpc_types.workspace = true
-hex.workspace = true
-getrandom = { version = "0.2", features = ["js"] }
-ic-utils = { package = "canistergeek_ic_rust", version = "0.4.2" }
+resolver = "2"
+description = "EVM logs canister for monitoring events"
+readme = "README.md"
+rust-version = "1.85.0"
+authors = ["Oreally"]
+repository = "https://github.com/BoostyLabs/tricorn-staking"
+categories = ["blockchain"]
 
 [workspace.dependencies]
-candid = { version = "0.10" }
-ic-cdk = "0.17.1"
-ic-cdk-timers = "0.11" 
-ic-cdk-macros = "0.17.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-evm_logs_types = {path = "evm_logs_types"}
-metrics = { path = "metrics" }
-tokio = {version = "1.40.0"}
-num-traits = "0.2"
-futures = "0.3.31"
-thiserror = "2.0.11"
-quote = "1.0.38"
-syn = "2.0.96"
-evm_rpc_types = "1.2.0"
-hex = "0.4.3"
-getrandom = { version = "0.2", features = ["js"] }
+anyhow = { version = "1.0.97" }
+candid = { version = "0.10.13" }
+config = { version = "0.15.11" }
+ic-cdk = { version = "0.17.1" }
+ic-cdk-timers = { version = "0.11.0" }
+ic-cdk-macros = { version = "0.17.1" }
+serde = { version = "1.0.219", features = ["derive"] }
+evm_logs_types = { path = "./evm_logs_types" }
+canister_utils = { path = "canister_utils" }
+tokio = { version = "1.44.1" }
+futures = { version = "0.3.31" }
+thiserror = { version = "2.0.11" }
+evm_rpc_types = { version = "1.3.0" }
+hex = { version = "0.4.3" }
+getrandom = { version = "0.2.15", features = ["js"] }
 ic-utils = { package = "canistergeek_ic_rust", version = "0.4.2" }
-serde_bytes = "0.11"
+serde_bytes = { version = "0.11.17" }
+pocket-ic = { version = "6.0.0" }
+ic-web3-rs = { version = "0.1.9" }
 
-[dev-dependencies]
-pocket-ic = "6.0.0"
 
-[package.metadata.candid]
-generate = true
