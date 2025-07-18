@@ -1,0 +1,103 @@
+type ChainConfig = record {
+  chain_id : nat32;
+  chain_name : text;
+  rpc_url : text;
+  block_interval_seconds : nat64;
+  max_response_bytes : nat64;
+};
+
+type CycleUsageStats = record {
+  total_cycles_used : nat64;
+  last_execution_cycles : nat64;
+  average_cycles_per_block : nat64;
+  cycles_per_log_entry : nat64;
+  last_updated : nat64;
+  execution_count : nat64;
+};
+
+type Filter = record {
+  address : opt text;
+  topics : opt vec vec text;
+};
+
+type HealthStatus = record {
+  chain_id : nat32;
+  is_healthy : bool;
+  last_successful_fetch : opt nat64;
+  consecutive_failures : nat32;
+  error_message : opt text;
+};
+
+type MonitoringStatus = record {
+  is_monitoring : bool;
+  last_processed_block : nat;
+  timer_id : opt text;
+  monitoring_interval_seconds : nat64;
+};
+
+type RegisterSubscriptionResult = record {
+  subscription_id : nat;
+  estimated_cycles_per_day : nat64;
+};
+
+type SubscriptionInfo = record {
+  subscription_id : nat;
+  subscriber_principal : principal;
+  chain_id : nat32;
+  filter : Filter;
+  status : SubscriptionStatus;
+  created_at : nat64;
+  last_updated : nat64;
+  cycles_consumed : nat64;
+  events_received : nat64;
+};
+
+type SubscriptionRegistration = record {
+  chain_id : nat32;
+  filter : Filter;
+  memo : opt blob;
+  canister_to_top_up : principal;
+};
+
+type SubscriptionStatus = variant {
+  Active;
+  InsufficientBalance : record { since : nat64 };
+  ChainServiceOffline : record { since : nat64 };
+  ProcessingError : record { error : text; since : nat64 };
+  PausedByUser : record { since : nat64 };
+};
+
+type TopUpBalanceResult = record {
+  new_balance : nat;
+  cycles_received : nat64;
+};
+
+type UnsubscribeResult = record {
+  refunded_cycles : nat;
+};
+
+service : (ChainConfig) -> {
+  // User Operations
+  top_up_balance : () -> (variant { Ok : TopUpBalanceResult; Err : text });
+  get_balance : (principal) -> (nat) query;
+  register_subscription : (SubscriptionRegistration) -> (variant { Ok : RegisterSubscriptionResult; Err : text });
+  batch_register_subscriptions : (vec SubscriptionRegistration) -> (variant { Ok : vec RegisterSubscriptionResult; Err : text });
+  unsubscribe : (nat) -> (variant { Ok : UnsubscribeResult; Err : text });
+  batch_unsubscribe : (vec nat) -> (variant { Ok : vec UnsubscribeResult; Err : text });
+  pause_subscription : (nat) -> (variant { Ok; Err : text });
+  resume_subscription : (nat) -> (variant { Ok; Err : text });
+  
+  // Query Operations
+  get_user_subscriptions : (principal) -> (vec SubscriptionInfo) query;
+  get_user_subscriptions_with_status : (principal) -> (vec SubscriptionInfo) query;
+  get_subscription_status : (nat) -> (variant { Ok : SubscriptionStatus; Err : text }) query;
+  get_cycle_usage_stats : () -> (CycleUsageStats) query;
+  get_monitoring_status : () -> (MonitoringStatus) query;
+  get_health_status : () -> (HealthStatus) query;
+  
+  // Orchestrator Communication
+  set_orchestrator : (principal) -> (variant { Ok; Err : text });
+  update_config : (ChainConfig) -> (variant { Ok; Err : text });
+  start_monitoring : () -> (variant { Ok; Err : text });
+  stop_monitoring : () -> (variant { Ok; Err : text });
+}
