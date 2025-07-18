@@ -1,5 +1,29 @@
 {
   "canisters": {
+    "orchestrator_canister": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/orchestrator_canister.wasm",
+      "candid": "orchestrator_canister/orchestrator_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package orchestrator_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "orchestrator_canister/orchestrator_canister.did"
+        }
+      ]
+    },
+    "chain_service_canister": {
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/chain_service_canister.wasm",
+      "candid": "chain_service_canister/chain_service_canister.did",
+      "build": "cargo build --target wasm32-unknown-unknown --release --package chain_service_canister",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "value": "chain_service_canister/chain_service_canister.did"
+        }
+      ]
+    },
     "evm_logs_canister": {
       "type": "custom",
       "wasm": "target/wasm32-unknown-unknown/release/evm_logs_canister.wasm",

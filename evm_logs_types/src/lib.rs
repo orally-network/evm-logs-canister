@@ -1,5 +1,5 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
-use evm_rpc_types::{Hex20, Hex32, LogEntry};
+pub use evm_rpc_types::{Hex20, Hex32, LogEntry};
 use serde::Serialize;
 
 /// A note on specifying topic filters:
@@ -15,7 +15,7 @@ pub type TopicsPosition = Vec<Hex32>;
 
 #[derive(CandidType, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Filter {
-  pub address: Hex20,
+  pub address: Option<Hex20>,
   pub topics: Option<Vec<TopicsPosition>>, // there is maximum of 4 topics position in the filter
 }
 

@@ -1,0 +1,116 @@
+type ChainServiceConfig = record {
+  chain_id : nat32;
+  chain_name : text;
+  rpc_url : text;
+  block_interval_seconds : nat64;
+  max_response_bytes : nat64;
+};
+
+type ChainServiceInfo = record {
+  canister_id : principal;
+  chain_id : nat32;
+  chain_name : text;
+  version : text;
+  status : ChainServiceStatus;
+  deployment_timestamp : nat64;
+  last_upgrade_timestamp : opt nat64;
+};
+
+type ChainServiceStatus = variant {
+  Active;
+  Paused;
+  Upgrading;
+  Failed;
+};
+
+type ChainSubscriptionRequest = record {
+  chain_id : nat32;
+  filter : Filter;
+};
+
+type BatchSubscriptionResult = record {
+  successful : vec SubscriptionResult;
+  failed : vec record { ChainSubscriptionRequest; text };
+};
+
+type Filter = record {
+  address : opt text;
+  topics : opt vec vec text;
+};
+
+type OrchestratorInfo = record {
+  admin : principal;
+  chain_services : vec ChainServiceInfo;
+  version : text;
+  total_users : nat64;
+};
+
+type OrchestratorInitArg = record {
+  admin : principal;
+  version : text;
+};
+
+type SubscriptionInfo = record {
+  subscription_id : nat;
+  subscriber_principal : principal;
+  chain_id : nat32;
+  filter : Filter;
+  status : SubscriptionStatus;
+  created_at : nat64;
+  last_updated : nat64;
+  cycles_consumed : nat64;
+  events_received : nat64;
+};
+
+type SubscriptionResult = record {
+  subscription_id : nat;
+  chain_service_canister_id : principal;
+};
+
+type SubscriptionStatus = variant {
+  Active;
+  InsufficientBalance : record { since : nat64 };
+  ChainServiceOffline : record { since : nat64 };
+  ProcessingError : record { error : text; since : nat64 };
+  PausedByUser : record { since : nat64 };
+};
+
+type SystemStatus = record {
+  total_chain_services : nat32;
+  active_chain_services : nat32;
+  total_subscriptions : nat64;
+  orchestrator_version : text;
+};
+
+type UpgradeResult = record {
+  chain_id : nat32;
+  canister_id : principal;
+  success : bool;
+  error_message : opt text;
+  timestamp : nat64;
+  from_version : text;
+  to_version : text;
+};
+
+service : (OrchestratorInitArg) -> {
+  // Admin Methods
+  deploy_chain_service : (nat32, text, ChainServiceConfig) -> (variant { Ok : principal; Err : text });
+  upgrade_chain_service : (nat32) -> (variant { Ok; Err : text });
+  upgrade_all_chain_services : () -> (variant { Ok : vec UpgradeResult; Err : text });
+  update_chain_service_wasm : (blob, text) -> (variant { Ok; Err : text });
+  pause_chain_service : (nat32) -> (variant { Ok; Err : text });
+  resume_chain_service : (nat32) -> (variant { Ok; Err : text });
+  rollback_chain_service : (nat32, text) -> (variant { Ok; Err : text });
+  
+  // User Methods
+  register_user : () -> (variant { Ok; Err : text });
+  get_available_chain_services : () -> (vec ChainServiceInfo) query;
+  subscribe_to_chain : (nat32, Filter) -> (variant { Ok : SubscriptionResult; Err : text });
+  batch_subscribe_to_chains : (vec ChainSubscriptionRequest) -> (variant { Ok : BatchSubscriptionResult; Err : text });
+  get_all_subscriptions : () -> (vec SubscriptionInfo) query;
+  get_system_status : () -> (SystemStatus) query;
+  
+  // Service Discovery
+  get_chain_service_canister_id : (nat32) -> (variant { Ok : principal; Err : text }) query;
+  get_orchestrator_info : () -> (OrchestratorInfo) query;
+}

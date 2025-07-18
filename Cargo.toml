@@ -2,10 +2,13 @@
 members = [
     "evm_logs_canister",
     "evm_logs_types",
-    "canister_utils",
-    "test_canister",
-    "proxy_canister",
     "evm_rpc_mocked",
+    "proxy_canister",
+    "test_canister",
+    "canister_utils",
+    "orchestrator_canister",
+    "chain_service_canister",
+    "integration_tests",
 ]
 resolver = "2"
 description = "EVM logs canister for monitoring EVM events on the IC canister"
@@ -35,5 +38,3 @@ ic-utils = { package = "canistergeek_ic_rust", version = "0.4.2" }
 serde_bytes = { version = "0.11.17" }
 pocket-ic = { version = "6.0.0" }
 ic-web3-rs = { version = "0.1.9" }
-
-
