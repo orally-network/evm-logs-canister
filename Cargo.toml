@@ -3,12 +3,13 @@ members = [
     "evm_logs_canister",
     "evm_logs_types",
     "evm_rpc_mocked",
-    "proxy_canister",
     "test_canister",
+    "proxy_canister",
     "canister_utils",
     "orchestrator_canister",
     "chain_service_canister",
     "integration_tests",
+    "evm-rpc-client",
 ]
 resolver = "2"
 description = "EVM logs canister for monitoring EVM events on the IC canister"
