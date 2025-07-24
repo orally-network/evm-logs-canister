@@ -63,17 +63,23 @@ pub fn charge_subscribers_fairly(cycles_used: u64) {
     });
 }
 
+pub fn estimate_cycles_per_day_from_state(
+    stats: &crate::types::CycleUsageStats,
+    config: &crate::types::ChainConfig,
+) -> u64 {
+    let blocks_per_day = 86400 / config.block_interval_seconds; // seconds per day / block interval
+    
+    if stats.average_cycles_per_block > 0 {
+        stats.average_cycles_per_block * blocks_per_day
+    } else {
+        // Default estimate if no data available
+        1_000_000 * blocks_per_day // 1M cycles per block as default
+    }
+}
+
 pub fn estimate_cycles_per_day() -> u64 {
     crate::state::read_state(|state| {
-        let stats = &state.cycle_usage_stats;
-        let blocks_per_day = 86400 / state.config.block_interval_seconds; // seconds per day / block interval
-        
-        if stats.average_cycles_per_block > 0 {
-            stats.average_cycles_per_block * blocks_per_day
-        } else {
-            // Default estimate if no data available
-            1_000_000 * blocks_per_day // 1M cycles per block as default
-        }
+        estimate_cycles_per_day_from_state(&state.cycle_usage_stats, &state.config)
     })
 }
 

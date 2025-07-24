@@ -21,7 +21,7 @@ pub fn top_up_balance() -> Result<TopUpBalanceResult, String> {
     ic_cdk::api::call::msg_cycles_accept128(cycles_received as u128);
     
     // Update user balance
-    let new_balance = mutate_state(|state| {
+    let new_balance = mutate_state(|state: &mut ChainServiceState| {
         let current_balance = state.user_balances.get(&caller).cloned().unwrap_or(Nat::from(0u32));
         let new_balance = current_balance + Nat::from(cycles_received);
         state.user_balances.insert(caller, new_balance.clone());
@@ -74,7 +74,10 @@ pub async fn register_subscription(
         
         state.subscriptions.insert(subscription_id.clone(), subscription_info);
         
-        let estimated_cycles = estimate_cycles_per_day();
+        let estimated_cycles = crate::cycle_tracking::estimate_cycles_per_day_from_state(
+            &state.cycle_usage_stats,
+            &state.config,
+        );
         (subscription_id, estimated_cycles)
     });
     
@@ -87,14 +90,54 @@ pub async fn register_subscription(
 pub async fn batch_register_subscriptions(
     registrations: Vec<evm_logs_types::SubscriptionRegistration>,
 ) -> Result<Vec<RegisterSubscriptionResult>, String> {
-    let mut results = Vec::new();
+    let caller = ic_cdk::caller();
     
-    for registration in registrations {
-        match register_subscription(registration).await {
-            Ok(result) => results.push(result),
-            Err(e) => return Err(format!("Failed to register subscription: {}", e)),
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot register subscriptions".to_string());
+    }
+    
+    // Validate all registrations first
+    let chain_id = read_state(|state| state.config.chain_id);
+    for registration in &registrations {
+        if registration.chain_id != chain_id {
+            return Err(format!("Chain ID mismatch: expected {}, got {}", chain_id, registration.chain_id));
         }
     }
+    
+    // Process all registrations in a single state mutation
+    let results = mutate_state(|state| {
+        let mut results = Vec::new();
+        
+        for registration in registrations {
+            let subscription_id = state.next_subscription_id.clone();
+            state.next_subscription_id += 1u32;
+            
+            let subscription_info = SubscriptionInfo {
+                subscription_id: subscription_id.clone(),
+                subscriber_principal: caller,
+                chain_id: registration.chain_id,
+                filter: registration.filter,
+                status: SubscriptionStatus::Active,
+                created_at: ic_cdk::api::time(),
+                last_updated: ic_cdk::api::time(),
+                cycles_consumed: 0,
+                events_received: 0,
+            };
+            
+            state.subscriptions.insert(subscription_id.clone(), subscription_info);
+            
+            let estimated_cycles = crate::cycle_tracking::estimate_cycles_per_day_from_state(
+                &state.cycle_usage_stats,
+                &state.config,
+            );
+            results.push(RegisterSubscriptionResult {
+                subscription_id,
+                estimated_cycles_per_day: estimated_cycles,
+            });
+        }
+        
+        results
+    });
     
     Ok(results)
 }
@@ -126,16 +169,36 @@ pub fn unsubscribe(subscription_id: Nat) -> Result<UnsubscribeResult, String> {
 }
 
 pub fn batch_unsubscribe(subscription_ids: Vec<Nat>) -> Result<Vec<UnsubscribeResult>, String> {
-    let mut results = Vec::new();
+    let caller = ic_cdk::caller();
     
-    for subscription_id in subscription_ids {
-        match unsubscribe(subscription_id) {
-            Ok(result) => results.push(result),
-            Err(e) => return Err(format!("Failed to unsubscribe: {}", e)),
-        }
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot unsubscribe".to_string());
     }
     
-    Ok(results)
+    // Process all unsubscriptions in a single state mutation
+    mutate_state(|state| {
+        let mut results = Vec::new();
+        
+        for subscription_id in subscription_ids {
+            // Check if subscription exists and belongs to caller
+            let subscription = state.subscriptions.get(&subscription_id)
+                .ok_or_else(|| format!("Subscription {} not found", subscription_id))?;
+            
+            if subscription.subscriber_principal != caller {
+                return Err(format!("Access denied: subscription {} belongs to another user", subscription_id));
+            }
+            
+            // Remove subscription
+            state.subscriptions.remove(&subscription_id);
+            
+            // For now, no refund - in a real implementation, you might refund unused cycles
+            results.push(UnsubscribeResult {
+                refunded_cycles: Nat::from(0u32),
+            });
+        }
+        
+        Ok(results)
+    })
 }
 
 pub fn pause_subscription(subscription_id: Nat) -> Result<(), String> {
@@ -236,7 +299,7 @@ pub fn get_health_status() -> HealthStatus {
 
 pub fn set_orchestrator(orchestrator: Principal) -> Result<(), String> {
     mutate_state(|state| {
-        state.orchestrator = Some(orchestrator);
+        state.orchestrator = orchestrator;
         Ok(())
     })
 }

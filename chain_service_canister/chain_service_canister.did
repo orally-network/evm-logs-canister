@@ -4,6 +4,18 @@ type ChainConfig = record {
   rpc_url : text;
   block_interval_seconds : nat64;
   max_response_bytes : nat64;
+  proxy_canister_id : opt principal;
+  evm_rpc_canister_id : opt principal;
+  rpc_service : RpcServiceConfig;
+};
+
+type RpcServiceConfig = variant {
+  EthMainnet : record { providers : opt vec text };
+  EthSepolia : record { providers : opt vec text };
+  ArbitrumOne : record { providers : opt vec text };
+  BaseMainnet : record { providers : opt vec text };
+  OptimismMainnet : record { providers : opt vec text };
+  Custom : record { rpc_url : text; chain_id : nat64 };
 };
 
 type CycleUsageStats = record {
@@ -100,4 +112,19 @@ service : (ChainConfig) -> {
   update_config : (ChainConfig) -> (variant { Ok; Err : text });
   start_monitoring : () -> (variant { Ok; Err : text });
   stop_monitoring : () -> (variant { Ok; Err : text });
+  update_proxy_canister_id : (opt principal) -> (variant { Ok; Err : text });
+  update_evm_rpc_canister_id : (opt principal) -> (variant { Ok; Err : text });
+  update_rpc_service_config : (RpcServiceConfig) -> (variant { Ok; Err : text });
+  
+  // HTTP Endpoints
+  http_request : (record {
+    method : text;
+    url : text;
+    headers : vec record { text; text };
+    body : blob;
+  }) -> (record {
+    status_code : nat16;
+    headers : vec record { text; text };
+    body : blob;
+  }) query;
 }

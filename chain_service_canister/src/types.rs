@@ -33,7 +33,7 @@ pub enum RpcServiceConfig {
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct ChainServiceState {
     pub config: ChainConfig,
-    pub orchestrator: Option<Principal>,
+    pub orchestrator: Principal,
     pub last_processed_block: Nat,
     pub subscriptions: HashMap<Nat, SubscriptionInfo>,
     pub user_balances: HashMap<Principal, Nat>,
@@ -56,7 +56,7 @@ impl Default for ChainServiceState {
                 evm_rpc_canister_id: None,
                 rpc_service: RpcServiceConfig::EthMainnet { providers: None },
             },
-            orchestrator: None,
+            orchestrator: Principal::anonymous(), // Temporary default - should be set during init
             last_processed_block: Nat::from(0u32),
             subscriptions: HashMap::new(),
             user_balances: HashMap::new(),

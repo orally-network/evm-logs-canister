@@ -256,12 +256,42 @@ async fn eth_get_logs_call_with_retry(
         BlockTag::Number(block_num.into())
     };
 
+    // Convert string addresses to Hex20 format expected by EVM RPC
+    let hex_addresses: Vec<evm_rpc_types::Hex20> = addresses.iter()
+        .filter_map(|addr_str| {
+            if addr_str.starts_with("0x") && addr_str.len() == 42 {
+                use std::str::FromStr;
+                evm_rpc_types::Hex20::from_str(addr_str).ok()
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Convert string topics to Hex32 format expected by EVM RPC
+    let hex_topics: Option<Vec<Vec<evm_rpc_types::Hex32>>> = topics.map(|topic_vecs| {
+        topic_vecs.iter()
+            .map(|topic_vec| {
+                topic_vec.iter()
+                    .filter_map(|topic_str| {
+                        if topic_str.starts_with("0x") && topic_str.len() == 66 {
+                            use std::str::FromStr;
+                            evm_rpc_types::Hex32::from_str(topic_str).ok()
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            })
+            .collect()
+    });
+
     // Prepare arguments for the RPC call
     let get_logs_args = GetLogsArgs {
         from_block: Some(from_block_tag),
         to_block: Some(BlockTag::Latest),
-        addresses,
-        topics,
+        addresses: hex_addresses,
+        topics: hex_topics,
     };
 
     // Retry logic with EVM RPC client

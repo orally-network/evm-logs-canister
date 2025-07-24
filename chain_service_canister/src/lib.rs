@@ -105,7 +105,7 @@ fn get_health_status() -> HealthStatus {
 }
 
 // Orchestrator Communication
-#[update(guard = "can_set_orchestrator")]
+#[update(guard = "is_orchestrator")]
 fn set_orchestrator(orchestrator: Principal) -> Result<(), String> {
     api::set_orchestrator(orchestrator)
 }
