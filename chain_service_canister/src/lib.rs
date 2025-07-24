@@ -6,6 +6,8 @@ pub mod metrics;
 pub mod guards;
 pub mod cycle_tracking;
 pub mod http_types;
+pub mod logs_fetcher;
+pub mod events_processor;
 
 use candid::{Nat, Principal};
 use ic_cdk_macros::{init, post_upgrade, query, update};
@@ -121,6 +123,21 @@ fn start_monitoring() -> Result<(), String> {
 #[update(guard = "is_orchestrator")]
 fn stop_monitoring() -> Result<(), String> {
     monitoring::stop_monitoring()
+}
+
+#[update(guard = "is_orchestrator")]
+fn update_proxy_canister_id(proxy_canister_id: Option<Principal>) -> Result<(), String> {
+    api::update_proxy_canister_id(proxy_canister_id)
+}
+
+#[update(guard = "is_orchestrator")]
+fn update_evm_rpc_canister_id(evm_rpc_canister_id: Option<Principal>) -> Result<(), String> {
+    api::update_evm_rpc_canister_id(evm_rpc_canister_id)
+}
+
+#[update(guard = "is_orchestrator")]
+fn update_rpc_service_config(rpc_service: RpcServiceConfig) -> Result<(), String> {
+    api::update_rpc_service_config(rpc_service)
 }
 
 // HTTP Endpoints

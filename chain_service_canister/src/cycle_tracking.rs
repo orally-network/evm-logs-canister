@@ -157,20 +157,9 @@ async fn fetch_logs(
     addresses: Option<Vec<String>>,
     topics: Option<Vec<Vec<String>>>,
 ) -> Result<Vec<evm_logs_types::LogEntry>, String> {
-    // This is a placeholder - in the real implementation, this would call the EVM RPC
-    // For now, return empty logs
-    Ok(Vec::new())
+    crate::logs_fetcher::fetch_logs(from_block, addresses, topics).await
 }
 
 async fn process_and_publish_events(logs: Vec<evm_logs_types::LogEntry>) {
-    // This is a placeholder - in the real implementation, this would:
-    // 1. Match logs against subscription filters
-    // 2. Create event notifications
-    // 3. Send notifications to subscribers via proxy canister
-    // 4. Update subscription statistics
-    
-    for log in logs {
-        // TODO: Implement log processing and event publishing
-        ic_cdk::println!("Processing log: {:?}", log);
-    }
+    crate::events_processor::process_and_publish_events(logs).await
 }

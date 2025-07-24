@@ -247,3 +247,24 @@ pub fn update_config(config: ChainConfig) -> Result<(), String> {
         Ok(())
     })
 }
+
+pub fn update_proxy_canister_id(proxy_canister_id: Option<Principal>) -> Result<(), String> {
+    mutate_state(|state| {
+        state.config.proxy_canister_id = proxy_canister_id;
+        Ok(())
+    })
+}
+
+pub fn update_evm_rpc_canister_id(evm_rpc_canister_id: Option<Principal>) -> Result<(), String> {
+    mutate_state(|state| {
+        state.config.evm_rpc_canister_id = evm_rpc_canister_id;
+        Ok(())
+    })
+}
+
+pub fn update_rpc_service_config(rpc_service: RpcServiceConfig) -> Result<(), String> {
+    mutate_state(|state| {
+        state.config.rpc_service = rpc_service;
+        Ok(())
+    })
+}

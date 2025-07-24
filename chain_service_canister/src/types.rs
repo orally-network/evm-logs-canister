@@ -12,6 +12,22 @@ pub struct ChainConfig {
     pub rpc_url: String,
     pub block_interval_seconds: u64,
     pub max_response_bytes: u64,
+    pub proxy_canister_id: Option<Principal>,
+    pub evm_rpc_canister_id: Option<Principal>,
+    pub rpc_service: RpcServiceConfig,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+pub enum RpcServiceConfig {
+    EthMainnet { providers: Option<Vec<String>> },
+    EthSepolia { providers: Option<Vec<String>> },
+    ArbitrumOne { providers: Option<Vec<String>> },
+    BaseMainnet { providers: Option<Vec<String>> },
+    OptimismMainnet { providers: Option<Vec<String>> },
+    Custom { 
+        rpc_url: String,
+        chain_id: u64,
+    },
 }
 
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
@@ -36,6 +52,9 @@ impl Default for ChainServiceState {
                 rpc_url: "".to_string(),
                 block_interval_seconds: 60,
                 max_response_bytes: 10000,
+                proxy_canister_id: None,
+                evm_rpc_canister_id: None,
+                rpc_service: RpcServiceConfig::EthMainnet { providers: None },
             },
             orchestrator: None,
             last_processed_block: Nat::from(0u32),
