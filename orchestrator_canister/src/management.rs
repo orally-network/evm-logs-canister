@@ -8,6 +8,33 @@ use crate::types::*;
 
 const MAX_PREVIOUS_WASMS: usize = 5;
 
+// Chain service types that the chain service canister expects
+#[derive(candid::CandidType, serde::Deserialize, Clone)]
+struct ChainConfig {
+    chain_id: u32,
+    chain_name: String,
+    rpc_url: String,
+    block_interval_seconds: u64,
+    max_response_bytes: u64,
+    proxy_canister_id: Option<Principal>,
+    evm_rpc_canister_id: Option<Principal>,
+    rpc_service: RpcServiceConfig,
+}
+
+#[derive(candid::CandidType, serde::Deserialize, Clone)]
+enum RpcServiceConfig {
+    EthMainnet { providers: Option<Vec<String>> },
+    EthSepolia { providers: Option<Vec<String>> },
+    ArbitrumOne { providers: Option<Vec<String>> },
+    BaseMainnet { providers: Option<Vec<String>> },
+    OptimismMainnet { providers: Option<Vec<String>> },
+    Custom { 
+        rpc_url: String,
+        chain_id: u64,
+    },
+}
+
+
 pub async fn deploy_chain_service(
     chain_id: u32,
     chain_name: String,
@@ -45,8 +72,30 @@ pub async fn deploy_chain_service(
     
     let canister_id = canister_record.canister_id;
     
+    // Convert ChainServiceConfig to ChainConfig that the chain service canister expects
+    let chain_config = ChainConfig {
+        chain_id: config.chain_id,
+        chain_name: config.chain_name.clone(),
+        rpc_url: config.rpc_url.clone(),
+        block_interval_seconds: config.block_interval_seconds,
+        max_response_bytes: config.max_response_bytes,
+        proxy_canister_id: None,
+        evm_rpc_canister_id: None, // TODO: Set this based on configuration
+        rpc_service: match config.chain_id {
+            1 => RpcServiceConfig::EthMainnet { providers: None },
+            11155111 => RpcServiceConfig::EthSepolia { providers: None },
+            42161 => RpcServiceConfig::ArbitrumOne { providers: None },
+            8453 => RpcServiceConfig::BaseMainnet { providers: None },
+            10 => RpcServiceConfig::OptimismMainnet { providers: None },
+            _ => RpcServiceConfig::Custom { 
+                rpc_url: config.rpc_url.clone(),
+                chain_id: config.chain_id as u64,
+            },
+        },
+    };
+    
     // Install code
-    let init_args = candid::encode_args((config,))
+    let init_args = candid::encode_args((chain_config,))
         .map_err(|e| format!("Failed to encode init args: {:?}", e))?;
     
     let install_args = InstallCodeArgument {
