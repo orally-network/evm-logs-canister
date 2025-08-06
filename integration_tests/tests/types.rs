@@ -7,66 +7,18 @@ pub const USER_PRINCIPAL: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 pub const EVM_RPC_PRINCIPAL: &str = "7hfb6-caaaa-aaaar-qadga-cai";
 pub const CHAIN_SERVICE_CANISTER_ID: &str = "lxzze-o7777-77777-aaaaa-cai";
 
-// Orchestrator types
-#[derive(CandidType, Deserialize, Clone)]
-pub struct OrchestratorInitArg {
-    pub admin: Principal,
-    pub version: String,
-}
+// Import types from actual canisters instead of duplicating them
+pub use chain_service_canister::types::{
+    ChainConfig, RpcServiceConfig, SubscriptionInfo, 
+    SubscriptionStatus, CycleUsageStats, MonitoringStatus,
+    HealthStatus, TopUpBalanceResult, RegisterSubscriptionResult,
+    UnsubscribeResult
+};
 
-#[derive(CandidType, Deserialize, Clone)]
-pub struct ChainServiceConfig {
-    pub chain_id: u32,
-    pub chain_name: String,
-    pub rpc_url: String,
-    pub block_interval_seconds: u64,
-    pub max_response_bytes: u64,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub struct ChainServiceInfo {
-    pub canister_id: Principal,
-    pub chain_id: u32,
-    pub chain_name: String,
-    pub version: String,
-    pub status: ChainServiceStatus,
-    pub deployment_timestamp: u64,
-    pub last_upgrade_timestamp: Option<u64>,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub enum ChainServiceStatus {
-    Active,
-    Paused,
-    Upgrading,
-    Failed,
-}
-
-// Chain service types - what the chain service canister expects
-#[derive(CandidType, Deserialize, Clone)]
-pub struct ChainConfig {
-    pub chain_id: u32,
-    pub chain_name: String,
-    pub rpc_url: String,
-    pub block_interval_seconds: u64,
-    pub max_response_bytes: u64,
-    pub proxy_canister_id: Option<Principal>,
-    pub evm_rpc_canister_id: Option<Principal>,
-    pub rpc_service: RpcServiceConfig,
-}
-
-#[derive(CandidType, Deserialize, Clone)]
-pub enum RpcServiceConfig {
-    EthMainnet { providers: Option<Vec<String>> },
-    EthSepolia { providers: Option<Vec<String>> },
-    ArbitrumOne { providers: Option<Vec<String>> },
-    BaseMainnet { providers: Option<Vec<String>> },
-    OptimismMainnet { providers: Option<Vec<String>> },
-    Custom { 
-        rpc_url: String,
-        chain_id: u64,
-    },
-}
+pub use orchestrator_canister::types::{
+    OrchestratorInitArg, ChainServiceConfig, ChainServiceInfo,
+    ChainServiceStatus
+};
 
 // HTTP types for metrics endpoint
 #[derive(CandidType, Deserialize)]

@@ -4,50 +4,14 @@ use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
 mod types;
+mod utils;
 use types::*;
-
-// Helper function to extract bytes from WasmResult
-fn extract_reply_bytes(result: WasmResult) -> Vec<u8> {
-    match result {
-        WasmResult::Reply(bytes) => bytes,
-        WasmResult::Reject(msg) => panic!("Call was rejected: {}", msg),
-    }
-}
-
-// Test helper functions
-fn get_orchestrator_wasm() -> Vec<u8> {
-    std::fs::read("../target/wasm32-unknown-unknown/release/orchestrator_canister.wasm")
-        .expect("Failed to read orchestrator WASM file. Run 'cargo build --target wasm32-unknown-unknown --release --package orchestrator_canister' first")
-}
-
-fn get_chain_service_wasm() -> Vec<u8> {
-    std::fs::read("../target/wasm32-unknown-unknown/release/chain_service_canister.wasm")
-        .expect("Failed to read chain service WASM file. Run 'cargo build --target wasm32-unknown-unknown --release --package chain_service_canister' first")
-}
-
-fn setup_orchestrator_test() -> (PocketIc, Principal) {
-    let pic = PocketIc::new();
-    
-    // Create orchestrator canister
-    let orchestrator_id = pic.create_canister();
-    pic.add_cycles(orchestrator_id, 2_000_000_000_000); // 2T cycles
-    
-    // Install orchestrator
-    let orchestrator_wasm = get_orchestrator_wasm();
-    let init_arg = candid::encode_one(OrchestratorInitArg {
-        admin: Principal::anonymous(),
-        version: "1.0.0".to_string(),
-    }).unwrap();
-    
-    pic.install_canister(orchestrator_id, orchestrator_wasm, init_arg, None);
-    
-    (pic, orchestrator_id)
-}
+use utils::*;
 
 
 #[test]
 fn test_orchestrator_deployment() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Test that orchestrator is deployed and responding
     let result = pic.query_call(
@@ -69,7 +33,7 @@ fn test_orchestrator_deployment() {
 
 #[test]
 fn test_update_chain_service_wasm() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Update the chain service WASM
     let chain_service_wasm = get_chain_service_wasm();
@@ -92,7 +56,7 @@ fn test_update_chain_service_wasm() {
 
 #[test]
 fn test_deploy_chain_service() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // First, update the chain service WASM
     let chain_service_wasm = get_chain_service_wasm();
@@ -155,7 +119,7 @@ fn test_deploy_chain_service() {
 
 #[test]
 fn test_user_registration() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Register a user using the constant to avoid CheckSequenceNotMatch errors
     let user_principal = Principal::from_text(USER_PRINCIPAL).unwrap();
@@ -177,7 +141,7 @@ fn test_user_registration() {
 
 #[test]
 fn test_service_discovery() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Deploy a chain service first
     let chain_service_wasm = get_chain_service_wasm();
@@ -228,7 +192,7 @@ fn test_service_discovery() {
 
 #[test]
 fn test_metrics_endpoint() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Test HTTP metrics endpoint
     let http_request = HttpRequest {
@@ -262,7 +226,7 @@ fn test_metrics_endpoint() {
 
 #[test]
 fn test_pause_resume_chain_service() {
-    let (pic, orchestrator_id) = setup_orchestrator_test();
+    let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Deploy a chain service first
     let chain_service_wasm = get_chain_service_wasm();

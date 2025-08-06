@@ -4,181 +4,15 @@ use serde_bytes::ByteBuf;
 use evm_logs_types::{SubscriptionRegistration, Filter, Hex20, Hex32};
 use std::str::FromStr;
 
-// Test constants
-const ORCHESTRATOR_PRINCIPAL: &str = "mqygn-kiaaa-aaaar-qaadq-cai";
-const USER_PRINCIPAL: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
-const EVM_RPC_PRINCIPAL: &str = "7hfb6-caaaa-aaaar-qadga-cai";
-const CHAIN_SERVICE_CANISTER_ID: &str = "lxzze-o7777-77777-aaaaa-cai";
+mod types;
+mod utils;
+use types::*;
+use utils::*;
 
-// Helper function to extract bytes from WasmResult
-fn extract_reply_bytes(result: WasmResult) -> Vec<u8> {
-    match result {
-        WasmResult::Reply(bytes) => bytes,
-        WasmResult::Reject(msg) => panic!("Call was rejected: {}", msg),
-    }
-}
-
-// Test helper functions
-fn get_chain_service_wasm() -> Vec<u8> {
-    std::fs::read("../target/wasm32-unknown-unknown/release/chain_service_canister.wasm")
-        .expect("Failed to read chain service WASM file. Run 'cargo build --target wasm32-unknown-unknown --release --package chain_service_canister' first")
-}
-
-fn setup_chain_service_test() -> (PocketIc, Principal) {
-    let pic = PocketIc::new();
-    
-    // Set up EVM RPC canister first
-    let evm_rpc_id = Principal::from_text(EVM_RPC_PRINCIPAL).unwrap();
-    let orchestrator_principal = Principal::from_text(ORCHESTRATOR_PRINCIPAL).unwrap();
-
-    // Create chain service canister with orchestrator as controller
-    let chain_service_id = pic.create_canister_with_id(Some(orchestrator_principal), None, Principal::from_text(CHAIN_SERVICE_CANISTER_ID).unwrap())
-        .unwrap_or_else(|_| {
-            // If we can't create with specific ID, create normally and set controller
-            let canister_id = pic.create_canister();
-            pic.set_controllers(canister_id, None, vec![orchestrator_principal]).unwrap();
-            canister_id
-        });
-    
-    pic.add_cycles(chain_service_id, 2_000_000_000_000); // 2T cycles
-    
-    // Install chain service with orchestrator as the deployer (this sets orchestrator in init)
-    let chain_service_wasm = get_chain_service_wasm();
-    let init_arg = candid::encode_one(ChainConfig {
-        chain_id: 1,
-        chain_name: "Ethereum".to_string(),
-        rpc_url: "https://eth-mainnet.alchemyapi.io/v2/demo".to_string(),
-        block_interval_seconds: 12,
-        max_response_bytes: 2_000_000,
-        proxy_canister_id: None,
-        evm_rpc_canister_id: Some(evm_rpc_id),
-        rpc_service: RpcServiceConfig::EthMainnet { providers: None },
-    }).unwrap();
-    
-    // Install with orchestrator as the caller - this will set orchestrator during init
-    pic.install_canister(chain_service_id, chain_service_wasm, init_arg, Some(orchestrator_principal));
-    
-    (pic, chain_service_id)
-}
-
-// Type definitions for testing
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-struct ChainServiceInitArg {
-    config: ChainConfig,
-    orchestrator: Option<Principal>,
-    version: String,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-struct ChainConfig {
-    chain_id: u32,
-    chain_name: String,
-    rpc_url: String,
-    block_interval_seconds: u64,
-    max_response_bytes: u64,
-    proxy_canister_id: Option<candid::Principal>,
-    evm_rpc_canister_id: Option<candid::Principal>,
-    rpc_service: RpcServiceConfig,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-enum RpcServiceConfig {
-    EthMainnet { providers: Option<Vec<String>> },
-    EthSepolia { providers: Option<Vec<String>> },
-    ArbitrumOne { providers: Option<Vec<String>> },
-    BaseMainnet { providers: Option<Vec<String>> },
-    OptimismMainnet { providers: Option<Vec<String>> },
-    Custom { 
-        rpc_url: String,
-        chain_id: u64,
-    },
-}
-
-
-#[derive(candid::CandidType, serde::Deserialize, Clone, Debug)]
-struct TopUpBalanceResult {
-    new_balance: Nat,
-    cycles_received: u64,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone, Debug)]
-struct RegisterSubscriptionResult {
-    subscription_id: Nat,
-    estimated_cycles_per_day: u64,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone, Debug)]
-struct UnsubscribeResult {
-    refunded_cycles: Nat,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-struct SubscriptionInfo {
-    subscription_id: Nat,
-    subscriber_principal: Principal,
-    chain_id: u32,
-    filter: Filter,
-    status: SubscriptionStatus,
-    created_at: u64,
-    last_updated: u64,
-    cycles_consumed: u64,
-    events_received: u64,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-enum SubscriptionStatus {
-    Active,
-    InsufficientBalance { since: u64 },
-    ChainServiceOffline { since: u64 },
-    ProcessingError { error: String, since: u64 },
-    PausedByUser { since: u64 },
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-struct CycleUsageStats {
-    total_cycles_used: u64,
-    last_execution_cycles: u64,
-    average_cycles_per_block: u64,
-    cycles_per_log_entry: u64,
-    last_updated: u64,
-    execution_count: u64,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-struct MonitoringStatus {
-    is_monitoring: bool,
-    last_processed_block: Nat,
-    timer_id: Option<String>,
-    monitoring_interval_seconds: u64,
-}
-
-#[derive(candid::CandidType, serde::Deserialize, Clone)]
-struct HealthStatus {
-    chain_id: u32,
-    is_healthy: bool,
-    last_successful_fetch: Option<u64>,
-    consecutive_failures: u32,
-    error_message: Option<String>,
-}
-
-#[derive(candid::CandidType, serde::Deserialize)]
-struct HttpRequest {
-    method: String,
-    url: String,
-    headers: Vec<(String, String)>,
-    body: ByteBuf,
-}
-
-#[derive(candid::CandidType, serde::Deserialize)]
-struct HttpResponse {
-    status_code: u16,
-    headers: Vec<(String, String)>,
-    body: ByteBuf,
-}
 
 #[test]
 fn test_chain_service_deployment() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     // Test that chain service is deployed and responding
     let result = pic.query_call(
@@ -202,7 +36,7 @@ fn test_chain_service_deployment() {
 
 #[test]
 fn test_balance_management() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     let user_principal = Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap();
     
@@ -241,7 +75,7 @@ fn test_balance_management() {
 
 #[test]
 fn test_subscription_lifecycle() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     let user_principal = Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap();
     
@@ -404,7 +238,7 @@ fn test_subscription_lifecycle() {
 
 #[test]
 fn test_batch_subscription_operations() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     let user_principal = Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap();
     
@@ -500,7 +334,7 @@ fn test_batch_subscription_operations() {
 
 #[test]
 fn test_access_control() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     let user1 = Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap();
     let user2 = Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai").unwrap();
@@ -580,7 +414,7 @@ fn test_access_control() {
 
 #[test]
 fn test_anonymous_user_restrictions() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     // Anonymous user tries to top up balance
     let result = pic.update_call(
@@ -627,7 +461,7 @@ fn test_anonymous_user_restrictions() {
 
 #[test]
 fn test_chain_id_validation() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     let user_principal = Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap();
     
@@ -660,7 +494,7 @@ fn test_chain_id_validation() {
 
 #[test]
 fn test_cycle_usage_stats() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     // Get initial cycle usage stats
     let result = pic.query_call(
@@ -683,7 +517,7 @@ fn test_cycle_usage_stats() {
 
 #[test]
 fn test_health_status() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     // Get health status
     let result = pic.query_call(
@@ -705,7 +539,7 @@ fn test_health_status() {
 
 #[test]
 fn test_orchestrator_management() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     let orchestrator_principal = Principal::from_text(ORCHESTRATOR_PRINCIPAL).unwrap();
     let non_orchestrator_principal = Principal::from_text(USER_PRINCIPAL).unwrap();
@@ -780,7 +614,7 @@ fn test_orchestrator_management() {
 
 #[test]
 fn test_metrics_endpoint() {
-    let (pic, chain_service_id) = setup_chain_service_test();
+    let (pic, chain_service_id) = setup_chain_service_only();
     
     // Test HTTP metrics endpoint
     let http_request = HttpRequest {

@@ -11,6 +11,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_bytes = "0.11"
 evm_logs_types = { path = "../evm_logs_types" }
 evm_rpc_types.workspace = true
+chain_service_canister = { path = "../chain_service_canister" }
+orchestrator_canister = { path = "../orchestrator_canister" }
 
 [[test]]
 name = "orchestrator_integration_tests"
