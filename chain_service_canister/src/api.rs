@@ -3,34 +3,32 @@ use crate::state::{read_state, mutate_state};
 use crate::types::*;
 use crate::cycle_tracking::estimate_cycles_per_day;
 
-pub fn top_up_balance() -> Result<TopUpBalanceResult, String> {
-    let caller = ic_cdk::caller();
-    
-    if caller == Principal::anonymous() {
+pub fn top_up_balance(user: Principal) -> Result<TopUpBalanceResult, String> {
+    if user == Principal::anonymous() {
         return Err("Anonymous users cannot top up balance".to_string());
     }
-    
+
     // Get cycles sent with this call
-    let cycles_received = ic_cdk::api::call::msg_cycles_available128() as u64;
-    
+    let cycles_received = ic_cdk::api::call::msg_cycles_available128();
+
     if cycles_received == 0 {
         return Err("No cycles sent with the call".to_string());
     }
-    
+
     // Accept the cycles
-    ic_cdk::api::call::msg_cycles_accept128(cycles_received as u128);
-    
+    ic_cdk::api::call::msg_cycles_accept128(cycles_received);
+
     // Update user balance
     let new_balance = mutate_state(|state: &mut ChainServiceState| {
-        let current_balance = state.user_balances.get(&caller).cloned().unwrap_or(Nat::from(0u32));
+        let current_balance = state.user_balances.get(&user).cloned().unwrap_or(Nat::from(0u32));
         let new_balance = current_balance + Nat::from(cycles_received);
-        state.user_balances.insert(caller, new_balance.clone());
+        state.user_balances.insert(user, new_balance.clone());
         new_balance
     });
-    
+
     Ok(TopUpBalanceResult {
         new_balance,
-        cycles_received,
+        cycles_received: u64::try_from(cycles_received).unwrap_or(u64::MAX),
     })
 }
 
@@ -55,6 +53,17 @@ pub async fn register_subscription(
         return Err(format!("Chain ID mismatch: expected {}, got {}", chain_id, registration.chain_id));
     }
     
+    // Credit any cycles attached to this call to the subscriber balance
+    let cycles_received = ic_cdk::api::call::msg_cycles_available128();
+    if cycles_received > 0 {
+        ic_cdk::api::call::msg_cycles_accept128(cycles_received);
+        mutate_state(|state: &mut ChainServiceState| {
+            let current = state.user_balances.get(&registration.canister_to_top_up).cloned().unwrap_or(Nat::from(0u32));
+            let new_balance = current + Nat::from(cycles_received);
+            state.user_balances.insert(registration.canister_to_top_up, new_balance);
+        });
+    }
+
     // Create subscription
     let (subscription_id, estimated_cycles) = mutate_state(|state| {
         let subscription_id = state.next_subscription_id.clone();
@@ -62,7 +71,7 @@ pub async fn register_subscription(
         
         let subscription_info = SubscriptionInfo {
             subscription_id: subscription_id.clone(),
-            subscriber_principal: caller,
+            subscriber_principal: registration.canister_to_top_up,
             chain_id: registration.chain_id,
             filter: registration.filter,
             status: SubscriptionStatus::Active,
@@ -104,6 +113,19 @@ pub async fn batch_register_subscriptions(
         }
     }
     
+    // Credit any cycles attached to this call to the subscriber balance (first registration)
+    let cycles_received = ic_cdk::api::call::msg_cycles_available128();
+    if cycles_received > 0 {
+        ic_cdk::api::call::msg_cycles_accept128(cycles_received);
+        if let Some(first) = registrations.first() {
+            mutate_state(|state: &mut ChainServiceState| {
+                let current = state.user_balances.get(&first.canister_to_top_up).cloned().unwrap_or(Nat::from(0u32));
+                let new_balance = current + Nat::from(cycles_received);
+                state.user_balances.insert(first.canister_to_top_up, new_balance);
+            });
+        }
+    }
+
     // Process all registrations in a single state mutation
     let results = mutate_state(|state| {
         let mut results = Vec::new();
@@ -114,7 +136,7 @@ pub async fn batch_register_subscriptions(
             
             let subscription_info = SubscriptionInfo {
                 subscription_id: subscription_id.clone(),
-                subscriber_principal: caller,
+                subscriber_principal: registration.canister_to_top_up,
                 chain_id: registration.chain_id,
                 filter: registration.filter,
                 status: SubscriptionStatus::Active,
@@ -142,19 +164,17 @@ pub async fn batch_register_subscriptions(
     Ok(results)
 }
 
-pub fn unsubscribe(subscription_id: Nat) -> Result<UnsubscribeResult, String> {
-    let caller = ic_cdk::caller();
-    
-    if caller == Principal::anonymous() {
+pub fn unsubscribe(subscription_id: Nat, user: Principal) -> Result<UnsubscribeResult, String> {
+    if user == Principal::anonymous() {
         return Err("Anonymous users cannot unsubscribe".to_string());
     }
-    
+
     mutate_state(|state| {
-        // Check if subscription exists and belongs to caller
+        // Check if subscription exists and belongs to the specified user
         let subscription = state.subscriptions.get(&subscription_id)
             .ok_or_else(|| "Subscription not found".to_string())?;
         
-        if subscription.subscriber_principal != caller {
+        if subscription.subscriber_principal != user {
             return Err("Access denied: subscription belongs to another user".to_string());
         }
         
@@ -168,10 +188,8 @@ pub fn unsubscribe(subscription_id: Nat) -> Result<UnsubscribeResult, String> {
     })
 }
 
-pub fn batch_unsubscribe(subscription_ids: Vec<Nat>) -> Result<Vec<UnsubscribeResult>, String> {
-    let caller = ic_cdk::caller();
-    
-    if caller == Principal::anonymous() {
+pub fn batch_unsubscribe(subscription_ids: Vec<Nat>, user: Principal) -> Result<Vec<UnsubscribeResult>, String> {
+    if user == Principal::anonymous() {
         return Err("Anonymous users cannot unsubscribe".to_string());
     }
     
@@ -180,11 +198,11 @@ pub fn batch_unsubscribe(subscription_ids: Vec<Nat>) -> Result<Vec<UnsubscribeRe
         let mut results = Vec::new();
         
         for subscription_id in subscription_ids {
-            // Check if subscription exists and belongs to caller
+            // Check if subscription exists and belongs to the specified user
             let subscription = state.subscriptions.get(&subscription_id)
                 .ok_or_else(|| format!("Subscription {} not found", subscription_id))?;
             
-            if subscription.subscriber_principal != caller {
+            if subscription.subscriber_principal != user {
                 return Err(format!("Access denied: subscription {} belongs to another user", subscription_id));
             }
             
@@ -201,10 +219,8 @@ pub fn batch_unsubscribe(subscription_ids: Vec<Nat>) -> Result<Vec<UnsubscribeRe
     })
 }
 
-pub fn pause_subscription(subscription_id: Nat) -> Result<(), String> {
-    let caller = ic_cdk::caller();
-    
-    if caller == Principal::anonymous() {
+pub fn pause_subscription(subscription_id: Nat, user: Principal) -> Result<(), String> {
+    if user == Principal::anonymous() {
         return Err("Anonymous users cannot pause subscriptions".to_string());
     }
     
@@ -212,7 +228,7 @@ pub fn pause_subscription(subscription_id: Nat) -> Result<(), String> {
         let subscription = state.subscriptions.get_mut(&subscription_id)
             .ok_or_else(|| "Subscription not found".to_string())?;
         
-        if subscription.subscriber_principal != caller {
+        if subscription.subscriber_principal != user {
             return Err("Access denied: subscription belongs to another user".to_string());
         }
         
@@ -225,10 +241,8 @@ pub fn pause_subscription(subscription_id: Nat) -> Result<(), String> {
     })
 }
 
-pub fn resume_subscription(subscription_id: Nat) -> Result<(), String> {
-    let caller = ic_cdk::caller();
-    
-    if caller == Principal::anonymous() {
+pub fn resume_subscription(subscription_id: Nat, user: Principal) -> Result<(), String> {
+    if user == Principal::anonymous() {
         return Err("Anonymous users cannot resume subscriptions".to_string());
     }
     
@@ -236,7 +250,7 @@ pub fn resume_subscription(subscription_id: Nat) -> Result<(), String> {
         let subscription = state.subscriptions.get_mut(&subscription_id)
             .ok_or_else(|| "Subscription not found".to_string())?;
         
-        if subscription.subscriber_principal != caller {
+        if subscription.subscriber_principal != user {
             return Err("Access denied: subscription belongs to another user".to_string());
         }
         

@@ -62,28 +62,6 @@ fn estimate_cycles_used(
     BASE_CALL_CYCLES + cycles_for_request + cycles_for_response + (cycles_for_request + cycles_for_response)
 }
 
-fn charge_subscribers(addresses_amount: usize, cycles_used: u64) {
-    if addresses_amount == 0 {
-        return;
-    }
-
-    let cycles_per_one_address = cycles_used / addresses_amount as u64;
-
-    mutate_state(|state| {
-        for (_, subscription) in state.subscriptions.iter() {
-            let subscriber_principal = subscription.subscriber_principal;
-            let current_balance = state.user_balances.get(&subscriber_principal).cloned().unwrap_or(Nat::from(0u32));
-            
-            if current_balance >= Nat::from(cycles_per_one_address) {
-                let new_balance = current_balance - Nat::from(cycles_per_one_address);
-                state.user_balances.insert(subscriber_principal, new_balance);
-            } else {
-                // Insufficient balance - log warning
-                ic_cdk::println!("Insufficient balance for subscriber: {}", subscriber_principal);
-            }
-        }
-    });
-}
 
 fn calculate_request_chunk_size(events_per_interval: u32, addresses_len: u32) -> usize {
     // Simple chunking strategy - can be improved
@@ -199,24 +177,6 @@ pub async fn fetch_logs(
         }
     }
 
-    let total_cycles_used = estimate_cycles_used(&merged_logs, addresses.len(), topics.as_ref());
-
-    // After sending request we need to charge cycles for each subscriber accordingly
-    // to amount of their subscription addresses(filters)
-    charge_subscribers(addresses.len(), total_cycles_used);
-
-    // Update cycle usage stats
-    mutate_state(|state| {
-        state.cycle_usage_stats.total_cycles_used += total_cycles_used;
-        state.cycle_usage_stats.last_execution_cycles = total_cycles_used;
-        state.cycle_usage_stats.execution_count += 1;
-        if state.cycle_usage_stats.execution_count > 0 {
-            state.cycle_usage_stats.average_cycles_per_block = 
-                state.cycle_usage_stats.total_cycles_used / state.cycle_usage_stats.execution_count;
-        }
-        state.cycle_usage_stats.last_updated = ic_cdk::api::time();
-    });
-
     Ok(merged_logs)
 }
 
@@ -326,50 +286,4 @@ async fn eth_get_logs_call_with_retry(
     }
     
     Err("Failed to get logs after retries.".to_string())
-}
-
-pub fn get_active_addresses_and_topics(chain_id: u32) -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    read_state(|state| {
-        let mut addresses = Vec::new();
-        let mut topics_map: HashMap<usize, Vec<String>> = HashMap::new();
-
-        for (_, subscription) in state.subscriptions.iter() {
-            if subscription.chain_id == chain_id {
-                // Add address if present
-                if let Some(addr) = &subscription.filter.address {
-                    let addr_str = format!("0x{}", hex::encode(addr.as_ref()));
-                    if !addresses.contains(&addr_str) {
-                        addresses.push(addr_str);
-                    }
-                }
-
-                // Add topics if present
-                if let Some(filter_topics) = &subscription.filter.topics {
-                    for (pos, topic_set) in filter_topics.iter().enumerate() {
-                        let topics_at_pos = topics_map.entry(pos).or_insert_with(Vec::new);
-                        for topic in topic_set {
-                            let topic_str = format!("0x{}", hex::encode(topic.as_ref()));
-                            if !topics_at_pos.contains(&topic_str) {
-                                topics_at_pos.push(topic_str);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Convert topics map to vec
-        let topics = if topics_map.is_empty() {
-            None
-        } else {
-            let max_pos = topics_map.keys().max().copied().unwrap_or(0);
-            let mut topics_vec = Vec::new();
-            for i in 0..=max_pos {
-                topics_vec.push(topics_map.get(&i).cloned().unwrap_or_default());
-            }
-            Some(topics_vec)
-        };
-
-        (addresses, topics)
-    })
 }

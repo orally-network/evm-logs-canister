@@ -39,7 +39,7 @@ pub fn generate_random_filter() -> Filter {
   let topic = format!("0x{}", hex::encode(topic_bytes)); // Convert topic to hex string
 
   Filter {
-    address: Hex20::from_str(&address).unwrap(),
+    address: Some(Hex20::from_str(&address).unwrap()),
     topics: Some(vec![vec![Hex32::from_str(&topic).unwrap()]]),
   }
 }

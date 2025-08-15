@@ -1,5 +1,12 @@
-use candid::{Principal};
+use candid::Principal;
 use pocket_ic::{PocketIc, WasmResult};
+use orchestrator_canister::types as orchestrator_types;
+use chain_service_canister::types as chain_types;
+
+// Local test constants (duplicated to avoid cross-file module issues)
+const ORCHESTRATOR_PRINCIPAL: &str = "mqygn-kiaaa-aaaar-qaadq-cai";
+const EVM_RPC_PRINCIPAL: &str = "7hfb6-caaaa-aaaar-qadga-cai";
+const CHAIN_SERVICE_CANISTER_ID: &str = "lxzze-o7777-77777-aaaaa-cai";
 
 fn get_evm_rpc_wasm() -> Vec<u8> {
     std::fs::read("assets/evm_rpc.wasm.gz")
@@ -81,6 +88,16 @@ pub fn get_chain_service_wasm() -> Vec<u8> {
         .expect("Failed to read chain service WASM file. Run 'cargo build --target wasm32-unknown-unknown --release --package chain_service_canister' first")
 }
 
+pub fn get_proxy_wasm() -> Vec<u8> {
+    std::fs::read("../target/wasm32-unknown-unknown/release/proxy_canister.wasm")
+        .expect("Failed to read proxy WASM file. Run 'cargo build --target wasm32-unknown-unknown --release --package proxy_canister' first")
+}
+
+pub fn get_test_canister_wasm() -> Vec<u8> {
+    std::fs::read("../target/wasm32-unknown-unknown/release/test_canister.wasm")
+        .expect("Failed to read test canister WASM file. Run 'cargo build --target wasm32-unknown-unknown --release --package test_canister' first")
+}
+
 // Setup functions
 pub fn setup_orchestrator_only() -> (PocketIc, Principal) {
     let pic = PocketIc::new();
@@ -91,7 +108,7 @@ pub fn setup_orchestrator_only() -> (PocketIc, Principal) {
     
     // Install orchestrator
     let orchestrator_wasm = get_orchestrator_wasm();
-    let init_arg = candid::encode_one(super::types::OrchestratorInitArg {
+    let init_arg = candid::encode_one(orchestrator_types::OrchestratorInitArg {
         admin: Principal::anonymous(),
         version: "1.0.0".to_string(),
     }).unwrap();
@@ -102,7 +119,7 @@ pub fn setup_orchestrator_only() -> (PocketIc, Principal) {
 }
 
 pub fn setup_chain_service_only() -> (PocketIc, Principal) {
-    use super::types::*;
+    use chain_types::*;
     
     let pic = PocketIc::new();
     
@@ -141,8 +158,6 @@ pub fn setup_chain_service_only() -> (PocketIc, Principal) {
 }
 
 pub fn setup_full_system() -> (PocketIc, Principal, Principal) {
-    use super::types::*;
-    
     let (pic, orchestrator_id) = setup_orchestrator_only();
     
     // Update the chain service WASM in orchestrator
@@ -161,7 +176,7 @@ pub fn setup_full_system() -> (PocketIc, Principal, Principal) {
     assert!(update_result.is_ok());
     
     // Deploy Ethereum chain service through orchestrator
-    let config = ChainServiceConfig {
+    let config = orchestrator_types::ChainServiceConfig {
         chain_id: 1,
         chain_name: "Ethereum".to_string(),
         rpc_url: "https://eth-mainnet.alchemyapi.io/v2/demo".to_string(),

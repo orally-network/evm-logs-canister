@@ -109,7 +109,7 @@ async fn get_same_logs_as_sub_filters() -> Vec<LogEntry> {
 
     // Create a sample log entry matching the filter
     let log_entry = LogEntry {
-      address: filter_address,
+      address: filter_address.unwrap_or(Hex20::from([0u8; 20])),
       topics: filter_topics
         .iter()
         .flat_map(|topic_list| topic_list.iter().cloned())

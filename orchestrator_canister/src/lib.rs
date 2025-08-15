@@ -72,6 +72,28 @@ async fn rollback_chain_service(chain_id: u32, version: String) -> Result<(), St
     management::rollback_chain_service(chain_id, version).await
 }
 
+#[update]
+async fn configure_chain_service(
+    chain_id: u32,
+    proxy_canister_id: Option<Principal>,
+    evm_rpc_canister_id: Option<Principal>,
+) -> Result<(), String> {
+    is_controller().await?;
+    management::configure_chain_service(chain_id, proxy_canister_id, evm_rpc_canister_id).await
+}
+
+#[update]
+async fn set_default_proxy_canister_id(proxy: Option<Principal>) -> Result<(), String> {
+    is_controller().await?;
+    api::set_default_proxy_canister_id(proxy)
+}
+
+#[update]
+async fn set_default_evm_rpc_canister_id(evm_rpc: Option<Principal>) -> Result<(), String> {
+    is_controller().await?;
+    api::set_default_evm_rpc_canister_id(evm_rpc)
+}
+
 // User Methods
 #[update]
 fn register_user() -> Result<(), String> {
@@ -95,6 +117,36 @@ async fn batch_subscribe_to_chains(
     api::batch_subscribe_to_chains(subscriptions).await
 }
 
+#[update]
+async fn top_up_balance(chain_id: u32) -> Result<TopUpBalanceResult, String> {
+    api::top_up_balance(chain_id).await
+}
+
+#[update]
+async fn unsubscribe(chain_id: u32, subscription_id: Nat) -> Result<UnsubscribeResult, String> {
+    api::unsubscribe(chain_id, subscription_id).await
+}
+
+#[update]
+async fn pause_subscription(chain_id: u32, subscription_id: Nat) -> Result<(), String> {
+    api::pause_subscription(chain_id, subscription_id).await
+}
+
+#[update]
+async fn resume_subscription(chain_id: u32, subscription_id: Nat) -> Result<(), String> {
+    api::resume_subscription(chain_id, subscription_id).await
+}
+
+#[update]
+async fn get_balance(chain_id: u32, user: Principal) -> Result<Nat, String> {
+    api::get_balance(chain_id, user).await
+}
+
+#[update]
+async fn get_user_subscriptions(chain_id: u32, user: Principal) -> Result<Vec<SubscriptionInfo>, String> {
+    api::get_user_subscriptions(chain_id, user).await
+}
+
 #[query]
 fn get_all_subscriptions() -> Vec<SubscriptionInfo> {
     api::get_all_subscriptions()
@@ -114,6 +166,11 @@ fn get_chain_service_canister_id(chain_id: u32) -> Result<Principal, String> {
 #[query]
 fn get_orchestrator_info() -> OrchestratorInfo {
     api::get_orchestrator_info()
+}
+
+#[query]
+fn get_defaults() -> OrchestratorDefaults {
+    api::get_defaults()
 }
 
 // HTTP Endpoints

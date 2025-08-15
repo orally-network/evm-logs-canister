@@ -51,7 +51,7 @@ pub fn create_base_swaps_config() -> SubscriptionRegistration {
   ]]);
 
   let filter = Filter {
-    address: Hex20::from(address),
+    address: Some(address),
     topics,
   };
 
@@ -69,7 +69,7 @@ pub fn create_ethereum_sync_config() -> SubscriptionRegistration {
     Hex32::from_str("0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1").unwrap(),
   ]]);
 
-  let filter = Filter { address, topics };
+  let filter = Filter { address: Some(address), topics };
 
   SubscriptionRegistration {
     chain_id: 1,
@@ -85,7 +85,7 @@ pub fn create_primex_deposit_config() -> SubscriptionRegistration {
     Hex32::from_str("0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62").unwrap(),
   ]]);
 
-  let filter = Filter { address, topics };
+  let filter = Filter { address: Some(address), topics };
 
   SubscriptionRegistration {
     chain_id: 137,
@@ -101,7 +101,7 @@ pub fn create_chainfusion_deposit_config() -> SubscriptionRegistration {
     Hex32::from_str("0x257e057bb61920d8d0ed2cb7b720ac7f9c513cd1110bc9fa543079154f45f435").unwrap(),
   ]]);
 
-  let filter = Filter { address, topics };
+  let filter = Filter { address: Some(address), topics };
 
   SubscriptionRegistration {
     chain_id: 1,
@@ -117,7 +117,7 @@ pub fn create_curve_token_exchange_config() -> SubscriptionRegistration {
     Hex32::from_str("0xb2e76ae99761dc136e598d4a629bb347eccb9532a5f8bbd72e18467c3c34cc98").unwrap(),
   ]]);
 
-  let filter = Filter { address, topics };
+  let filter = Filter { address: Some(address), topics };
 
   SubscriptionRegistration {
     chain_id: 137,
@@ -133,7 +133,7 @@ pub fn create_uniswap_exchange_1_config() -> SubscriptionRegistration {
     Hex32::from_str("0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67").unwrap(),
   ]]);
 
-  let filter = Filter { address, topics };
+  let filter = Filter { address: Some(address), topics };
 
   SubscriptionRegistration {
     chain_id: 1,
@@ -149,7 +149,7 @@ pub fn create_fantom_token_config() -> SubscriptionRegistration {
     Hex32::from_str("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef").unwrap(),
   ]]);
 
-  let filter = Filter { address, topics };
+  let filter = Filter { address: Some(address), topics };
 
   SubscriptionRegistration {
     chain_id: 1,

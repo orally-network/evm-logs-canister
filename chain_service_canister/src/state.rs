@@ -16,7 +16,7 @@ pub fn init_state(config: ChainConfig) {
         let mut state = state.borrow_mut();
         let mut chain_service_state = ChainServiceState::default();
         chain_service_state.config = config;
-        // Set the caller as the orchestrator during initialization
+        // Set the caller as the orchestrator during initialization (tests rely on this when deploying directly)
         chain_service_state.orchestrator = ic_cdk::caller();
         
         state.set(chain_service_state).expect("Failed to set initial state");

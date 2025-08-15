@@ -88,7 +88,7 @@ pub async fn logs_fetching_and_processing_task() {
     let cycles_before = ic_cdk::api::canister_balance();
     
     // Get active filters and addresses
-    let (addresses, topics) = get_active_addresses_and_topics();
+    let (addresses, topics) = crate::subscriptions::get_active_addresses_and_topics();
     
     if addresses.is_empty() && topics.is_none() {
         return;
@@ -122,40 +122,6 @@ pub async fn logs_fetching_and_processing_task() {
     charge_subscribers_fairly(cycles_used);
 }
 
-fn get_active_addresses_and_topics() -> (Vec<String>, Option<Vec<Vec<String>>>) {
-    crate::state::read_state(|state| {
-        let mut addresses = Vec::new();
-        let mut all_topics = Vec::new();
-        
-        for subscription in state.subscriptions.values() {
-            if matches!(subscription.status, crate::types::SubscriptionStatus::Active) {
-                // Collect addresses
-                if let Some(address) = &subscription.filter.address {
-                    let address_str = format!("{:?}", address);
-                    if !addresses.contains(&address_str) {
-                        addresses.push(address_str);
-                    }
-                }
-                
-                // Collect topics
-                if let Some(topics) = &subscription.filter.topics {
-                    let string_topics: Vec<Vec<String>> = topics.iter()
-                        .map(|topic_pos| topic_pos.iter().map(|hex| format!("{:?}", hex)).collect())
-                        .collect();
-                    all_topics.extend(string_topics);
-                }
-            }
-        }
-        
-        let topics_option = if all_topics.is_empty() {
-            None
-        } else {
-            Some(all_topics)
-        };
-        
-        (addresses, topics_option)
-    })
-}
 
 async fn fetch_logs(
     config: &crate::types::ChainConfig,

@@ -225,6 +225,66 @@ fn test_metrics_endpoint() {
 }
 
 #[test]
+fn test_configure_chain_service_proxy() {
+    let (pic, orchestrator_id) = setup_orchestrator_only();
+
+    // Upload chain service wasm
+    let chain_service_wasm = get_chain_service_wasm();
+    let update_result = pic.update_call(
+        orchestrator_id,
+        Principal::anonymous(),
+        "update_chain_service_wasm",
+        candid::encode_args((chain_service_wasm, "1.0.0".to_string())).unwrap(),
+    );
+    assert!(update_result.is_ok());
+    let response = update_result.unwrap();
+    let update_result: Result<(), String> =
+        candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
+    assert!(update_result.is_ok());
+
+    // Deploy chain service (Ethereum)
+    let config = ChainServiceConfig {
+        chain_id: 1,
+        chain_name: "Ethereum".to_string(),
+        rpc_url: "https://eth-mainnet.alchemyapi.io/v2/demo".to_string(),
+        block_interval_seconds: 12,
+        max_response_bytes: 2_000_000,
+    };
+    let deploy_result = pic.update_call(
+        orchestrator_id,
+        Principal::anonymous(),
+        "deploy_chain_service",
+        candid::encode_args((1u32, "Ethereum".to_string(), config)).unwrap(),
+    );
+    assert!(deploy_result.is_ok());
+    let response = deploy_result.unwrap();
+    let deploy_result: Result<Principal, String> =
+        candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
+    assert!(deploy_result.is_ok());
+
+    // Deploy proxy canister
+    let proxy_id = pic.create_canister();
+    pic.add_cycles(proxy_id, 1_000_000_000_000);
+    let proxy_wasm = get_proxy_wasm();
+    let init_arg = candid::encode_one(()) // proxy has init() without args
+        .unwrap();
+    pic.install_canister(proxy_id, proxy_wasm, init_arg, None);
+
+    // Configure chain service via orchestrator
+    let configure_res = pic.update_call(
+        orchestrator_id,
+        Principal::anonymous(),
+        "configure_chain_service",
+        candid::encode_args((1u32, Some(proxy_id), None::<Principal>)).unwrap(),
+    );
+    assert!(configure_res.is_ok(), "configure_chain_service failed to call");
+    let response = configure_res.unwrap();
+    let cfg_result: Result<(), String> =
+        candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
+    assert!(cfg_result.is_ok(), "configure_chain_service returned error: {:?}", cfg_result.err());
+}
+
+#[test]
 fn test_pause_resume_chain_service() {
     let (pic, orchestrator_id) = setup_orchestrator_only();
     
@@ -344,4 +404,71 @@ fn test_basic_types_and_serialization() {
     
     assert_eq!(decoded.chain_id, 1);
     assert_eq!(decoded.chain_name, "Ethereum");
+}
+
+#[test]
+fn test_subscribe_returns_estimate() {
+    let (pic, orchestrator_id) = setup_orchestrator_only();
+
+    // Update the chain service WASM
+    let chain_service_wasm = get_chain_service_wasm();
+    let update_result = pic.update_call(
+        orchestrator_id,
+        Principal::anonymous(),
+        "update_chain_service_wasm",
+        candid::encode_args((chain_service_wasm, "1.0.0".to_string())).unwrap(),
+    );
+    assert!(update_result.is_ok());
+    let response = update_result.unwrap();
+    let update_result: Result<(), String> =
+        candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
+    assert!(update_result.is_ok());
+
+    // Deploy a chain service (Ethereum)
+    let config = ChainServiceConfig {
+        chain_id: 1,
+        chain_name: "Ethereum".to_string(),
+        rpc_url: "https://eth-mainnet.alchemyapi.io/v2/demo".to_string(),
+        block_interval_seconds: 12,
+        max_response_bytes: 2_000_000,
+    };
+    let deploy_result = pic.update_call(
+        orchestrator_id,
+        Principal::anonymous(),
+        "deploy_chain_service",
+        candid::encode_args((1u32, "Ethereum".to_string(), config)).unwrap(),
+    );
+    assert!(deploy_result.is_ok(), "Failed to call deploy_chain_service: {:?}", deploy_result.err());
+    let response = deploy_result.unwrap();
+    let deploy_result: Result<Principal, String> =
+        candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
+    assert!(deploy_result.is_ok());
+    let chain_service_id = deploy_result.unwrap();
+
+    // Prepare a simple filter (no address/topics)
+    let filter = evm_logs_types::Filter {
+        address: None,
+        topics: None,
+    };
+
+    // Subscribe via orchestrator with a non-anonymous principal
+    let user_principal = Principal::from_text(USER_PRINCIPAL).unwrap();
+    let sub_result = pic.update_call(
+        orchestrator_id,
+        user_principal,
+        "subscribe_to_chain",
+        candid::encode_args((1u32, filter)).unwrap(),
+    );
+    assert!(sub_result.is_ok(), "Failed to call subscribe_to_chain: {:?}", sub_result.err());
+
+    let response = sub_result.unwrap();
+    let decoded: Result<orchestrator_canister::types::SubscriptionResult, String> =
+        candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
+    assert!(decoded.is_ok(), "Subscription returned an error: {:?}", decoded.err());
+
+    let sr = decoded.unwrap();
+    // Validate fields
+    assert_eq!(sr.chain_service_canister_id, chain_service_id);
+    // The estimate may be zero when no data is available yet, but it must be a valid u64
+    assert!(sr.estimated_cycles_per_day >= 0);
 }

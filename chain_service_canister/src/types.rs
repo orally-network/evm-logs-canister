@@ -41,6 +41,7 @@ pub struct ChainServiceState {
     pub cycle_usage_stats: CycleUsageStats,
     pub version: String,
     pub next_subscription_id: Nat,
+    pub next_notification_id: Nat,
 }
 
 impl Default for ChainServiceState {
@@ -64,6 +65,7 @@ impl Default for ChainServiceState {
             cycle_usage_stats: CycleUsageStats::default(),
             version: "0.1.0".to_string(),
             next_subscription_id: Nat::from(1u32),
+            next_notification_id: Nat::from(1u32),
         }
     }
 }

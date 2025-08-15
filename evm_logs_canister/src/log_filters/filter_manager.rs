@@ -42,11 +42,13 @@ impl FilterManager {
   pub fn add_filter(&mut self, chain_id: u32, filter: &Filter) {
     let chain_data = self.get_chain_data_mut(chain_id);
 
-    // Increment the counter for the address
-    *chain_data
-      .addresses
-      .entry(WrappedHex20::from(&filter.address))
-      .or_insert_with(|| Nat::from(0u32)) += Nat::from(1u32);
+    // Increment the counter for the address (only if address is specified)
+    if let Some(addr) = &filter.address {
+      *chain_data
+        .addresses
+        .entry(WrappedHex20::from(addr))
+        .or_insert_with(|| Nat::from(0u32)) += Nat::from(1u32);
+    }
 
     // If filter.topics exists and is not empty, take the first position only
     if let Some(all_positions) = &filter.topics {
@@ -67,12 +69,14 @@ impl FilterManager {
   /// Decrements counters for the address and topics in the first position.
   pub fn remove_filter(&mut self, chain_id: u32, filter: &Filter) {
     if let Some(chain_data) = self.chain_data.get_mut(&chain_id) {
-      // Decrement address counter
-      if let Some(addr_count) = chain_data.addresses.get_mut(&WrappedHex20::from(&filter.address)) {
-        if *addr_count > 0u32 {
-          *addr_count -= 1u32;
-          if *addr_count == 0u32 {
-            chain_data.addresses.remove(&WrappedHex20::from(&filter.address));
+      // Decrement address counter (only if address is specified)
+      if let Some(addr) = &filter.address {
+        if let Some(addr_count) = chain_data.addresses.get_mut(&WrappedHex20::from(addr)) {
+          if *addr_count > 0u32 {
+            *addr_count -= 1u32;
+            if *addr_count == 0u32 {
+              chain_data.addresses.remove(&WrappedHex20::from(addr));
+            }
           }
         }
       }
@@ -141,7 +145,7 @@ mod tests {
   /// We'll keep it simple: `topics` can be a Vec<Vec<&str>>, which we convert to String.
   fn create_filter(address: &str, topics: Option<Vec<Vec<&str>>>) -> Filter {
     Filter {
-      address: Hex20::from_str(address).unwrap(),
+      address: Some(Hex20::from_str(address).unwrap()),
       topics: topics.map(|ts| {
         ts.into_iter()
           .map(|topic_set| {

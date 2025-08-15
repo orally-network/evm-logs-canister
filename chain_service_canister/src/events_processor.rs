@@ -83,7 +83,8 @@ async fn distribute_event(event: Event) {
     let subscriptions = read_state(|state| {
         state.subscriptions
             .values()
-            .filter(|sub| sub.chain_id == event.chain_id)
+            // not need it anymore when we have separate canister for each chain
+            // .filter(|sub| sub.chain_id == event.chain_id)
             .cloned()
             .collect::<Vec<_>>()
     });
@@ -124,8 +125,8 @@ async fn distribute_event(event: Event) {
 
             // Generate a unique notification ID
             let notification_id = mutate_state(|state| {
-                let current_id = state.next_subscription_id.clone();
-                state.next_subscription_id += 1u32;
+                let current_id = state.next_notification_id.clone();
+                state.next_notification_id += 1u32;
                 current_id
             });
 

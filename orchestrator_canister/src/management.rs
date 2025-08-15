@@ -63,6 +63,8 @@ pub async fn deploy_chain_service(
             memory_allocation: None,
             freezing_threshold: None,
             reserved_cycles_limit: None,
+            log_visibility: None,
+            wasm_memory_limit: None,
         }),
     };
     
@@ -72,6 +74,11 @@ pub async fn deploy_chain_service(
     
     let canister_id = canister_record.canister_id;
     
+    // Resolve orchestrator defaults
+    let (default_proxy, default_evm_rpc) = read_state(|state| {
+        (state.default_proxy_canister_id, state.default_evm_rpc_canister_id)
+    });
+
     // Convert ChainServiceConfig to ChainConfig that the chain service canister expects
     let chain_config = ChainConfig {
         chain_id: config.chain_id,
@@ -79,8 +86,8 @@ pub async fn deploy_chain_service(
         rpc_url: config.rpc_url.clone(),
         block_interval_seconds: config.block_interval_seconds,
         max_response_bytes: config.max_response_bytes,
-        proxy_canister_id: None,
-        evm_rpc_canister_id: None, // TODO: Set this based on configuration
+        proxy_canister_id: default_proxy,
+        evm_rpc_canister_id: default_evm_rpc,
         rpc_service: match config.chain_id {
             1 => RpcServiceConfig::EthMainnet { providers: None },
             11155111 => RpcServiceConfig::EthSepolia { providers: None },
@@ -115,6 +122,13 @@ pub async fn deploy_chain_service(
         "set_orchestrator",
         (ic_cdk::id(),)
     ).await.map_err(|e| format!("Failed to set orchestrator: {:?}", e))?;
+
+    // Start monitoring by default after deployment
+    let _: () = ic_cdk::call(
+        canister_id,
+        "start_monitoring",
+        ()
+    ).await.map_err(|e| format!("Failed to start monitoring: {:?}", e))?;
     
     // Update state
     mutate_state(|state| {
@@ -291,6 +305,35 @@ pub async fn resume_chain_service(chain_id: u32) -> Result<(), String> {
         }
     });
     
+    Ok(())
+}
+
+pub async fn configure_chain_service(
+    chain_id: u32,
+    proxy_canister_id: Option<Principal>,
+    evm_rpc_canister_id: Option<Principal>,
+) -> Result<(), String> {
+    // Resolve chain service canister ID
+    let canister_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    // Update proxy canister ID if provided (or clear if None)
+    let _: () = ic_cdk::call(
+        canister_id,
+        "update_proxy_canister_id",
+        (proxy_canister_id,)
+    ).await.map_err(|e| format!("Failed to update proxy canister ID: {:?}", e))?;
+
+    // Update EVM RPC canister ID if provided (or clear if None)
+    let _: () = ic_cdk::call(
+        canister_id,
+        "update_evm_rpc_canister_id",
+        (evm_rpc_canister_id,)
+    ).await.map_err(|e| format!("Failed to update EVM RPC canister ID: {:?}", e))?;
+
     Ok(())
 }
 

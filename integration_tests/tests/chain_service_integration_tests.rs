@@ -41,9 +41,9 @@ fn test_balance_management() {
     let user_principal = Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap();
     
     // Check initial balance (should be 0)
-    let result = pic.query_call(
+    let result = pic.update_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_balance",
         candid::encode_one(user_principal).unwrap(),
     );
@@ -56,9 +56,9 @@ fn test_balance_management() {
     // Top up balance (simulate sending cycles)
     let result = pic.update_call(
         chain_service_id,
-        user_principal,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "top_up_balance",
-        candid::encode_one(()).unwrap(),
+        candid::encode_one(user_principal).unwrap(),
     );
     
     // Note: In a real test with cycles, this would work, but PocketIC doesn't simulate cycles transfer
@@ -93,7 +93,7 @@ fn test_subscription_lifecycle() {
     // Register subscription
     let result = pic.update_call(
         chain_service_id,
-        user_principal,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "register_subscription",
         candid::encode_one(registration).unwrap(),
     );
@@ -109,9 +109,9 @@ fn test_subscription_lifecycle() {
     let subscription_id = subscription_result.subscription_id;
     
     // Verify subscription was created
-    let result = pic.query_call(
+    let result = pic.update_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_user_subscriptions",
         candid::encode_one(user_principal).unwrap(),
     );
@@ -130,7 +130,7 @@ fn test_subscription_lifecycle() {
     // Test subscription status query
     let result = pic.query_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_subscription_status",
         candid::encode_one(subscription_id.clone()).unwrap(),
     );
@@ -146,9 +146,9 @@ fn test_subscription_lifecycle() {
     // Pause subscription
     let result = pic.update_call(
         chain_service_id,
-        user_principal,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "pause_subscription",
-        candid::encode_one(subscription_id.clone()).unwrap(),
+        candid::encode_args((subscription_id.clone(), user_principal)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -161,7 +161,7 @@ fn test_subscription_lifecycle() {
     // Verify subscription is paused
     let result = pic.query_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_subscription_status",
         candid::encode_one(subscription_id.clone()).unwrap(),
     );
@@ -177,9 +177,9 @@ fn test_subscription_lifecycle() {
     // Resume subscription
     let result = pic.update_call(
         chain_service_id,
-        user_principal,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "resume_subscription",
-        candid::encode_one(subscription_id.clone()).unwrap(),
+        candid::encode_args((subscription_id.clone(), user_principal)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -192,7 +192,7 @@ fn test_subscription_lifecycle() {
     // Verify subscription is active again
     let result = pic.query_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_subscription_status",
         candid::encode_one(subscription_id.clone()).unwrap(),
     );
@@ -208,9 +208,9 @@ fn test_subscription_lifecycle() {
     // Unsubscribe
     let result = pic.update_call(
         chain_service_id,
-        user_principal,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "unsubscribe",
-        candid::encode_one(subscription_id.clone()).unwrap(),
+        candid::encode_args((subscription_id.clone(), user_principal)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -221,9 +221,9 @@ fn test_subscription_lifecycle() {
     assert!(unsubscribe_result.is_ok(), "Unsubscribe failed: {:?}", unsubscribe_result.err());
     
     // Verify subscription was removed
-    let result = pic.query_call(
+    let result = pic.update_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_user_subscriptions",
         candid::encode_one(user_principal).unwrap(),
     );
@@ -367,9 +367,9 @@ fn test_access_control() {
     // User2 tries to pause User1's subscription (should fail)
     let result = pic.update_call(
         chain_service_id,
-        user2,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "pause_subscription",
-        candid::encode_one(subscription_id.clone()).unwrap(),
+        candid::encode_args((subscription_id.clone(), user2)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -383,9 +383,9 @@ fn test_access_control() {
     // User2 tries to unsubscribe User1's subscription (should fail)
     let result = pic.update_call(
         chain_service_id,
-        user2,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "unsubscribe",
-        candid::encode_one(subscription_id.clone()).unwrap(),
+        candid::encode_args((subscription_id.clone(), user2)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -399,9 +399,9 @@ fn test_access_control() {
     // User1 can still manage their own subscription
     let result = pic.update_call(
         chain_service_id,
-        user1,
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "pause_subscription",
-        candid::encode_one(subscription_id.clone()).unwrap(),
+        candid::encode_args((subscription_id.clone(), user1)).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -416,12 +416,12 @@ fn test_access_control() {
 fn test_anonymous_user_restrictions() {
     let (pic, chain_service_id) = setup_chain_service_only();
     
-    // Anonymous user tries to top up balance
+    // Anonymous caller should be rejected by orchestrator guard
     let result = pic.update_call(
         chain_service_id,
         Principal::anonymous(),
         "top_up_balance",
-        candid::encode_one(()).unwrap(),
+        candid::encode_one(Principal::anonymous()).unwrap(),
     );
     
     assert!(result.is_ok());
@@ -430,9 +430,9 @@ fn test_anonymous_user_restrictions() {
         candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
     
     assert!(top_up_result.is_err());
-    assert!(top_up_result.unwrap_err().contains("Anonymous users cannot"));
+    assert!(top_up_result.unwrap_err().contains("Access denied: caller is not orchestrator"));
     
-    // Anonymous user tries to register subscription
+    // Anonymous caller tries to register subscription -> should be rejected by orchestrator guard
     let registration = SubscriptionRegistration {
         chain_id: 1,
         filter: Filter {
@@ -456,7 +456,7 @@ fn test_anonymous_user_restrictions() {
         candid::decode_one(&extract_reply_bytes(response)).expect("Failed to decode response");
     
     assert!(register_result.is_err());
-    assert!(register_result.unwrap_err().contains("Anonymous users cannot"));
+    assert!(register_result.unwrap_err().contains("Access denied: caller is not orchestrator"));
 }
 
 #[test]
@@ -499,7 +499,7 @@ fn test_cycle_usage_stats() {
     // Get initial cycle usage stats
     let result = pic.query_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_cycle_usage_stats",
         candid::encode_one(()).unwrap(),
     );
@@ -522,7 +522,7 @@ fn test_health_status() {
     // Get health status
     let result = pic.query_call(
         chain_service_id,
-        Principal::anonymous(),
+        Principal::from_text("mqygn-kiaaa-aaaar-qaadq-cai").unwrap(),
         "get_health_status",
         candid::encode_one(()).unwrap(),
     );

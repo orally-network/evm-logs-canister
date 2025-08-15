@@ -10,6 +10,30 @@ pub struct OrchestratorInitArg {
     pub version: String,
 }
 
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct SubscriptionResult {
+    pub subscription_id: Nat,
+    pub chain_service_canister_id: Principal,
+    pub estimated_cycles_per_day: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct TopUpBalanceResult {
+    pub new_balance: Nat,
+    pub cycles_received: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct UnsubscribeResult {
+    pub refunded_cycles: Nat,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct OrchestratorDefaults {
+    pub default_proxy_canister_id: Option<Principal>,
+    pub default_evm_rpc_canister_id: Option<Principal>,
+}
+
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
 pub struct OrchestratorState {
     pub admin: Principal,
@@ -18,6 +42,8 @@ pub struct OrchestratorState {
     pub chain_service_wasm: Option<Vec<u8>>,
     pub previous_wasms: VecDeque<(String, Vec<u8>)>,
     pub version: String,
+    pub default_proxy_canister_id: Option<Principal>,
+    pub default_evm_rpc_canister_id: Option<Principal>,
 }
 
 impl Default for OrchestratorState {
@@ -29,6 +55,8 @@ impl Default for OrchestratorState {
             chain_service_wasm: None,
             previous_wasms: VecDeque::new(),
             version: "0.1.0".to_string(),
+            default_proxy_canister_id: None,
+            default_evm_rpc_canister_id: None,
         }
     }
 }
@@ -109,15 +137,15 @@ pub struct ChainServiceConfig {
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
-pub struct SubscriptionResult {
-    pub subscription_id: Nat,
-    pub chain_service_canister_id: Principal,
-}
-
-#[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct ChainSubscriptionRequest {
     pub chain_id: u32,
     pub filter: evm_logs_types::Filter,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ChainRegisterSubscriptionResult {
+    pub subscription_id: Nat,
+    pub estimated_cycles_per_day: u64,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]

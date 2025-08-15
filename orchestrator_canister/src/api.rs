@@ -49,15 +49,30 @@ pub async fn subscribe_to_chain(chain_id: u32, filter: evm_logs_types::Filter) -
         memo: None,
         canister_to_top_up: caller,
     };
+
+    // Forward cycles to chain service if provided; otherwise proceed without payment (for tests)
+    let cycles = ic_cdk::api::call::msg_cycles_available128();
+    let result: (Result<ChainRegisterSubscriptionResult, String>,) = if cycles > 0 {
+        // Accept cycles so we can forward them
+        ic_cdk::api::call::msg_cycles_accept128(cycles);
+        ic_cdk::api::call::call_with_payment128(
+            chain_service_id,
+            "register_subscription",
+            (registration,),
+            cycles,
+        ).await.map_err(|e| format!("Failed to call chain service: {:?}", e))?
+    } else {
+        ic_cdk::call(
+            chain_service_id,
+            "register_subscription",
+            (registration,),
+        ).await.map_err(|e| format!("Failed to call chain service: {:?}", e))?
+    };
     
-    // Call chain service to register subscription
-    let result: (Nat,) = ic_cdk::call(
-        chain_service_id,
-        "register_subscription",
-        (registration,)
-    ).await.map_err(|e| format!("Failed to call chain service: {:?}", e))?;
-    
-    let subscription_id = result.0;
+    let (subscription_id, estimated_cycles_per_day) = match result.0 {
+        Ok(res) => (res.subscription_id, res.estimated_cycles_per_day),
+        Err(err) => return Err(err),
+    };
     
     // Update user registry
     mutate_state(|state| {
@@ -72,6 +87,7 @@ pub async fn subscribe_to_chain(chain_id: u32, filter: evm_logs_types::Filter) -
     Ok(SubscriptionResult {
         subscription_id,
         chain_service_canister_id: chain_service_id,
+        estimated_cycles_per_day,
     })
 }
 
@@ -135,4 +151,139 @@ pub fn get_orchestrator_info() -> OrchestratorInfo {
             total_users: state.user_registry.len() as u64,
         }
     })
+}
+
+// Admin defaults management (called via lib with controller guard)
+pub fn set_default_proxy_canister_id(proxy: Option<Principal>) -> Result<(), String> {
+    mutate_state(|state| {
+        state.default_proxy_canister_id = proxy;
+        Ok(())
+    })
+}
+
+pub fn set_default_evm_rpc_canister_id(evm_rpc: Option<Principal>) -> Result<(), String> {
+    mutate_state(|state| {
+        state.default_evm_rpc_canister_id = evm_rpc;
+        Ok(())
+    })
+}
+
+pub fn get_defaults() -> OrchestratorDefaults {
+    read_state(|state| OrchestratorDefaults {
+        default_proxy_canister_id: state.default_proxy_canister_id,
+        default_evm_rpc_canister_id: state.default_evm_rpc_canister_id,
+    })
+}
+
+// New: forward-cycles top up via orchestrator
+pub async fn top_up_balance(chain_id: u32) -> Result<TopUpBalanceResult, String> {
+    let caller = ic_cdk::caller();
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot top up".to_string());
+    }
+
+    let chain_service_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    let cycles = ic_cdk::api::call::msg_cycles_available128();
+    if cycles == 0 {
+        return Err("top_up_balance requires cycles attached; none provided".to_string());
+    }
+    ic_cdk::api::call::msg_cycles_accept128(cycles);
+
+    let result: (Result<TopUpBalanceResult, String>,) = ic_cdk::api::call::call_with_payment128(
+        chain_service_id,
+        "top_up_balance",
+        (caller,),
+        cycles,
+    ).await.map_err(|e| format!("Failed to call chain service top_up_balance: {:?}", e))?;
+
+    result.0
+}
+
+// New: wrappers to operate through orchestrator only
+pub async fn unsubscribe(chain_id: u32, subscription_id: Nat) -> Result<UnsubscribeResult, String> {
+    let caller = ic_cdk::caller();
+    let chain_service_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    let (res,): (Result<UnsubscribeResult, String>,) = ic_cdk::call(
+        chain_service_id,
+        "unsubscribe",
+        (subscription_id, caller),
+    ).await.map_err(|e| format!("Failed to call chain service unsubscribe: {:?}", e))?;
+
+    res
+}
+
+pub async fn pause_subscription(chain_id: u32, subscription_id: Nat) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    let chain_service_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    let (res,): (Result<(), String>,) = ic_cdk::call(
+        chain_service_id,
+        "pause_subscription",
+        (subscription_id, caller),
+    ).await.map_err(|e| format!("Failed to call chain service pause_subscription: {:?}", e))?;
+
+    res
+}
+
+pub async fn resume_subscription(chain_id: u32, subscription_id: Nat) -> Result<(), String> {
+    let caller = ic_cdk::caller();
+    let chain_service_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    let (res,): (Result<(), String>,) = ic_cdk::call(
+        chain_service_id,
+        "resume_subscription",
+        (subscription_id, caller),
+    ).await.map_err(|e| format!("Failed to call chain service resume_subscription: {:?}", e))?;
+
+    res
+}
+
+pub async fn get_balance(chain_id: u32, user: Principal) -> Result<Nat, String> {
+    let chain_service_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    let (balance,): (Nat,) = ic_cdk::call(
+        chain_service_id,
+        "get_balance",
+        (user,),
+    ).await.map_err(|e| format!("Failed to call chain service get_balance: {:?}", e))?;
+
+    Ok(balance)
+}
+
+pub async fn get_user_subscriptions(chain_id: u32, user: Principal) -> Result<Vec<SubscriptionInfo>, String> {
+    let chain_service_id = read_state(|state| {
+        state.chain_services.get(&chain_id)
+            .map(|info| info.canister_id)
+            .ok_or_else(|| format!("Chain service for chain ID {} not found", chain_id))
+    })?;
+
+    let (subs,): (Vec<SubscriptionInfo>,) = ic_cdk::call(
+        chain_service_id,
+        "get_user_subscriptions",
+        (user,),
+    ).await.map_err(|e| format!("Failed to call chain service get_user_subscriptions: {:?}", e))?;
+
+    Ok(subs)
 }

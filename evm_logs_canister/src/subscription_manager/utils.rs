@@ -2,8 +2,11 @@ use evm_logs_types::{Event, Filter};
 
 // Function to check if particular event matches specific filter
 pub fn event_matches_filter(event: &Event, subscribers_filter: &Filter) -> bool {
-  if subscribers_filter.address != event.log_entry.address {
-    return false;
+  // If address filter is set, it must match the event address
+  if let Some(filter_address) = &subscribers_filter.address {
+    if filter_address != &event.log_entry.address {
+      return false;
+    }
   }
 
   if let Some(filter_topics) = &subscribers_filter.topics {
@@ -62,7 +65,7 @@ mod tests {
 
   fn create_filter(address: &str, topics: Option<Vec<Vec<&str>>>) -> Filter {
     Filter {
-      address: Hex20::from_str(address).unwrap(),
+      address: Some(Hex20::from_str(address).unwrap()),
       topics: topics.map(|ts| {
         ts.into_iter()
           .map(|topic_set| {
